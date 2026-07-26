@@ -1,0 +1,13 @@
+var R=require("../../../chunks/ssr/[turbopack]_runtime.js")("server/app/confirmacion/[id]/page.js")
+R.c("server/chunks/ssr/[root-of-the-server]__09e3dm3._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_esm_build_templates_app-page_19x20rn.js")
+R.c("server/chunks/ssr/[root-of-the-server]__1o6na-u._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__1ih9kgz._.js")
+R.c("server/chunks/ssr/src_1i0y909._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_0wpq8j3._.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_0symwr9.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_0l_sp0x.js")
+R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_0-o-goa.js")
+R.c("server/chunks/ssr/_next-internal_server_app_confirmacion_[id]_page_actions_1t2k_20.js")
+R.m(17643)
+module.exports=R.m(17643).exports

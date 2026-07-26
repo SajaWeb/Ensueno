@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Detalle de Producto - Ensueño</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;family=Work+Sans:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "secondary-fixed-dim": "#f2b7c5",
+                "on-error": "#ffffff",
+                "on-surface": "#181c1f",
+                "background": "#f7fafe",
+                "surface-bright": "#f7fafe",
+                "on-background": "#181c1f",
+                "surface-container": "#ebeef2",
+                "surface-container-low": "#f1f4f8",
+                "on-tertiary-container": "#66551d",
+                "inverse-on-surface": "#eef1f5",
+                "on-primary-fixed": "#001d32",
+                "surface-dim": "#d7dade",
+                "on-error-container": "#93000a",
+                "tertiary-fixed-dim": "#dcc582",
+                "primary-container": "#a2d2ff",
+                "error": "#ba1a1a",
+                "inverse-surface": "#2d3134",
+                "surface-container-highest": "#e0e3e7",
+                "on-secondary-fixed-variant": "#653a46",
+                "on-tertiary-fixed": "#231b00",
+                "on-secondary-fixed": "#32101b",
+                "on-tertiary": "#ffffff",
+                "on-tertiary-fixed-variant": "#55450e",
+                "on-surface-variant": "#41474e",
+                "surface-tint": "#30628a",
+                "primary": "#30628a",
+                "outline": "#72787f",
+                "on-primary": "#ffffff",
+                "surface-variant": "#e0e3e7",
+                "primary-fixed-dim": "#9bcbf8",
+                "secondary-container": "#fec1d0",
+                "on-secondary-container": "#7b4c59",
+                "outline-variant": "#c1c7cf",
+                "on-secondary": "#ffffff",
+                "tertiary-container": "#e3cb87",
+                "tertiary": "#6e5d24",
+                "on-primary-fixed-variant": "#104a70",
+                "secondary": "#80515e",
+                "on-primary-container": "#275b82",
+                "secondary-fixed": "#ffd9e1",
+                "surface-container-lowest": "#ffffff",
+                "surface-container-high": "#e5e8ec",
+                "inverse-primary": "#9bcbf8",
+                "tertiary-fixed": "#fae19b",
+                "surface": "#f7fafe",
+                "primary-fixed": "#cde5ff",
+                "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.5rem",
+                "lg": "1rem",
+                "xl": "1.5rem",
+                "2xl": "2rem",
+                "3xl": "2.5rem",
+                "full": "9999px"
+              },
+              "spacing": {
+                "gutter-mobile": "16px",
+                "unit": "8px",
+                "margin-desktop": "auto",
+                "margin-mobile": "20px",
+                "max-width": "1200px",
+                "gutter-desktop": "24px"
+              },
+              "fontFamily": {
+                "body-md": ["Work Sans"],
+                "headline-md": ["Plus Jakarta Sans"],
+                "headline-lg-mobile": ["Plus Jakarta Sans"],
+                "label-sm": ["Plus Jakarta Sans"],
+                "headline-lg": ["Plus Jakarta Sans"],
+                "body-lg": ["Work Sans"]
+              },
+              "animation": {
+                "fade-in-up": "fade-in-up 0.8s ease-out forwards",
+                "float": "float 4s ease-in-out infinite",
+                "pulse-subtle": "pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+              },
+              "keyframes": {
+                "fade-in-up": {
+                  "0%": { opacity: "0", transform: "translateY(20px)" },
+                  "100%": { opacity: "1", transform: "translateY(0)" }
+                },
+                "float": {
+                  "0%, 100%": { transform: "translateY(0) rotate(0deg)" },
+                  "50%": { transform: "translateY(-15px) rotate(5deg)" }
+                },
+                "pulse-subtle": {
+                  "0%, 100%": { opacity: "1", transform: "scale(1)" },
+                  "50%": { opacity: "0.9", transform: "scale(1.02)" }
+                }
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        .soft-glow {
+            box-shadow: 0 10px 40px -10px rgba(48, 98, 138, 0.15);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .pastel-bg {
+            background: linear-gradient(180deg, #f7fafe 0%, #eef6ff 100%);
+        }
+        
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+
+        @media (min-width: 768px) {
+            .main-content-max {
+                max-width: 1200px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
+    </style>
+</head>
+<body class="pastel-bg text-on-background font-body-md selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-center items-center h-16 bg-surface/60 backdrop-blur-xl border-b border-white/20 px-4 md:px-gutter-desktop">
+<div class="flex justify-between items-center w-full max-w-[1200px]">
+<button class="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary-container/20 transition-colors rounded-full active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<img alt="Ensueño Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBacrwYnm5nPTO4hhqNLJUwc0G_8weaX0A-ZBJH8o2-NLZi2NHvqXEFidgcGu8rYGGe8pWt9qQ_YRYbsrx0XGRLA8rdaflrYuuMJl8uCY7Pr13zpC2lKyulnTKKl_m5QZ6XIeDzZm9Dr2Q2tn2MJv5mK_ie9venjpkkiW8_Aqhs9KRpKs6SzOYpMH5eXSJUZuX4ZCHLVBNej7yaMriHnplguo3_oAxMlJbDvsKoJ0nCUBvQhnPTdko5qQ2gDH6dLI9fz1UoF2u-qI"/>
+<button class="w-10 h-10 flex items-center justify-center text-primary hover:bg-primary-container/20 transition-colors rounded-full active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+</button>
+</div>
+</header>
+<main class="pt-16 pb-32 overflow-x-hidden">
+<!-- Product Section -->
+<div class="main-content-max md:px-gutter-desktop">
+<div class="flex flex-col md:grid md:grid-cols-2 md:gap-16 md:pt-12">
+<!-- Left: Gallery & Main Image -->
+<section class="relative animate-fade-in-up">
+<div class="w-full aspect-[0.8] md:aspect-square overflow-hidden md:rounded-3xl shadow-xl bg-white group relative">
+<img alt="Colonia Ensueño Fragancia para Bebé" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1Ib0lhG5hgiyvFf48U1wyqg33tHvRaKmgDEhCIZeG01EvlWUbwR1QWg0K1JdwiiH9nXGybZlO2BPaPKvT7Pfw9CwOcRjInQLbSUYTgOnTgyPXgiSjjMus3nI3PiG5hR2x_mGshhJKXDWVE6l373BN08_AfOEVqqzFQBmpkYUYbsD0fCX9UcvBohbjBWyzNNe9PUooyD1KfrvuOiulfEvwQiKGpCsWehgoU5bKnJ081fxZ7LaRJ26EnDBH3UVxs2gdiNo74FYNZRA"/>
+<div class="absolute top-4 left-4">
+<span class="bg-primary/90 text-on-primary px-4 py-1.5 rounded-full text-label-sm font-bold uppercase tracking-widest shadow-lg">Nuevo</span>
+</div>
+<!-- Floating Mascot - Star Mascot Animation -->
+<div class="absolute -bottom-4 -right-4 w-24 h-24 md:w-32 md:h-32 animate-float opacity-90 drop-shadow-2xl">
+<img alt="Star mascot" class="w-full h-full object-contain filter brightness-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBacrwYnm5nPTO4hhqNLJUwc0G_8weaX0A-ZBJH8o2-NLZi2NHvqXEFidgcGu8rYGGe8pWt9qQ_YRYbsrx0XGRLA8rdaflrYuuMJl8uCY7Pr13zpC2lKyulnTKKl_m5QZ6XIeDzZm9Dr2Q2tn2MJv5mK_ie9venjpkkiW8_Aqhs9KRpKs6SzOYpMH5eXSJUZuX4ZCHLVBNej7yaMriHnplguo3_oAxMlJbDvsKoJ0nCUBvQhnPTdko5qQ2gDH6dLI9fz1UoF2u-qI"/>
+</div>
+</div>
+<!-- Thumbnails -->
+<div class="flex gap-4 px-margin-mobile mt-6 md:px-0 no-scrollbar overflow-x-auto pb-4">
+<div class="flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-primary/30 cursor-pointer shadow-md transition-all hover:scale-105">
+<img alt="Vista principal" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1Ib0lhG5hgiyvFf48U1wyqg33tHvRaKmgDEhCIZeG01EvlWUbwR1QWg0K1JdwiiH9nXGybZlO2BPaPKvT7Pfw9CwOcRjInQLbSUYTgOnTgyPXgiSjjMus3nI3PiG5hR2x_mGshhJKXDWVE6l373BN08_AfOEVqqzFQBmpkYUYbsD0fCX9UcvBohbjBWyzNNe9PUooyD1KfrvuOiulfEvwQiKGpCsWehgoU5bKnJ081fxZ7LaRJ26EnDBH3UVxs2gdiNo74FYNZRA"/>
+</div>
+<div class="flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-white/50 backdrop-blur-sm border border-white/40 cursor-pointer hover:bg-white/80 transition-all flex items-center justify-center text-primary/60">
+<span class="material-symbols-outlined" data-icon="visibility">visibility</span>
+</div>
+<div class="flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-white/50 backdrop-blur-sm border border-white/40 cursor-pointer hover:bg-white/80 transition-all flex items-center justify-center text-primary/60">
+<span class="material-symbols-outlined" data-icon="spa">spa</span>
+</div>
+</div>
+</section>
+<!-- Right: Details -->
+<section class="px-margin-mobile md:px-0 flex flex-col gap-8 md:gap-10 animate-fade-in-up delay-100">
+<div>
+<nav class="flex items-center gap-2 text-label-sm font-label-sm text-outline-variant mb-4 md:mb-6">
+<span class="">Inicio</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span class="">Tienda</span>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span class="text-primary font-bold">Fragancias</span>
+</nav>
+<h1 class="text-headline-lg-mobile md:text-5xl md:font-bold font-headline-lg text-on-surface leading-tight">Colonia Ensueño</h1>
+<div class="flex items-center gap-2 mt-4">
+<div class="flex text-tertiary">
+<span class="material-symbols-outlined text-sm fill-icon">star</span>
+<span class="material-symbols-outlined text-sm fill-icon">star</span>
+<span class="material-symbols-outlined text-sm fill-icon">star</span>
+<span class="material-symbols-outlined text-sm fill-icon">star</span>
+<span class="material-symbols-outlined text-sm fill-icon">star_half</span>
+</div>
+<span class="text-label-sm text-outline font-medium">(124 reseñas)</span>
+</div>
+</div>
+<div class="text-3xl md:text-4xl font-bold text-primary tracking-tight">$45.000 COP</div>
+<div class="p-8 md:p-10 bg-white/60 backdrop-blur-md rounded-3xl border border-white shadow-sm relative overflow-hidden group">
+<!-- Decorative background shape -->
+<div class="absolute -right-10 -bottom-10 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
+<p class="text-body-lg md:text-xl font-body-lg text-on-surface-variant leading-relaxed relative z-10">
+                    Fórmula hipoalergénica con extractos naturales de manzanilla y aloe vera. Ternura en cada gota. Ideal para el uso diario después del baño.
+                </p>
+<!-- Benefit Icons -->
+<div class="grid grid-cols-3 gap-4 mt-8 md:mt-12 relative z-10">
+<div class="flex flex-col items-center text-center gap-2">
+<div class="w-14 h-14 md:w-16 md:h-16 bg-primary-container/40 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-2xl md:text-3xl" data-icon="science">science</span>
+</div>
+<span class="text-[11px] md:text-xs font-bold text-on-surface-variant uppercase tracking-tighter">pH balanceado</span>
+</div>
+<div class="flex flex-col items-center text-center gap-2">
+<div class="w-14 h-14 md:w-16 md:h-16 bg-primary-container/40 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-2xl md:text-3xl" data-icon="clean_hands">clean_hands</span>
+</div>
+<span class="text-[11px] md:text-xs font-bold text-on-surface-variant uppercase tracking-tighter">Sin parabenos</span>
+</div>
+<div class="flex flex-col items-center text-center gap-2">
+<div class="w-14 h-14 md:w-16 md:h-16 bg-primary-container/40 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined text-2xl md:text-3xl" data-icon="verified_user">verified_user</span>
+</div>
+<span class="text-[11px] md:text-xs font-bold text-on-surface-variant uppercase tracking-tighter">Dermatológico</span>
+</div>
+</div>
+</div>
+<!-- Purchase Controls -->
+<div class="flex flex-col gap-5 mt-4 md:mt-6 animate-fade-in-up delay-200">
+<div class="flex items-center gap-4">
+<div class="flex items-center bg-white border border-outline-variant/30 rounded-full p-1.5 shadow-sm">
+<button class="w-11 h-11 flex items-center justify-center hover:bg-surface-container-low rounded-full transition-colors text-primary" onclick="decrement()">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<span class="w-14 text-center text-lg font-bold text-on-surface" id="quantity">1</span>
+<button class="w-11 h-11 flex items-center justify-center hover:bg-surface-container-low rounded-full transition-colors text-primary" onclick="increment()">
+<span class="material-symbols-outlined">add</span>
+</button>
+</div>
+<button class="w-14 h-14 flex items-center justify-center border-2 border-primary/20 rounded-2xl text-primary hover:bg-primary/5 transition-all active:scale-95">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+</button>
+</div>
+<button class="w-full py-5 md:py-6 px-8 rounded-2xl bg-primary text-on-primary font-bold text-lg md:text-xl flex items-center justify-center gap-3 shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98] group">
+<span class="material-symbols-outlined group-hover:animate-pulse">favorite</span>
+                    Añadir a mi ritual de amor
+                </button>
+</div>
+</section>
+</div>
+</div>
+<!-- Ritual Recomendado -->
+<section class="mt-24 px-margin-mobile md:px-0 main-content-max mb-16 animate-fade-in-up delay-300">
+<div class="flex items-end justify-between mb-8">
+<div>
+<span class="text-label-sm font-bold text-secondary uppercase tracking-[0.2em]">Para completar la paz</span>
+<h2 class="text-3xl md:text-4xl font-headline-md text-on-surface mt-2">Ritual recomendado</h2>
+</div>
+<a class="text-primary font-bold text-label-sm flex items-center gap-1 hover:underline group" href="#">
+                Ver ritual completo
+                <span class="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</a>
+</div>
+<!-- Suggestion Card (Bento Style Elevated) -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter-desktop items-center bg-white/80 border border-white rounded-[2.5rem] p-8 md:p-14 md:py-20 overflow-hidden relative shadow-2xl shadow-blue-900/5">
+<!-- Abstract Cloud Patterns -->
+<div class="absolute -top-24 -right-24 w-80 h-80 bg-primary-container/30 rounded-full blur-[80px]"></div>
+<div class="absolute -bottom-12 -left-12 w-64 h-64 bg-secondary-container/40 rounded-full blur-[60px]"></div>
+<div class="md:col-span-5 order-2 md:order-1 relative z-10">
+<div class="inline-block px-3 py-1 bg-secondary-container/50 text-on-secondary-container rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">Combo Sugerido</div>
+<h3 class="text-3xl md:text-4xl font-headline-md text-on-surface-variant leading-tight">Pañitos Húmedos Ensueño</h3>
+<p class="text-body-md text-on-surface-variant/80 mt-5 mb-10 leading-relaxed md:text-lg">
+                    Limpia con la suavidad de una nube antes de aplicar la colonia para sellar la frescura y la humectación en la piel de tu bebé.
+                </p>
+<div class="flex items-center gap-6">
+<span class="text-2xl md:text-3xl font-bold text-primary">$12.900</span>
+<button class="bg-primary text-on-primary px-8 py-3 md:py-4 md:px-10 rounded-xl font-bold flex items-center gap-2 hover:scale-105 hover:shadow-lg transition-all active:scale-95 shadow-md">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Agregar
+                    </button>
+</div>
+</div>
+<div class="md:col-span-7 order-1 md:order-2 flex justify-center relative">
+<!-- Another Floating Mascot -->
+<div class="absolute -top-10 -left-10 w-20 h-20 md:w-28 md:h-28 animate-float opacity-80 z-20" style="animation-delay: -2s;">
+<img alt="Star mascot" class="w-full h-full object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBacrwYnm5nPTO4hhqNLJUwc0G_8weaX0A-ZBJH8o2-NLZi2NHvqXEFidgcGu8rYGGe8pWt9qQ_YRYbsrx0XGRLA8rdaflrYuuMJl8uCY7Pr13zpC2lKyulnTKKl_m5QZ6XIeDzZm9Dr2Q2tn2MJv5mK_ie9venjpkkiW8_Aqhs9KRpKs6SzOYpMH5eXSJUZuX4ZCHLVBNej7yaMriHnplguo3_oAxMlJbDvsKoJ0nCUBvQhnPTdko5qQ2gDH6dLI9fz1UoF2u-qI"/>
+</div>
+<div class="relative w-full max-w-[340px] md:max-w-[450px] aspect-[0.9] rounded-[2rem] md:rounded-[3rem] overflow-hidden shadow-2xl md:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] rotate-2 hover:rotate-0 transition-transform duration-700 ring-8 ring-white/80">
+<img alt="Pañitos Húmedos Ensueño para Bebés" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVY_pMDfpxcNmdY17JLZAp-ZUFFzVZbUdZXTmkRBBy5A3z04LJVdk2Iqwd29hsOIufB8qQN6DILhl4zCkc_7Eq83CFkoYnvamAwxIISI-3Y93V2qnb9WPr29Bp861uophuiU_z_EjFoiDDeA1nIi5wiay30sCnx55LZ-ABjNZiDxXBu86KRw0ZlNHl597JLzPD0Q27Av7dC4MMx6jpfst6ypm2ucXh4HXSBLMF5BHLu8aI0RFH3OJ23OtNUCQpC1UUQKVLI10YtKM"/>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-center items-center pb-safe bg-white/70 backdrop-blur-2xl border-t border-white/40 shadow-[0_-15px_40px_rgba(48,98,138,0.08)] rounded-t-[2rem]">
+<div class="flex justify-around items-center w-full max-w-[1200px] px-4 py-3">
+<a class="flex flex-col items-center justify-center text-outline-variant/60 p-2 hover:text-primary transition-all md:px-8" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-label-sm font-bold mt-1">Inicio</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container/80 text-on-primary-container rounded-2xl px-6 py-2 shadow-inner active:scale-90 transition-all duration-200 md:px-10" href="#">
+<span class="material-symbols-outlined fill-icon" data-icon="redeem">redeem</span>
+<span class="text-label-sm font-bold mt-1">Tienda</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline-variant/60 p-2 hover:text-primary transition-all md:px-8" href="#">
+<span class="material-symbols-outlined" data-icon="lightbulb">lightbulb</span>
+<span class="text-label-sm font-bold mt-1">Tips</span>
+</a>
+<a class="flex flex-col items-center justify-center text-outline-variant/60 p-2 hover:text-primary transition-all md:px-8" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-label-sm font-bold mt-1">Perfil</span>
+</a>
+</div>
+</nav>
+<script>
+    let qty = 1;
+    const qtyElement = document.getElementById('quantity');
+    
+    function increment() {
+        qty++;
+        qtyElement.innerText = qty;
+    }
+    
+    function decrement() {
+        if (qty > 1) {
+            qty--;
+            qtyElement.innerText = qty;
+        }
+    }
+
+    // Micro-interaction for buttons
+    document.querySelectorAll('button').forEach(button => {
+        button.addEventListener('mousedown', () => {
+            button.classList.add('scale-95');
+        });
+        button.addEventListener('mouseup', () => {
+            button.classList.remove('scale-95');
+        });
+        button.addEventListener('mouseleave', () => {
+            button.classList.remove('scale-95');
+        });
+    });
+</script>
+</body></html>

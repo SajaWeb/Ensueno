@@ -1,0 +1,15 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/v1/orders/route": "/api/v1/orders",
+  "/api/v1/products/[id]/route": "/api/v1/products/[id]",
+  "/api/v1/products/route": "/api/v1/products",
+  "/api/v1/tips/route": "/api/v1/tips",
+  "/api/v1/user/route": "/api/v1/user",
+  "/carrito/page": "/carrito",
+  "/confirmacion/[id]/page": "/confirmacion/[id]",
+  "/page": "/",
+  "/perfil/page": "/perfil",
+  "/productos/[id]/page": "/productos/[id]",
+  "/tips/page": "/tips"
+}
