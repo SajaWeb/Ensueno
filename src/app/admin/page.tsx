@@ -73,6 +73,10 @@ export default function AdminDashboardPage() {
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  // Orders Pagination State
+  const [ordersPerPage, setOrdersPerPage] = useState<number | 'all'>(10);
+  const [ordersCurrentPage, setOrdersCurrentPage] = useState<number>(1);
+
   // Mobile Menu Drawer & Sidebar Collapse State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -1131,178 +1135,270 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Barra de Filtros y Búsqueda */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Filter className="w-4 h-4 text-slate-400" />
-                <select
-                  value={orderStatusFilter}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setOrderStatusFilter(val);
-                    loadAdminOrders(val, orderSearchTerm);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-400"
-                >
-                  <option value="all">Ver Todos los Estados ({adminOrders.length})</option>
-                  <option value="orden_generada">1. Orden Generada (Pendiente Pago)</option>
-                  <option value="confirmado">2. Pago Aprobado</option>
-                  <option value="empacada">3. Empacada</option>
-                  <option value="en_camino">4. En Camino</option>
-                  <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
-                  <option value="entregada">6. Entregada</option>
-                  <option value="devolucion">7. Devolución</option>
-                  <option value="anulada">8. Anulada</option>
-                </select>
-              </div>
+            {/* Calculos y Controles de Paginación Variable */}
+            {(() => {
+              const totalOrdersCount = adminOrders.length;
+              const effectivePerPage = ordersPerPage === 'all' ? totalOrdersCount : Number(ordersPerPage);
+              const totalPages = ordersPerPage === 'all' ? 1 : Math.ceil(totalOrdersCount / (effectivePerPage || 1)) || 1;
+              const safeCurrentPage = Math.min(Math.max(1, ordersCurrentPage), totalPages);
 
-              <div className="relative w-full sm:w-72">
-                <input
-                  type="text"
-                  placeholder="Buscar por Nº orden, cliente o ciudad..."
-                  value={orderSearchTerm}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setOrderSearchTerm(val);
-                    loadAdminOrders(orderStatusFilter, val);
-                  }}
-                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              </div>
-            </div>
+              const startIndex = ordersPerPage === 'all' ? 0 : (safeCurrentPage - 1) * effectivePerPage;
+              const endIndex = ordersPerPage === 'all' ? totalOrdersCount : startIndex + effectivePerPage;
+              const paginatedOrders = adminOrders.slice(startIndex, endIndex);
 
-            {/* Tabla de Órdenes */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
-                    <th className="py-3 px-4">Nº Orden & Fecha</th>
-                    <th className="py-3 px-4">Cliente / Contacto</th>
-                    <th className="py-3 px-4">Destino & Dirección</th>
-                    <th className="py-3 px-4">Productos & Total</th>
-                    <th className="py-3 px-4">Pasarela MercadoPago</th>
-                    <th className="py-3 px-4">Estado Contable / Logístico</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {adminOrders.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400 italic">
-                        No se encontraron pedidos registrados con los filtros seleccionados.
-                      </td>
-                    </tr>
-                  ) : (
-                    adminOrders.map((ord) => {
-                      const dateStr = new Date(ord.createdAt).toLocaleDateString('es-CO', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      });
+              return (
+                <>
+                  {/* Barra de Filtros, Búsqueda y Paginación Variable */}
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                      <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-slate-400" />
+                        <select
+                          value={orderStatusFilter}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setOrderStatusFilter(val);
+                            setOrdersCurrentPage(1);
+                            loadAdminOrders(val, orderSearchTerm);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-400"
+                        >
+                          <option value="all">Ver Todos los Estados ({adminOrders.length})</option>
+                          <option value="orden_generada">1. Orden Generada (Pendiente Pago)</option>
+                          <option value="confirmado">2. Pago Aprobado</option>
+                          <option value="empacada">3. Empacada</option>
+                          <option value="en_camino">4. En Camino</option>
+                          <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
+                          <option value="entregada">6. Entregada</option>
+                          <option value="devolucion">7. Devolución</option>
+                          <option value="anulada">8. Anulada</option>
+                        </select>
+                      </div>
 
-                      return (
-                        <tr key={ord.id} className="hover:bg-purple-50/40 transition-colors">
-                          <td className="py-4 px-4 align-top">
-                            <span className="font-extrabold text-purple-700 block font-mono text-sm">
-                              #{ord.orderNumber || ord.id.slice(-6)}
-                            </span>
-                            <span className="text-[11px] text-slate-400 font-medium">{dateStr}</span>
-                          </td>
+                      {/* Selector de Paginación Variable */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-500">Mostrar:</span>
+                        <select
+                          value={ordersPerPage}
+                          onChange={(e) => {
+                            const val = e.target.value === 'all' ? 'all' : Number(e.target.value);
+                            setOrdersPerPage(val);
+                            setOrdersCurrentPage(1);
+                          }}
+                          className="px-3 py-2 rounded-xl bg-purple-50 border border-purple-200 text-xs font-extrabold text-purple-700 focus:ring-2 focus:ring-purple-400 cursor-pointer shadow-2xs"
+                        >
+                          <option value={5}>5 reg / pág</option>
+                          <option value={10}>10 reg / pág</option>
+                          <option value={25}>25 reg / pág</option>
+                          <option value={50}>50 reg / pág</option>
+                          <option value={100}>100 reg / pág</option>
+                          <option value="all">Ver Todos ({totalOrdersCount})</option>
+                        </select>
+                      </div>
+                    </div>
 
-                          <td className="py-4 px-4 align-top">
-                            <span className="font-bold text-slate-800 block">{ord.customerName}</span>
-                            <span className="text-[11px] text-slate-500 block">{ord.customerEmail}</span>
-                            {ord.customerPhone && (
-                              <span className="text-[10px] text-slate-400 block mt-0.5">Tel: {ord.customerPhone}</span>
-                            )}
-                          </td>
+                    <div className="relative w-full sm:w-72">
+                      <input
+                        type="text"
+                        placeholder="Buscar por Nº orden, cliente o ciudad..."
+                        value={orderSearchTerm}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setOrderSearchTerm(val);
+                          setOrdersCurrentPage(1);
+                          loadAdminOrders(orderStatusFilter, val);
+                        }}
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      />
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    </div>
+                  </div>
 
-                          <td className="py-4 px-4 align-top">
-                            <span className="font-semibold text-slate-800 block line-clamp-2">{ord.shippingAddress}</span>
-                            <span className="text-[11px] text-slate-500 block">
-                              {ord.city}, {ord.department}
-                            </span>
-                          </td>
+                  {/* Tabla de Órdenes Paginada */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
+                          <th className="py-3 px-4">Nº Orden & Fecha</th>
+                          <th className="py-3 px-4">Cliente / Contacto</th>
+                          <th className="py-3 px-4">Destino & Dirección</th>
+                          <th className="py-3 px-4">Productos & Total</th>
+                          <th className="py-3 px-4">Pasarela MercadoPago</th>
+                          <th className="py-3 px-4">Estado Contable / Logístico</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {paginatedOrders.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                              No se encontraron pedidos registrados con los filtros seleccionados.
+                            </td>
+                          </tr>
+                        ) : (
+                          paginatedOrders.map((ord) => {
+                            const dateStr = new Date(ord.createdAt).toLocaleDateString('es-CO', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            });
 
-                          <td className="py-4 px-4 align-top">
-                            <div className="space-y-1">
-                              {ord.items?.map((it: any) => (
-                                <div key={it.id} className="text-[11px] text-slate-700">
-                                  <strong>{it.quantity}x</strong> {it.productName || it.product?.name}{' '}
-                                  <span className="text-slate-400 text-[10px]">
-                                    (${it.unitPrice?.toLocaleString('es-CO')})
+                            return (
+                              <tr key={ord.id} className="hover:bg-purple-50/40 transition-colors">
+                                <td className="py-4 px-4 align-top">
+                                  <span className="font-extrabold text-purple-700 block font-mono text-sm">
+                                    #{ord.orderNumber || ord.id.slice(-6)}
                                   </span>
-                                </div>
-                              ))}
-                              <div className="pt-1 border-t border-slate-100 font-extrabold text-sm text-purple-700">
-                                Total: ${ord.total?.toLocaleString('es-CO')} COP
-                              </div>
-                            </div>
-                          </td>
+                                  <span className="text-[11px] text-slate-400 font-medium">{dateStr}</span>
+                                </td>
 
-                          <td className="py-4 px-4 align-top">
-                            {ord.paymentStatus === 'approved' ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                <CheckCircle2 className="w-3 h-3" /> Aprobado MP
-                              </span>
-                            ) : ord.paymentStatus === 'rejected' || ord.paymentStatus === 'cancelled' ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
-                                Rechazado MP
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                                Pendiente Pago
-                              </span>
-                            )}
-                            {ord.paymentTransactionId && (
-                              <span className="text-[9px] text-slate-400 block font-mono mt-1">
-                                ID: {ord.paymentTransactionId}
-                              </span>
-                            )}
-                          </td>
+                                <td className="py-4 px-4 align-top">
+                                  <span className="font-bold text-slate-800 block">{ord.customerName}</span>
+                                  <span className="text-[11px] text-slate-500 block">{ord.customerEmail}</span>
+                                  {ord.customerPhone && (
+                                    <span className="text-[10px] text-slate-400 block mt-0.5">Tel: {ord.customerPhone}</span>
+                                  )}
+                                </td>
 
-                          <td className="py-4 px-4 align-top">
-                            <select
-                              value={ord.status}
-                              disabled={updatingOrderId === ord.id}
-                              onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
-                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                                ord.status === 'orden_generada'
-                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                  : ord.status === 'confirmado'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : ord.status === 'empacada'
-                                  ? 'bg-purple-50 text-purple-800 border-purple-300'
-                                  : ord.status === 'en_camino'
-                                  ? 'bg-sky-50 text-sky-800 border-sky-300'
-                                  : ord.status === 'sin_poder_entregarse'
-                                  ? 'bg-orange-50 text-orange-800 border-orange-300'
-                                  : ord.status === 'entregada'
-                                  ? 'bg-teal-50 text-teal-800 border-teal-300'
-                                  : ord.status === 'devolucion'
-                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
-                                  : 'bg-slate-100 text-slate-700 border-slate-300'
+                                <td className="py-4 px-4 align-top">
+                                  <span className="font-semibold text-slate-800 block line-clamp-2">{ord.shippingAddress}</span>
+                                  <span className="text-[11px] text-slate-500 block">
+                                    {ord.city}, {ord.department}
+                                  </span>
+                                </td>
+
+                                <td className="py-4 px-4 align-top">
+                                  <div className="space-y-1">
+                                    {ord.items?.map((it: any) => (
+                                      <div key={it.id} className="text-[11px] text-slate-700">
+                                        <strong>{it.quantity}x</strong> {it.productName || it.product?.name}{' '}
+                                        <span className="text-slate-400 text-[10px]">
+                                          (${it.unitPrice?.toLocaleString('es-CO')})
+                                        </span>
+                                      </div>
+                                    ))}
+                                    <div className="pt-1 border-t border-slate-100 font-extrabold text-sm text-purple-700">
+                                      Total: ${ord.total?.toLocaleString('es-CO')} COP
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-4 px-4 align-top">
+                                  {ord.paymentStatus === 'approved' ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                      <CheckCircle2 className="w-3 h-3" /> Aprobado MP
+                                    </span>
+                                  ) : ord.paymentStatus === 'rejected' || ord.paymentStatus === 'cancelled' ? (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                                      Rechazado MP
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                      Pendiente Pago
+                                    </span>
+                                  )}
+                                  {ord.paymentTransactionId && (
+                                    <span className="text-[9px] text-slate-400 block font-mono mt-1">
+                                      ID: {ord.paymentTransactionId}
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-4 px-4 align-top">
+                                  <select
+                                    value={ord.status}
+                                    disabled={updatingOrderId === ord.id}
+                                    onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                      ord.status === 'orden_generada'
+                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                        : ord.status === 'confirmado'
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                        : ord.status === 'empacada'
+                                        ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                        : ord.status === 'en_camino'
+                                        ? 'bg-sky-50 text-sky-800 border-sky-300'
+                                        : ord.status === 'sin_poder_entregarse'
+                                        ? 'bg-orange-50 text-orange-800 border-orange-300'
+                                        : ord.status === 'entregada'
+                                        ? 'bg-teal-50 text-teal-800 border-teal-300'
+                                        : ord.status === 'devolucion'
+                                        ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                        : 'bg-slate-100 text-slate-700 border-slate-300'
+                                    }`}
+                                  >
+                                    <option value="orden_generada">1. Orden Generada</option>
+                                    <option value="confirmado">2. Pago Aprobado</option>
+                                    <option value="empacada">3. Empacada</option>
+                                    <option value="en_camino">4. En Camino</option>
+                                    <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
+                                    <option value="entregada">6. Entregada</option>
+                                    <option value="devolucion">7. Devolución</option>
+                                    <option value="anulada">8. Anulada</option>
+                                  </select>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pie de Página con Controles de Paginación */}
+                  {totalOrdersCount > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 font-medium">
+                        Mostrando{' '}
+                        <strong className="text-slate-800 font-bold">
+                          {totalOrdersCount === 0 ? 0 : startIndex + 1}
+                        </strong>{' '}
+                        a{' '}
+                        <strong className="text-slate-800 font-bold">
+                          {Math.min(endIndex, totalOrdersCount)}
+                        </strong>{' '}
+                        de <strong className="text-purple-700 font-extrabold">{totalOrdersCount}</strong> órdenes
+                      </span>
+
+                      {ordersPerPage !== 'all' && totalPages > 1 && (
+                        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
+                          <button
+                            disabled={safeCurrentPage <= 1}
+                            onClick={() => setOrdersCurrentPage((p) => Math.max(1, p - 1))}
+                            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-purple-50 text-slate-700 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          >
+                            Anterior
+                          </button>
+
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                            <button
+                              key={pageNum}
+                              onClick={() => setOrdersCurrentPage(pageNum)}
+                              className={`w-8 h-8 rounded-xl font-extrabold text-xs transition-all shrink-0 ${
+                                safeCurrentPage === pageNum
+                                  ? 'bg-purple-600 text-white shadow-xs'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-purple-50'
                               }`}
                             >
-                              <option value="orden_generada">1. Orden Generada</option>
-                              <option value="confirmado">2. Pago Aprobado</option>
-                              <option value="empacada">3. Empacada</option>
-                              <option value="en_camino">4. En Camino</option>
-                              <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
-                              <option value="entregada">6. Entregada</option>
-                              <option value="devolucion">7. Devolución</option>
-                              <option value="anulada">8. Anulada</option>
-                            </select>
-                          </td>
-                        </tr>
-                      );
-                    })
+                              {pageNum}
+                            </button>
+                          ))}
+
+                          <button
+                            disabled={safeCurrentPage >= totalPages}
+                            onClick={() => setOrdersCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-purple-50 text-slate-700 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          >
+                            Siguiente
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </tbody>
-              </table>
-            </div>
+                </>
+              );
+            })()}
           </div>
         )}
 
