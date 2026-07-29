@@ -1,0 +1,218 @@
+// Prisma Schema for Ensueño E-Commerce & Remarketing System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  role                Role                 @default(CUSTOMER)
+  loyaltyPoints       Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  motherProfile       MotherProfile?
+  orders              Order[]
+  savedAddresses      SavedAddress[]
+  passwordResetTokens PasswordResetToken[]
+  surveyResponses     SurveyResponse[]
+}
+
+model SavedAddress {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String   @default("Hogar")
+  department String
+  city       String
+  address    String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model MotherProfile {
+  id               String               @id @default(cuid())
+  userId           String               @unique
+  user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName         String
+  phone            String?
+  city             String?
+  department       String?
+  address          String?
+  marketingConsent Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  babies           BabyProfile[]
+  remarketing      RemarketingTrigger[]
+}
+
+model BabyProfile {
+  id               String               @id @default(cuid())
+  motherId         String
+  mother           MotherProfile        @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  babyName         String
+  gender           String?
+  birthDate        DateTime?
+  expectedDueDate  DateTime?
+  skinCondition    String?              // Sensible, Atópica, Normal
+  sleepChallenges  String?
+  notes            String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  remarketing      RemarketingTrigger[]
+}
+
+model Product {
+  id               String       @id @default(cuid())
+  slug             String       @unique
+  name             String
+  subtitle         String
+  category         String       // sueno, piel, higiene, kits
+  price            Float
+  originalPrice    Float?
+  rating           Float        @default(5.0)
+  reviewsCount     Int          @default(0)
+  image            String       // Main Image URL (editable URL)
+  additionalImages String[]     @default([])
+  badge            String?
+  fragrances       String[]     @default([])
+  sizes            String[]     @default([])
+  description      String
+  benefits         String[]     @default([])
+  ingredients      String[]     @default([])
+  safetyInfo       String
+  inStock          Boolean      @default(true)
+  isFeatured       Boolean      @default(true)
+  sortOrder        Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  orderItems       OrderItem[]
+  promotions       Promotion[]
+}
+
+model Promotion {
+  id              String    @id @default(cuid())
+  title           String
+  subtitle        String?
+  code            String?   @unique
+  discountPercent Float?
+  discountAmount  Float?
+  imageUrl        String?   // Banner or promotional image URL
+  targetBabyStage String?   // Embarazo, Recién Nacido, 0-3m, 3-6m, 6-12m, 12m+
+  isActive        Boolean   @default(true)
+  startDate       DateTime?
+  endDate         DateTime?
+  productId       String?
+  product         Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  orderNumber        String      @unique @default(cuid())
+  userId             String?
+  user               User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName       String
+  customerEmail      String
+  customerPhone      String?
+  shippingAddress    String
+  city               String?
+  department         String?
+  status             String      @default("confirmado") // confirmado, preparando, en_camino, entregado, cancelado
+  statusStep         Int         @default(1)
+  subtotal           Float
+  discount           Float       @default(0)
+  couponCode         String?
+  shippingCost       Float       @default(0)
+  total              Float
+  paymentTransactionId String?   // ID de transacción MercadoPago
+  paymentStatus        String?   // approved, rejected, pending, in_process, cancelled
+  paymentMethod        String?   // credit_card, debit_card, bank_transfer, etc.
+  deliveryEstimate   String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  items              OrderItem[]
+}
+
+model OrderItem {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  productName       String
+  selectedFragrance String?
+  selectedSize      String?
+  unitPrice         Float
+  quantity          Int
+  subtotal          Float
+}
+
+model SurveyResponse {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerEmail String?
+  surveyType    String   // post_purchase, sleep_habits, skin_routine
+  answers       Json
+  score         Int?
+  createdAt     DateTime @default(now())
+}
+
+model RemarketingTrigger {
+  id          String         @id @default(cuid())
+  motherId    String?
+  mother      MotherProfile? @relation(fields: [motherId], references: [id], onDelete: Cascade)
+  babyId      String?
+  baby        BabyProfile?   @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  triggerType String         // REPURCHASE_REMINDER, STAGE_TRANSITION, SLEEP_TIP
+  targetDate  DateTime
+  sentStatus  String         @default("PENDING") // PENDING, SENT, FAILED, SKIPPED
+  channel     String         @default("EMAIL")   // EMAIL, WHATSAPP, SMS
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ShippingConfig {
+  id                    String   @id @default("global")
+  freeShippingThreshold Float    @default(60000)
+  defaultRate           Float    @default(12000)
+  qtyDiscountThreshold  Int      @default(3)
+  qtyDiscountAmount     Float    @default(3000)
+  updatedAt             DateTime @updatedAt
+}
+
+model ShippingRate {
+  id            String   @id @default(cuid())
+  department    String
+  city          String
+  cost          Float
+  estimatedDays String   @default("2-3 días hábiles")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([department, city])
+}

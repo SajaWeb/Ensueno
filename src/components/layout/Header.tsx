@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, User, Sparkles, Menu, X } from 'lucide-react';
+import { ShoppingBag, User, Sparkles, Menu, X, LogOut, ChevronDown, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { apiService } from '@/services/api';
 
 export default function Header() {
   const pathname = usePathname();
   const { cartCount, toastMessage, dismissToast } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
@@ -20,6 +23,41 @@ export default function Header() {
   ];
 
   const logoUrl = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
+
+  useEffect(() => {
+    checkSession();
+  }, [pathname]);
+
+  const checkSession = async () => {
+    try {
+      const res = await apiService.getCurrentUser();
+      if (res.success && res.authenticated && res.user) {
+        setCurrentUser(res.user);
+      } else {
+        setCurrentUser(null);
+      }
+    } catch {
+      setCurrentUser(null);
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/v1/auth/logout', { method: 'POST' });
+    localStorage.removeItem('ensueno_customer_logged_in');
+    setCurrentUser(null);
+    setUserDropdownOpen(false);
+    window.location.href = '/';
+  };
+
+  const getUserFirstName = () => {
+    if (currentUser?.profile?.fullName) {
+      return currentUser.profile.fullName.split(' ')[0];
+    }
+    if (currentUser?.email) {
+      return currentUser.email.split('@')[0];
+    }
+    return 'Mamá';
+  };
 
   return (
     <>
@@ -34,7 +72,7 @@ export default function Header() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-surface-container-high/60 transition-all">
+      <header className="bg-white/80 backdrop-blur-md border-b border-surface-container-high/60 transition-all sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Standalone Logo Image Only */}
@@ -69,15 +107,47 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Actions (Cart & Profile) */}
+            {/* Actions (Cart & User Profile Button) */}
             <div className="flex items-center space-x-3">
-              <Link
-                href="/perfil"
-                className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-white/90 hover:bg-surface-container text-on-surface-variant hover:text-primary transition-colors border border-surface-container-high"
-                title="Mi Perfil"
-              >
-                <User className="w-5 h-5" />
-              </Link>
+              {currentUser ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white px-4 py-2 rounded-full font-headline font-extrabold text-xs shadow-md shadow-pink-200/50 transition-all hover:scale-105 border border-white/40"
+                  >
+                    <Heart className="w-4 h-4 text-pink-100 fill-pink-200 animate-pulse" />
+                    <span>¡Hola, {getUserFirstName()}! 💕</span>
+                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                  </button>
+
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-50 animate-scale-in text-xs font-semibold">
+                      <Link
+                        href="/perfil"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                      >
+                        <User className="w-4 h-4 text-purple-600" /> Mi Perfil & Datos
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-rose-600 hover:bg-rose-50 transition-colors text-left font-bold border-t border-slate-100 mt-1"
+                      >
+                        <LogOut className="w-4 h-4" /> Cerrar Sesión
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/perfil"
+                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-full font-headline font-bold text-xs shadow-md shadow-purple-200 transition-all hover:scale-105 active:scale-95 border border-purple-400/30"
+                  title="Mi Cuenta & Iniciar Sesión"
+                >
+                  <User className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <span>Ingresar / Mi Cuenta</span>
+                </Link>
+              )}
 
               <Link
                 href="/carrito"
@@ -120,6 +190,22 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {currentUser ? (
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm"
+              >
+                <LogOut className="w-4 h-4" /> Cerrar Sesión ({getUserFirstName()})
+              </button>
+            ) : (
+              <Link
+                href="/perfil"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-center px-4 py-3 rounded-xl bg-purple-600 text-white font-bold text-sm"
+              >
+                Ingresar / Registrarse
+              </Link>
+            )}
           </div>
         )}
       </header>
