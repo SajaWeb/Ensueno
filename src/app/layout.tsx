@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { UserProvider } from '@/context/UserContext';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import AppLayoutWrapper from '@/components/layout/AppLayoutWrapper';
+import { ToastProvider } from '@/context/ToastContext';
 import ParticleBackground from '@/components/layout/ParticleBackground';
+import MetaPixel from '@/components/analytics/MetaPixel';
 
 export const metadata: Metadata = {
   title: 'Ensueño | Cuidado Natural y Sueño Profundo para tu Bebé',
@@ -20,14 +21,15 @@ export default function RootLayout({
   return (
     <html lang="es" className="light">
       <body className="min-h-screen flex flex-col bg-surface text-on-surface antialiased relative">
-        <CartProvider>
-          <UserProvider>
-            <ParticleBackground />
-            <Header />
-            <main className="flex-grow z-10">{children}</main>
-            <Footer />
-          </UserProvider>
-        </CartProvider>
+        <ToastProvider>
+          <CartProvider>
+            <UserProvider>
+              <MetaPixel />
+              <ParticleBackground />
+              <AppLayoutWrapper>{children}</AppLayoutWrapper>
+            </UserProvider>
+          </CartProvider>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,18 +1,183 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ShieldCheck, Tag, Sparkles } from 'lucide-react';
+import {
+  ShoppingBag,
+  Trash2,
+  Plus,
+  Minus,
+  ArrowRight,
+  ShieldCheck,
+  Tag,
+  MapPin,
+  Truck,
+  User,
+  Lock,
+  Mail,
+  Sparkles,
+  Baby,
+  Star,
+  CheckCircle2,
+  X,
+  Building2,
+} from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useToast } from '@/context/ToastContext';
 import { apiService } from '@/services/api';
+import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon, shipping, total } = useCart();
+  const { showToast } = useToast();
+  const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon } = useCart();
   const [inputCoupon, setInputCoupon] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // User Auth & Loyalty State
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+
+  // Auth Guard Modal State
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authFullName, setAuthFullName] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authBabyName, setAuthBabyName] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Shipping & Location state from Colombia dataset
+  const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
+  const [selectedCity, setSelectedCity] = useState(COLOMBIA_LOCATION_DATA[0].cities[0]);
+  const [address, setAddress] = useState('Calle 127 # 14-45, Apto 502');
+  const [addressTitle, setAddressTitle] = useState('Hogar');
+  const [customerName, setCustomerName] = useState('María Alejandra Morales');
+  const [customerEmail, setCustomerEmail] = useState('maria.alejandra@example.com');
+  const [customerPhone, setCustomerPhone] = useState('+57 310 456 7890');
+
+  const [shippingCost, setShippingCost] = useState(0);
+  const [deliveryEstimate, setDeliveryEstimate] = useState('2-4 días hábiles');
+  const [isFreeShipping, setIsFreeShipping] = useState(false);
+  const [shippingDiscount, setShippingDiscount] = useState(0);
+
+  const currentDepartment = COLOMBIA_LOCATION_DATA[selectedDeptIndex].name;
+  const productCount = items.reduce((a, b) => a + b.quantity, 0);
+
+  useEffect(() => {
+    checkUserSession();
+  }, []);
+
+  useEffect(() => {
+    calculateShippingRate();
+  }, [subtotal, currentDepartment, selectedCity, productCount]);
+
+  const checkUserSession = async () => {
+    try {
+      const res = await apiService.getCurrentUser();
+      if (res.success && res.authenticated && res.user) {
+        setCurrentUser(res.user);
+        if (res.user.email) setCustomerEmail(res.user.email);
+        if (res.user.profile?.fullName) setCustomerName(res.user.profile.fullName);
+        if (res.user.profile?.phone) setCustomerPhone(res.user.profile.phone);
+
+        // Load saved addresses
+        if (Array.isArray(res.user.savedAddresses) && res.user.savedAddresses.length > 0) {
+          setSavedAddresses(res.user.savedAddresses);
+          const defaultAddr = res.user.savedAddresses.find((a: any) => a.isDefault) || res.user.savedAddresses[0];
+          applySavedAddress(defaultAddr);
+        }
+      }
+    } catch (err) {
+      console.warn('Error comprobando sesión de usuario:', err);
+    }
+  };
+
+  const applySavedAddress = (addr: any) => {
+    if (!addr) return;
+    setSelectedAddressId(addr.id);
+    setAddressTitle(addr.title || 'Hogar');
+    setAddress(addr.address);
+
+    const deptIdx = COLOMBIA_LOCATION_DATA.findIndex(
+      (d) => d.name.toLowerCase() === (addr.department || '').toLowerCase()
+    );
+    if (deptIdx !== -1) {
+      setSelectedDeptIndex(deptIdx);
+      const matchedCity = COLOMBIA_LOCATION_DATA[deptIdx].cities.find(
+        (c) => c.toLowerCase() === (addr.city || '').toLowerCase()
+      );
+      if (matchedCity) {
+        setSelectedCity(matchedCity);
+      }
+    }
+  };
+
+  const handleSaveNewAddress = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await apiService.addSavedAddress({
+        title: addressTitle || 'Hogar',
+        department: currentDepartment,
+        city: selectedCity,
+        address,
+        isDefault: savedAddresses.length === 0,
+      });
+      if (res.success) {
+        showToast('Dirección de envío guardada en tu cuenta 🏠', 'success');
+        const updatedAddrs = await apiService.getSavedAddresses();
+        if (updatedAddrs.success) setSavedAddresses(updatedAddrs.data || []);
+      }
+    } catch (err) {
+      console.warn('Error guardando dirección:', err);
+    }
+  };
+
+  const handleDeleteSavedAddress = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await apiService.deleteSavedAddress(id);
+      if (res.success) {
+        showToast('Dirección eliminada', 'info');
+        setSavedAddresses((prev) => prev.filter((a) => a.id !== id));
+        if (selectedAddressId === id) setSelectedAddressId(null);
+      }
+    } catch (err) {
+      showToast('Error al eliminar dirección', 'error');
+    }
+  };
+
+  const calculateShippingRate = async () => {
+    try {
+      const res = await fetch('/api/v1/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          department: currentDepartment,
+          city: selectedCity,
+          subtotal,
+          productCount,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setShippingCost(json.data.shippingCost);
+        setDeliveryEstimate(json.data.deliveryEstimate || '2-4 días hábiles');
+        setIsFreeShipping(json.data.isFree);
+        setShippingDiscount(json.data.discountApplied || 0);
+      }
+    } catch (err) {
+      console.warn('Error calculando envío:', err);
+    }
+  };
+
+  const finalTotal = Math.max(0, subtotal - discount + shippingCost);
+  const loyaltyPointsEarned = Math.floor(finalTotal / 1000);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -22,31 +187,120 @@ export default function CartPage() {
     }).format(price);
   };
 
-  const freeShippingThreshold = 60000;
-  const freeShippingProgress = Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100));
-  const remainingForFreeShipping = Math.max(0, freeShippingThreshold - subtotal);
+  const handleApplyCoupon = (code: string) => {
+    if (!code) return;
+    applyCoupon(code);
+    showToast(`Cupón ${code} procesado`, 'info');
+  };
 
-  const handleCheckout = async () => {
-    if (items.length === 0) return;
-    setIsSubmitting(true);
+  const handleModalAuthLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
 
     try {
-      const order = await apiService.createOrder({
+      const res = await apiService.login(authEmail, authPassword);
+      if (res.success) {
+        showToast('¡Sesión iniciada con éxito! 💖', 'success');
+        setShowAuthModal(false);
+        await checkUserSession();
+        // Proceed automatically with checkout
+        processOrder();
+      } else {
+        setAuthError(res.error || 'Credenciales inválidas');
+      }
+    } catch (err) {
+      setAuthError('Error al conectar con el servidor');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleModalAuthRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const res = await apiService.register({
+        email: authEmail,
+        password: authPassword,
+        fullName: authFullName,
+        phone: authPhone,
+        babyName: authBabyName,
+      });
+
+      if (res.success) {
+        showToast('¡Cuenta creada con éxito! Bienvenida a Ensueño ✨', 'success');
+        setShowAuthModal(false);
+        await checkUserSession();
+        // Save initial address automatically
+        await apiService.addSavedAddress({
+          title: 'Hogar',
+          department: currentDepartment,
+          city: selectedCity,
+          address,
+          isDefault: true,
+        });
+        processOrder();
+      } else {
+        setAuthError(res.error || 'Error al registrar la cuenta');
+      }
+    } catch (err) {
+      setAuthError('Error al crear tu cuenta');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleCheckoutClick = () => {
+    if (items.length === 0) return;
+    if (!currentUser) {
+      // Exigir inicio de sesión / registro obligatorio
+      setShowAuthModal(true);
+      return;
+    }
+    processOrder();
+  };
+
+  const processOrder = async () => {
+    setIsSubmitting(true);
+    showToast('Generando orden de pago segura con MercadoPago...', 'info');
+
+    try {
+      // Automatically save/update address if logged in
+      if (currentUser) {
+        handleSaveNewAddress();
+      }
+
+      const { order, mercadopago } = await apiService.createOrder({
+        userId: currentUser?.id,
         items,
         subtotal,
         discount,
         couponCode,
-        shipping,
-        total,
-        customerName: 'María Alejandra Morales',
-        customerEmail: 'maria.alejandra@example.com',
-        address: 'Calle 127 # 14-45, Apto 502, Bogotá',
+        shippingCost,
+        total: finalTotal,
+        customerName: customerName || currentUser?.profile?.fullName || 'Cliente Ensueño',
+        customerEmail: customerEmail || currentUser?.email || 'cliente@ensueno.com.co',
+        customerPhone: customerPhone || currentUser?.profile?.phone,
+        shippingAddress: `${address}, ${selectedCity}, ${currentDepartment}`,
+        city: selectedCity,
+        department: currentDepartment,
+        deliveryEstimate,
       });
 
       clearCart();
-      router.push(`/confirmacion/${order.id}`);
-    } catch (e) {
+      showToast('¡Pedido registrado! Redirigiendo a MercadoPago...', 'success');
+
+      if (mercadopago && mercadopago.checkoutUrl) {
+        window.location.href = mercadopago.checkoutUrl;
+      } else {
+        router.push(`/confirmacion/${order.orderNumber || order.id}`);
+      }
+    } catch (e: any) {
       console.error('Error during checkout:', e);
+      showToast(e.message || 'Error al generar la orden de compra', 'error');
       setIsSubmitting(false);
     }
   };
@@ -54,18 +308,16 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6">
-        <div className="w-24 h-24 mx-auto rounded-full bg-primary-container/40 flex items-center justify-center text-4xl shadow-soft-glow">
+        <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-pink-100 via-purple-100 to-sky-100 flex items-center justify-center text-4xl shadow-sm border border-pink-200/60 text-purple-600">
           🛒
         </div>
-        <h2 className="font-headline font-extrabold text-3xl text-on-surface">
-          Tu carrito de Ensueño está vacío
-        </h2>
-        <p className="text-on-surface-variant text-sm max-w-md mx-auto">
+        <h2 className="font-extrabold text-3xl text-slate-800">Tu carrito de Ensueño está vacío</h2>
+        <p className="text-slate-500 text-sm max-w-md mx-auto">
           Explora nuestros productos de cosmética pediátrica hipoalergénica y brinda el descanso perfecto a tu bebé.
         </p>
         <Link
           href="/"
-          className="inline-flex items-center space-x-2 bg-primary text-white font-headline font-bold text-sm px-8 py-4 rounded-full squishy-button shadow-soft-glow"
+          className="inline-flex items-center space-x-2 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:via-purple-500 hover:to-sky-500 text-white font-extrabold text-sm px-8 py-4 rounded-full shadow-md shadow-pink-200 transition-all border border-white/40 transform hover:scale-105"
         >
           <span>Ver Productos</span>
           <ArrowRight className="w-4 h-4" />
@@ -77,192 +329,483 @@ export default function CartPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Title */}
-      <div className="flex items-center justify-between border-b border-surface-container-high pb-4">
+      <div className="flex items-center justify-between border-b border-pink-100 pb-4">
         <div>
-          <h1 className="font-headline font-extrabold text-3xl text-on-surface">
-            Mi Carrito de Compras
-          </h1>
-          <p className="text-xs text-on-surface-variant">
-            {items.reduce((a, b) => a + b.quantity, 0)} productos listos para el cuidado de tu bebé
-          </p>
+          <h1 className="font-extrabold text-3xl text-slate-800">Mi Carrito de Compras</h1>
+          <p className="text-xs text-slate-500">{productCount} productos listos para el cuidado de tu bebé</p>
         </div>
         <button
-          onClick={clearCart}
-          className="text-xs font-semibold text-outline hover:text-error transition-colors flex items-center space-x-1"
+          onClick={() => {
+            clearCart();
+            showToast('Carrito vaciado', 'info');
+          }}
+          className="text-xs font-bold text-pink-700 hover:text-rose-700 bg-pink-50 hover:bg-pink-100 px-3.5 py-2 rounded-full border border-pink-200/70 transition-all flex items-center space-x-1.5 shadow-2xs"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-3.5 h-3.5 text-pink-600" />
           <span>Vaciar Carrito</span>
         </button>
       </div>
 
-      {/* Free Shipping Progress Indicator */}
-      <div className="bg-white p-4 rounded-2xl border border-surface-container-high soft-glow-card space-y-2">
-        <div className="flex justify-between text-xs font-headline font-bold text-on-surface">
-          <span>
-            {remainingForFreeShipping > 0
-              ? `¡Agrega ${formatPrice(remainingForFreeShipping)} más para ENVÍO GRATIS! 🚚`
-              : '¡Felicidades! Tienes ENVÍO GRATIS asegurado 🎉'}
-          </span>
-          <span>{freeShippingProgress}%</span>
+      {/* User Login Banner / Status */}
+      {currentUser ? (
+        <div className="bg-gradient-to-r from-pink-100/70 via-purple-100/70 to-sky-100/70 rounded-2xl p-4 border border-purple-200/60 flex items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-base shadow-xs">
+              {currentUser.profile?.fullName ? currentUser.profile.fullName.charAt(0) : 'M'}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-slate-800">
+                  ¡Sesión activa como {currentUser.profile?.fullName || currentUser.email}! 💖
+                </span>
+                <span className="bg-purple-200 text-purple-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
+                  Mamá Verificada
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Tus datos de dirección están sincronizados para compras más ágiles.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-amber-100 text-amber-900 px-3 py-1.5 rounded-full border border-amber-300/80 text-xs font-extrabold shadow-xs">
+            <Star className="w-4 h-4 text-amber-500 fill-amber-400 animate-spin-slow" />
+            <span>Puntos acumulados: {currentUser.loyaltyPoints || 0} pts</span>
+          </div>
         </div>
-        <div className="w-full h-2.5 bg-surface-container-low rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary-container to-primary transition-all duration-500 rounded-full"
-            style={{ width: `${freeShippingProgress}%` }}
-          />
+      ) : (
+        <div className="bg-gradient-to-r from-amber-50 via-pink-50 to-purple-50 rounded-2xl p-4 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm text-slate-800 block">
+                ¡Inicia sesión o regístrate para finalizar tu compra! ✨
+              </span>
+              <span className="text-xs text-slate-600">
+                Al crear tu usuario se guardarán tus direcciones de envío y acumularás <strong>Puntos Ensueño</strong> por cada compra.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all shrink-0"
+          >
+            Iniciar Sesión / Registrarme
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left Cart Items List */}
-        <div className="lg:col-span-2 space-y-4">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl p-4 sm:p-5 soft-glow-card border border-surface-container-high flex flex-col sm:flex-row items-center justify-between gap-4"
-            >
-              {/* Product Info */}
-              <div className="flex items-center space-x-4 w-full sm:w-auto">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-surface-container-low flex-shrink-0 border">
-                  <Image
-                    src={item.product.image}
-                    alt={item.product.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-headline font-bold text-base text-on-surface line-clamp-1">
-                    {item.product.name}
-                  </h3>
-                  <div className="flex items-center space-x-2 text-xs text-on-surface-variant mt-0.5">
-                    <span>Aroma: <strong>{item.selectedFragrance}</strong></span>
-                    <span>•</span>
-                    <span>Talla: <strong>{item.selectedSize}</strong></span>
+        {/* Left Items List */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-4">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-2xl p-4 sm:p-5 border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm hover:border-pink-200 transition-colors"
+              >
+                <div className="flex items-center space-x-4 w-full sm:w-auto">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100">
+                    <Image src={item.product.image} alt={item.product.name} fill className="object-cover" />
                   </div>
-                  <span className="font-headline font-extrabold text-sm text-primary mt-1 block sm:hidden">
-                    {formatPrice(item.product.price * item.quantity)}
-                  </span>
+                  <div>
+                    <h3 className="font-bold text-base text-slate-800 line-clamp-1">{item.product.name}</h3>
+                    <div className="flex items-center space-x-2 text-xs text-slate-500 mt-0.5">
+                      <span>Aroma: <strong>{item.selectedFragrance}</strong></span>
+                      <span>•</span>
+                      <span>Talla: <strong>{item.selectedSize}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end space-x-6 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                  <div className="flex items-center space-x-2 bg-purple-50/60 rounded-full p-1 border border-purple-100">
+                    <button
+                      onClick={() => updateQuantity(item.id, -1)}
+                      className="w-7 h-7 rounded-full bg-white text-purple-700 hover:bg-pink-100 flex items-center justify-center font-bold transition-colors border border-purple-200/60 shadow-2xs"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-6 text-center font-bold text-xs text-slate-800">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.id, 1)}
+                      className="w-7 h-7 rounded-full bg-white text-purple-700 hover:bg-sky-100 flex items-center justify-center font-bold transition-colors border border-purple-200/60 shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="font-extrabold text-base text-purple-700 block">
+                      {formatPrice(item.product.price * item.quantity)}
+                    </span>
+                  </div>
+
+                  <button onClick={() => removeFromCart(item.id)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Quantity Controls & Price */}
-              <div className="flex items-center justify-between sm:justify-end space-x-6 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-container-high">
-                <div className="flex items-center space-x-2 bg-surface-container-low rounded-full p-1 border">
-                  <button
-                    onClick={() => updateQuantity(item.id, -1)}
-                    className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-on-surface hover:bg-surface-container"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-6 text-center font-headline font-bold text-xs">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => updateQuantity(item.id, 1)}
-                    className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-on-surface hover:bg-surface-container"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+          {/* Selector de Direcciones Guardadas si el usuario ya inició sesión */}
+          {currentUser && savedAddresses.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-3">
+                <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-purple-600" /> Tus Direcciones Guardadas ({savedAddresses.length})
+                </h3>
+                <span className="text-xs text-purple-600 font-semibold">Selección 1-Clic</span>
+              </div>
 
-                <div className="hidden sm:block text-right">
-                  <span className="font-headline font-extrabold text-base text-primary block">
-                    {formatPrice(item.product.price * item.quantity)}
-                  </span>
-                  <span className="text-[10px] text-outline">
-                    ({formatPrice(item.product.price)} c/u)
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => removeFromCart(item.id)}
-                  className="p-2 text-outline hover:text-error transition-colors"
-                  title="Eliminar producto"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {savedAddresses.map((addr) => {
+                  const isSelected = selectedAddressId === addr.id;
+                  return (
+                    <div
+                      key={addr.id}
+                      onClick={() => applySavedAddress(addr)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all relative ${
+                        isSelected
+                          ? 'bg-purple-50/80 border-purple-400 shadow-sm ring-2 ring-purple-300'
+                          : 'bg-slate-50/60 border-slate-200 hover:bg-purple-50/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-purple-600" /> {addr.title || 'Hogar'}
+                          {addr.isDefault && (
+                            <span className="text-[9px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">
+                              Principal
+                            </span>
+                          )}
+                        </span>
+                        <button
+                          onClick={(e) => handleDeleteSavedAddress(addr.id, e)}
+                          className="text-slate-400 hover:text-rose-600 p-1"
+                          title="Eliminar dirección"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 line-clamp-1">{addr.address}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {addr.city}, {addr.department}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Formulario Datos de Envío en Colombia con Selector Dinámico */}
+          <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4">
+            <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-purple-600" /> Destino de Envío en Colombia
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">1. Departamento</label>
+                <select
+                  value={selectedDeptIndex}
+                  onChange={(e) => {
+                    const idx = parseInt(e.target.value);
+                    setSelectedDeptIndex(idx);
+                    setSelectedCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
+                    setSelectedAddressId(null);
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                >
+                  {COLOMBIA_LOCATION_DATA.map((d, index) => (
+                    <option key={d.name} value={index}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">2. Municipio / Ciudad</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => {
+                    setSelectedCity(e.target.value);
+                    setSelectedAddressId(null);
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                >
+                  {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Dirección Exacta de Entrega</label>
+                <input
+                  type="text"
+                  required
+                  value={address}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    setSelectedAddressId(null);
+                  }}
+                  placeholder="Calle, Carrera, Apto / Casa, Barrio"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Right Order Summary */}
-        <div className="bg-white rounded-2xl p-6 soft-glow-card border border-surface-container-high space-y-6">
-          <h2 className="font-headline font-bold text-xl text-on-surface border-b pb-3">
-            Resumen del Pedido
-          </h2>
+        {/* Right Summary Card */}
+        <div className="bg-gradient-to-br from-pink-50/50 via-purple-50/30 to-sky-50/50 rounded-3xl p-6 border border-pink-100 shadow-sm space-y-6">
+          <h2 className="font-bold text-xl text-slate-800 border-b border-pink-200/60 pb-3">Resumen de Compra</h2>
+
+          {/* Loyalty Points Earned Badge */}
+          <div className="bg-amber-100/80 border border-amber-300/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
+            <Sparkles className="w-5 h-5 text-amber-600 shrink-0 animate-bounce" />
+            <div className="text-xs text-amber-950">
+              <span className="font-extrabold block text-amber-900">
+                ¡Acumularás +{loyaltyPointsEarned} Puntos Ensueño! 🌟
+              </span>
+              <span>Canjeables por productos y descuentos exclusivos en tu perfil.</span>
+            </div>
+          </div>
 
           {/* Coupon Code Input */}
           <div className="space-y-2">
-            <label className="block text-xs font-headline font-bold text-on-surface-variant uppercase tracking-wider">
-              ¿Tienes un Cupón?
-            </label>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">¿Tienes un Cupón?</label>
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={inputCoupon}
                 onChange={(e) => setInputCoupon(e.target.value)}
                 placeholder="Ej: SUEÑO10"
-                className="w-full px-4 py-2.5 rounded-full text-xs bg-surface-container-low border border-surface-container-high focus:outline-none focus:border-primary uppercase"
+                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-pink-200/80 uppercase font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
               <button
-                onClick={() => applyCoupon(inputCoupon)}
-                className="bg-primary text-white text-xs font-bold px-4 py-2.5 rounded-full hover:bg-primary-container hover:text-primary transition-colors squishy-button"
+                onClick={() => handleApplyCoupon(inputCoupon)}
+                className="bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition-all border border-white/50 active:scale-95 shrink-0"
               >
                 Aplicar
               </button>
             </div>
-            {couponCode && (
-              <div className="flex items-center space-x-1.5 text-xs text-secondary font-semibold">
-                <Tag className="w-3.5 h-3.5" />
-                <span>Cupón {couponCode} aplicado</span>
-              </div>
-            )}
           </div>
 
-          {/* Price Breakdown List */}
-          <div className="space-y-3 text-xs border-t border-b border-surface-container-high py-4">
-            <div className="flex justify-between text-on-surface-variant">
-              <span>Subtotal</span>
-              <span className="font-semibold text-on-surface">{formatPrice(subtotal)}</span>
+          {/* Price Breakdown */}
+          <div className="space-y-3 text-xs border-t border-b border-pink-200/60 py-4">
+            <div className="flex justify-between text-slate-600">
+              <span>Subtotal Productos</span>
+              <span className="font-semibold text-slate-800">{formatPrice(subtotal)}</span>
             </div>
 
             {discount > 0 && (
-              <div className="flex justify-between text-secondary font-semibold">
+              <div className="flex justify-between text-pink-700 font-semibold bg-pink-100/60 px-2 py-1 rounded-lg border border-pink-200/60">
                 <span>Descuento Cupón</span>
                 <span>-{formatPrice(discount)}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-on-surface-variant">
-              <span>Costo de Envío</span>
-              <span>{shipping === 0 ? <strong className="text-primary uppercase">Gratis</strong> : formatPrice(shipping)}</span>
+            {shippingDiscount > 0 && (
+              <div className="flex justify-between text-emerald-700 font-semibold bg-emerald-100/60 px-2 py-1 rounded-lg border border-emerald-200/60">
+                <span>Descuento Envío por Cantidad</span>
+                <span>-{formatPrice(shippingDiscount)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between text-slate-600 items-center">
+              <span>Envío ({selectedCity})</span>
+              <span>
+                {isFreeShipping ? (
+                  <strong className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 uppercase font-extrabold text-[11px]">¡GRATIS!</strong>
+                ) : (
+                  <strong className="text-slate-800">{formatPrice(shippingCost)}</strong>
+                )}
+              </span>
             </div>
 
-            <div className="flex justify-between items-baseline pt-2 border-t text-base font-headline font-extrabold text-on-surface">
+            <div className="text-[11px] text-slate-400 italic">Tiempo estimado: {deliveryEstimate}</div>
+
+            <div className="flex justify-between items-baseline pt-2 border-t border-pink-200/60 text-base font-extrabold text-slate-800">
               <span>Total a Pagar</span>
-              <span className="text-2xl text-primary">{formatPrice(total)}</span>
+              <span className="text-2xl text-purple-700 font-extrabold">{formatPrice(finalTotal)}</span>
             </div>
           </div>
 
           {/* Checkout CTA */}
           <button
-            onClick={handleCheckout}
+            onClick={handleCheckoutClick}
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center space-x-3 bg-primary text-white hover:bg-primary-container hover:text-primary font-headline font-bold text-base py-4 rounded-full transition-all squishy-button shadow-soft-glow disabled:opacity-50"
+            className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:via-purple-500 hover:to-sky-500 text-white font-extrabold text-base py-4 rounded-2xl shadow-md shadow-pink-200/60 hover:shadow-purple-300/80 transition-all transform hover:-translate-y-0.5 active:translate-y-0 border border-white/50 disabled:opacity-50 cursor-pointer"
           >
-            <span>{isSubmitting ? 'Procesando Pago...' : 'Finalizar Compra'}</span>
+            <span>{isSubmitting ? 'Generando Pago...' : 'Pagar con MercadoPago'}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center justify-center space-x-2 text-[11px] text-outline font-medium text-center">
-            <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Pago 100% seguro con Encriptación SSL</span>
+          <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-500 font-medium text-center bg-white/60 py-2 rounded-xl border border-pink-100">
+            <ShieldCheck className="w-4 h-4 text-purple-600" />
+            <span>Pago seguro con MercadoPago · Encriptación SSL</span>
           </div>
         </div>
       </div>
+
+      {/* Modal de Inicio de Sesión o Registro Obligatorio para Checkout */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-purple-100 relative space-y-6 animate-scale-in">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-14 h-14 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-white">
+                <Baby className="w-7 h-7 text-purple-700" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-800">
+                {authMode === 'login' ? '¡Inicia Sesión para Finalizar Compra! 💖' : 'Registra tu Cuenta Ensueño ✨'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                Inicia sesión o regístrate para almacenar tu dirección de envío y acumular Puntos Ensueño.
+              </p>
+            </div>
+
+            {authError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold text-center">
+                {authError}
+              </div>
+            )}
+
+            {authMode === 'login' ? (
+              <form onSubmit={handleModalAuthLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="tu.correo@ejemplo.com"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                    />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña</label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs border border-white/40"
+                >
+                  {authLoading ? 'Verificando...' : 'Iniciar Sesión y Continuar'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleModalAuthRegister} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Tu Nombre Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={authFullName}
+                    onChange={(e) => setAuthFullName(e.target.value)}
+                    placeholder="Ej: María Alejandra Morales"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="tu@correo.com"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono</label>
+                    <input
+                      type="tel"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      placeholder="+57 300 123 4567"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña de la Cuenta</label>
+                  <input
+                    type="password"
+                    required
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs border border-white/40"
+                >
+                  {authLoading ? 'Creando cuenta...' : 'Crear Cuenta y Pagar'}
+                </button>
+              </form>
+            )}
+
+            <div className="text-center pt-3 border-t border-slate-100">
+              {authMode === 'login' ? (
+                <p className="text-xs text-slate-500">
+                  ¿No tienes cuenta aún?{' '}
+                  <button onClick={() => setAuthMode('register')} className="text-purple-600 font-extrabold hover:underline">
+                    Regístrate aquí
+                  </button>
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  ¿Ya tienes una cuenta?{' '}
+                  <button onClick={() => setAuthMode('login')} className="text-purple-600 font-extrabold hover:underline">
+                    Inicia sesión
+                  </button>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
