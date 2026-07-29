@@ -124,9 +124,55 @@ export class OrderRepository {
   }
 
   /**
+   * Expira automáticamente cualquier orden en 'orden_generada' con más de 15 minutos sin pagarse
+   */
+  async autoExpirePendingOrders() {
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+    try {
+      const result = await prisma.order.updateMany({
+        where: {
+          status: 'orden_generada',
+          createdAt: { lt: fifteenMinsAgo },
+        },
+        data: {
+          status: 'anulada',
+          statusStep: 0,
+          paymentStatus: 'expired',
+        },
+      });
+      if (result.count > 0) {
+        console.log(`[OrderRepository] Expired ${result.count} pending orders older than 15 minutes`);
+      }
+      return result;
+    } catch (err) {
+      console.error('[OrderRepository] Error auto-expiring pending orders:', err);
+    }
+  }
+
+  /**
+   * Busca si el cliente tiene una orden activa pendiente (< 15 minutos)
+   */
+  async getPendingOrderForCustomer(email: string, userId?: string) {
+    await this.autoExpirePendingOrders();
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+    return prisma.order.findFirst({
+      where: {
+        status: 'orden_generada',
+        createdAt: { gte: fifteenMinsAgo },
+        OR: [
+          ...(userId ? [{ userId }] : []),
+          { customerEmail: email.toLowerCase().trim() },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * Obtiene todas las órdenes para el Admin Dashboard
    */
   async getAllOrdersAdmin(limit = 50) {
+    await this.autoExpirePendingOrders();
     return prisma.order.findMany({
       take: limit,
       include: {

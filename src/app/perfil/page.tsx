@@ -529,12 +529,14 @@ export default function ProfilePage() {
                 <div key={order.id} className="bg-white rounded-3xl p-6 border border-purple-100 shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-extrabold text-base text-slate-800">Orden #{order.orderNumber}</span>
                         <span
                           className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
-                            order.status === 'orden_generada'
-                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                            order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
+                              ? 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold'
+                              : order.status === 'orden_generada'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
                               : order.status === 'confirmado'
                               ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                               : order.status === 'empacada'
@@ -547,11 +549,13 @@ export default function ProfilePage() {
                               ? 'bg-teal-100 text-teal-800 border-teal-300'
                               : order.status === 'devolucion'
                               ? 'bg-rose-100 text-rose-800 border-rose-300'
-                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                              : 'bg-rose-100 text-rose-800 border-rose-300'
                           }`}
                         >
-                          {order.status === 'orden_generada'
-                            ? 'Orden Generada (Pendiente Pago)'
+                          {order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
+                            ? '❌ Pago Rechazado / Anulada'
+                            : order.status === 'orden_generada'
+                            ? '⏳ Pendiente de Pago (<15m)'
                             : order.status === 'confirmado'
                             ? 'Pago Aprobado'
                             : order.status === 'empacada'
@@ -564,16 +568,26 @@ export default function ProfilePage() {
                             ? 'Entregada'
                             : order.status === 'devolucion'
                             ? 'Devolución'
-                            : 'Anulada'}
+                            : '❌ Anulada'}
                         </span>
                       </div>
                       <span className="text-xs text-slate-400 mt-0.5 block">
                         Realizada el {new Date(order.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end">
                       <span className="font-black text-lg text-purple-700 block">{formatPrice(order.total)}</span>
-                      <span className="text-[11px] text-slate-500">Estimado: {order.deliveryEstimate || '2-4 días'}</span>
+                      {order.status === 'orden_generada' && (
+                        <Link
+                          href={`/confirmacion/${order.orderNumber}?status=rejected`}
+                          className="btn-ensueno-amber text-[10px] h-8 px-3.5 mt-1 inline-flex items-center font-extrabold"
+                        >
+                          Completar / Reintentar Pago
+                        </Link>
+                      )}
+                      {order.status !== 'orden_generada' && (
+                        <span className="text-[11px] text-slate-500">Estimado: {order.deliveryEstimate || '2-4 días'}</span>
+                      )}
                     </div>
                   </div>
 

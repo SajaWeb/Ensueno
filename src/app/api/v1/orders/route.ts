@@ -10,6 +10,9 @@ import { getJwtSecretEncoded } from '@/lib/jwt';
 
 export async function GET(req: Request) {
   try {
+    // Expira órdenes de más de 15 minutos automáticamente
+    await orderRepository.autoExpirePendingOrders();
+
     let userId: string | undefined;
     let email: string | undefined;
 
@@ -90,6 +93,19 @@ export async function POST(req: Request) {
           // ignore
         }
       }
+    }
+
+    // Verificar si el cliente ya tiene una orden activa pendiente (< 15 minutos)
+    const existingPendingOrder = await orderRepository.getPendingOrderForCustomer(customerEmail, userId);
+    if (existingPendingOrder) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Tienes una orden de compra pendiente (#${existingPendingOrder.orderNumber}) realizada hace menos de 15 minutos. Debes completar el pago de esa orden o esperar 15 minutos a que expire antes de generar una nueva.`,
+          pendingOrderNumber: existingPendingOrder.orderNumber,
+        },
+        { status: 400 }
+      );
     }
 
     const order = await orderRepository.createOrder({

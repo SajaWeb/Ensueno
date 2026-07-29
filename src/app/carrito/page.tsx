@@ -243,6 +243,11 @@ function CartContent() {
     } catch (e: any) {
       console.error('Error during checkout:', e);
       showToast(e.message || 'Error al generar la orden de compra', 'error');
+      if (e.pendingOrderNumber) {
+        setTimeout(() => {
+          router.push(`/confirmacion/${e.pendingOrderNumber}?status=rejected`);
+        }, 2500);
+      }
       setIsSubmitting(false);
     }
   };

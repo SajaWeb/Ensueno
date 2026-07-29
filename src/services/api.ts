@@ -57,7 +57,11 @@ export const apiService = {
       body: JSON.stringify(orderPayload),
     });
     const json = await res.json();
-    if (!json.success) throw new Error(json.error || 'Error al crear orden');
+    if (!json.success) {
+      const err = new Error(json.error || 'Error al crear orden') as any;
+      err.pendingOrderNumber = json.pendingOrderNumber;
+      throw err;
+    }
     return { order: json.data, mercadopago: json.mercadopago };
   },
 
