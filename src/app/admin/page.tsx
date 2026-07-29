@@ -1457,11 +1457,12 @@ export default function AdminDashboardPage() {
                       .filter((c: any) => {
                         if (!searchTerm) return true;
                         const s = searchTerm.toLowerCase();
-                        const fullName = c.profile?.fullName?.toLowerCase() || '';
+                        const prof = c.profile || c.motherProfile;
+                        const fullName = prof?.fullName?.toLowerCase() || '';
                         const email = c.email?.toLowerCase() || '';
-                        const phone = c.profile?.phone?.toLowerCase() || '';
-                        const city = c.profile?.city?.toLowerCase() || '';
-                        const babyName = c.profile?.babies?.[0]?.babyName?.toLowerCase() || '';
+                        const phone = prof?.phone?.toLowerCase() || '';
+                        const city = prof?.city?.toLowerCase() || '';
+                        const babyName = prof?.babies?.[0]?.babyName?.toLowerCase() || '';
                         return (
                           fullName.includes(s) ||
                           email.includes(s) ||
@@ -1471,15 +1472,16 @@ export default function AdminDashboardPage() {
                         );
                       })
                       .map((customer: any) => {
-                        const motherName = customer.profile?.fullName || customer.email.split('@')[0];
-                        const phone = customer.profile?.phone || 'Sin teléfono';
+                        const prof = customer.profile || customer.motherProfile;
+                        const motherName = prof?.fullName || customer.email.split('@')[0];
+                        const phone = prof?.phone || 'Sin teléfono';
                         const location =
-                          [customer.profile?.city, customer.profile?.department].filter(Boolean).join(', ') ||
+                          [prof?.city, prof?.department].filter(Boolean).join(', ') ||
                           'No especificada';
-                        const baby = customer.profile?.babies?.[0];
+                        const baby = prof?.babies?.[0];
                         const babyName = baby?.babyName || 'Bebé';
                         const skin = baby?.skinCondition || 'Sensible';
-                        const totalSpent = customer.orders?.reduce((sum: number, o: any) => sum + o.total, 0) || 0;
+                        const totalSpent = customer.orders?.reduce((sum: number, o: any) => sum + (o.total || 0), 0) || 0;
 
                         return (
                           <tr key={customer.id} className="hover:bg-purple-50/50 transition-colors">

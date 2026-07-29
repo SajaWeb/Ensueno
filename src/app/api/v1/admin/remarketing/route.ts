@@ -9,31 +9,15 @@ export async function GET(req: Request) {
     const surveyResponses = await remarketingRepository.getSurveyResponses();
     const pendingReminders = await remarketingRepository.getPendingReminders();
 
-    // Query real customer users stored in DB with their profile, baby info and order history
-    const customers = await prisma.user.findMany({
-      where: { role: 'CUSTOMER' },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        loyaltyPoints: true,
-        createdAt: true,
-        profile: {
-          select: {
-            fullName: true,
-            phone: true,
-            city: true,
-            department: true,
-            address: true,
-            babies: {
-              select: {
-                id: true,
-                babyName: true,
-                birthDate: true,
-                expectedDueDate: true,
-                skinCondition: true,
-              },
-            },
+    // Query all non-admin users registered in the system with their profile and orders
+    const users = await prisma.user.findMany({
+      where: {
+        role: { not: 'ADMIN' },
+      },
+      include: {
+        motherProfile: {
+          include: {
+            babies: true,
           },
         },
         orders: {
@@ -49,6 +33,85 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Also fetch all MotherProfile records as fallback in case any mother profile exists directly
+    const motherProfiles = await prisma.motherProfile.findMany({
+      include: {
+        user: {
+          include: {
+            orders: {
+              select: {
+                id: true,
+                orderNumber: true,
+                status: true,
+                total: true,
+                createdAt: true,
+              },
+              orderBy: { createdAt: 'desc' },
+            },
+          },
+        },
+        babies: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Consolidate into unified customer list
+    const customerMap = new Map<string, any>();
+
+    users.forEach((u) => {
+      customerMap.set(u.id, {
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        loyaltyPoints: u.loyaltyPoints,
+        createdAt: u.createdAt,
+        profile: u.motherProfile
+          ? {
+              fullName: u.motherProfile.fullName,
+              phone: u.motherProfile.phone,
+              city: u.motherProfile.city,
+              department: u.motherProfile.department,
+              address: u.motherProfile.address,
+              babies: u.motherProfile.babies,
+            }
+          : null,
+        motherProfile: u.motherProfile,
+        orders: u.orders,
+      });
+    });
+
+    motherProfiles.forEach((mp) => {
+      const key = mp.userId || mp.id;
+      if (!customerMap.has(key)) {
+        customerMap.set(key, {
+          id: key,
+          email: mp.user?.email || 'Sin correo',
+          role: mp.user?.role || 'CUSTOMER',
+          loyaltyPoints: mp.user?.loyaltyPoints || 0,
+          createdAt: mp.createdAt,
+          profile: {
+            fullName: mp.fullName,
+            phone: mp.phone,
+            city: mp.city,
+            department: mp.department,
+            address: mp.address,
+            babies: mp.babies,
+          },
+          motherProfile: {
+            fullName: mp.fullName,
+            phone: mp.phone,
+            city: mp.city,
+            department: mp.department,
+            address: mp.address,
+            babies: mp.babies,
+          },
+          orders: mp.user?.orders || [],
+        });
+      }
+    });
+
+    const customers = Array.from(customerMap.values());
 
     return NextResponse.json({
       success: true,
