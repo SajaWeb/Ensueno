@@ -5,7 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, ShieldCheck, Moon, Award } from 'lucide-react';
 
+import { useUser } from '@/context/UserContext';
+
 export default function Footer() {
+  const { currentUser, openAuthModal } = useUser();
   const logoUrl = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
 
   return (
@@ -81,7 +84,20 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm text-on-surface-variant">
               <li><Link href="/" className="hover:text-primary transition-colors">Inicio Funnel</Link></li>
               <li><Link href="/tips" className="hover:text-primary transition-colors">Guías y Tips de Sueño</Link></li>
-              <li><Link href="/perfil" className="hover:text-primary transition-colors">Mi Perfil y Pedidos</Link></li>
+              <li>
+                <Link
+                  href="/perfil"
+                  onClick={(e) => {
+                    if (!currentUser) {
+                      e.preventDefault();
+                      openAuthModal('login');
+                    }
+                  }}
+                  className="hover:text-primary transition-colors cursor-pointer"
+                >
+                  Mi Perfil y Pedidos
+                </Link>
+              </li>
               <li>
                 <Link href="/politica-tratamiento-datos" className="hover:text-primary transition-colors font-medium">
                   Política Tratamiento de Datos

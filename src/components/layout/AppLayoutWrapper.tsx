@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ShippingBanner from '@/components/features/ShippingBanner';
+import UniversalAuthModal from '@/components/auth/UniversalAuthModal';
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +23,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
       </div>
       <main className="flex-grow z-10">{children}</main>
       <Footer />
+      <UniversalAuthModal />
     </>
   );
 }

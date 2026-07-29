@@ -24,31 +24,23 @@ import {
   X,
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { useUser } from '@/context/UserContext';
 import { apiService } from '@/services/api';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 
 export default function ProfilePage() {
   const { showToast } = useToast();
+  const { currentUser, openAuthModal, refreshUser } = useUser();
   const [activeTab, setActiveTab] = useState<'perfil' | 'pedidos' | 'preferencias'>('perfil');
 
   // Customer Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [babyNameState, setBabyNameState] = useState('');
-  const [skinTypeState, setSkinTypeState] = useState('Sensible');
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
 
   // Email verification modal state
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verificationCodeInput, setVerificationCodeInput] = useState('');
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
 
   // User Profile Data state (real data from API)
   const [userData, setUserData] = useState<any>(null);
@@ -71,8 +63,16 @@ export default function ProfilePage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
-    loadUserSession();
-  }, []);
+    if (currentUser) {
+      setIsLoggedIn(true);
+      setUserData(currentUser);
+      populateEditForm(currentUser);
+      fetchUserOrders();
+    } else {
+      setIsLoggedIn(false);
+      setUserData(null);
+    }
+  }, [currentUser]);
 
   const loadUserSession = async () => {
     try {
@@ -123,66 +123,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleCustomerLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthLoading(true);
-
-    try {
-      const res = await apiService.login(email, password);
-      if (res.success) {
-        showToast('¡Bienvenida a tu cuenta Ensueño! 💖', 'success');
-        await loadUserSession();
-      } else {
-        setAuthError(res.error || 'Credenciales inválidas');
-        showToast(res.error || 'Credenciales inválidas', 'error');
-      }
-    } catch (err) {
-      setAuthError('Error al iniciar sesión');
-      showToast('Error al conectar con el servidor', 'error');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleCustomerRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-
-    if (!acceptDataPolicy) {
-      setAuthError('Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.');
-      showToast('Debes aceptar la Política de Tratamiento de Datos Personales', 'error');
-      return;
-    }
-
-    setAuthLoading(true);
-
-    try {
-      const res = await apiService.register({
-        email,
-        password,
-        fullName,
-        phone,
-        babyName: babyNameState,
-        skinCondition: skinTypeState,
-      });
-
-      if (res.success) {
-        showToast('¡Cuenta creada! Se envió un código de 6 dígitos a tu correo ✨', 'success');
-        await loadUserSession();
-        setShowVerifyModal(true);
-      } else {
-        setAuthError(res.error || 'Error al registrar usuario');
-        showToast(res.error || 'Error al registrar la cuenta', 'error');
-      }
-    } catch (err) {
-      setAuthError('Error al registrar la cuenta');
-      showToast('Error al crear tu cuenta', 'error');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verificationCodeInput) return;
@@ -190,11 +130,11 @@ export default function ProfilePage() {
     setIsVerifyingCode(true);
     setVerifyMessage(null);
     try {
-      const res = await apiService.verifyEmail(userData?.email || email, verificationCodeInput);
+      const res = await apiService.verifyEmail(userData?.email || '', verificationCodeInput);
       if (res.success) {
         showToast('¡Correo electrónico verificado con éxito! 💖', 'success');
         setVerifyMessage({ type: 'success', text: '¡Correo verificado exitosamente!' });
-        await loadUserSession();
+        await refreshUser();
         setTimeout(() => {
           setShowVerifyModal(false);
           setVerifyMessage(null);
@@ -211,7 +151,7 @@ export default function ProfilePage() {
 
   const handleResendVerificationCode = async () => {
     try {
-      const res = await apiService.resendVerificationCode(userData?.email || email);
+      const res = await apiService.resendVerificationCode(userData?.email || '');
       if (res.success) {
         showToast(res.message || 'Nuevo código enviado', 'success');
         setVerifyMessage({ type: 'success', text: 'Se ha enviado un nuevo código a tu correo.' });
@@ -300,188 +240,24 @@ export default function ProfilePage() {
     }).format(price);
   };
 
-  // Si el cliente no ha iniciado sesión, mostrar el formulario estético de Login/Registro Ensueño
+  // Si el cliente no ha iniciado sesión, mostrar tarjeta de invitación con botón al modal universal
   if (!isLoggedIn) {
     return (
-      <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-purple-100 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-md border border-white">
-              <Baby className="w-8 h-8 text-purple-700" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              {authMode === 'login' ? '¡Hola, Mamá Ensueño! 💖' : 'Crear Tu Cuenta Ensueño ✨'}
-            </h1>
-            <p className="text-xs text-slate-500">
-              {authMode === 'login'
-                ? 'Ingresa para ver el seguimiento de tus compras y recomendaciones para tu bebé'
-                : 'Registra tus datos y los de tu bebé para recibir atención personalizada y compras en 1-clic'}
-            </p>
+      <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-sky-50 py-16 px-4 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-purple-100 text-center space-y-6">
+          <div className="w-16 h-16 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-md border border-white">
+            <Baby className="w-8 h-8 text-purple-700" />
           </div>
-
-          {authError && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-              {authError}
-            </div>
-          )}
-
-          {authMode === 'login' ? (
-            <form onSubmit={handleCustomerLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu.correo@ejemplo.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                  />
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña</label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                  />
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center text-xs">
-                <Link href="/recuperar-password" className="text-purple-600 font-semibold hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition-all text-xs border border-white/40"
-              >
-                {authLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleCustomerRegister} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Tu Nombre Completo</label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ej: María Alejandra Morales"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@correo.com"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono / WhatsApp</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+57 300 123 4567"
-                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre del Bebé</label>
-                <input
-                  type="text"
-                  required
-                  value={babyNameState}
-                  onChange={(e) => setBabyNameState(e.target.value)}
-                  placeholder="Ej: Sofía"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña de la Cuenta</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div className="flex items-start gap-2.5 pt-1">
-                <input
-                  type="checkbox"
-                  id="acceptDataPolicy"
-                  required
-                  checked={acceptDataPolicy}
-                  onChange={(e) => setAcceptDataPolicy(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer"
-                />
-                <label htmlFor="acceptDataPolicy" className="text-[11px] text-slate-600 leading-tight select-none">
-                  Acepto la{' '}
-                  <Link
-                    href="/politica-tratamiento-datos"
-                    target="_blank"
-                    className="text-purple-600 font-bold underline hover:text-purple-800"
-                  >
-                    Política de Tratamiento de Datos Personales
-                  </Link>{' '}
-                  y Términos de Uso de Ensueño Baby.
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition-all text-xs border border-white/40 cursor-pointer"
-              >
-                {authLoading ? 'Creando cuenta...' : 'Crear Mi Cuenta Ensueño'}
-              </button>
-            </form>
-          )}
-
-          <div className="text-center pt-4 border-t border-slate-100">
-            {authMode === 'login' ? (
-              <p className="text-xs text-slate-500">
-                ¿No tienes cuenta aún?{' '}
-                <button onClick={() => setAuthMode('register')} className="text-purple-600 font-bold hover:underline">
-                  Regístrate aquí
-                </button>
-              </p>
-            ) : (
-              <p className="text-xs text-slate-500">
-                ¿Ya tienes una cuenta?{' '}
-                <button onClick={() => setAuthMode('login')} className="text-purple-600 font-bold hover:underline">
-                  Inicia sesión
-                </button>
-              </p>
-            )}
-          </div>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">¡Bienvenida a Ensueño Baby! 💖</h1>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Inicia sesión o crea tu cuenta para ver tus datos, consultar el historial de tus compras y acumular Puntos Ensueño.
+          </p>
+          <button
+            onClick={() => openAuthModal('login')}
+            className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider cursor-pointer"
+          >
+            Iniciar Sesión / Registrarme
+          </button>
         </div>
       </main>
     );

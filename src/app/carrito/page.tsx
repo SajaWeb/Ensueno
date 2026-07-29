@@ -25,6 +25,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
 import { apiService } from '@/services/api';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
@@ -32,25 +33,14 @@ import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 export default function CartPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { currentUser, openAuthModal } = useUser();
   const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon } = useCart();
   const [inputCoupon, setInputCoupon] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // User Auth & Loyalty State
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  // Saved Addresses State
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-
-  // Auth Guard Modal State
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authFullName, setAuthFullName] = useState('');
-  const [authPhone, setAuthPhone] = useState('');
-  const [authBabyName, setAuthBabyName] = useState('');
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
 
   // Shipping & Location state from Colombia dataset
   const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
@@ -70,33 +60,18 @@ export default function CartPage() {
   const productCount = items.reduce((a, b) => a + b.quantity, 0);
 
   useEffect(() => {
-    checkUserSession();
-  }, []);
+    if (currentUser) {
+      if (currentUser.email) setCustomerEmail(currentUser.email);
+      if (currentUser.profile?.fullName) setCustomerName(currentUser.profile.fullName);
+      if (currentUser.profile?.phone) setCustomerPhone(currentUser.profile.phone);
 
-  useEffect(() => {
-    calculateShippingRate();
-  }, [subtotal, currentDepartment, selectedCity, productCount]);
-
-  const checkUserSession = async () => {
-    try {
-      const res = await apiService.getCurrentUser();
-      if (res.success && res.authenticated && res.user) {
-        setCurrentUser(res.user);
-        if (res.user.email) setCustomerEmail(res.user.email);
-        if (res.user.profile?.fullName) setCustomerName(res.user.profile.fullName);
-        if (res.user.profile?.phone) setCustomerPhone(res.user.profile.phone);
-
-        // Load saved addresses
-        if (Array.isArray(res.user.savedAddresses) && res.user.savedAddresses.length > 0) {
-          setSavedAddresses(res.user.savedAddresses);
-          const defaultAddr = res.user.savedAddresses.find((a: any) => a.isDefault) || res.user.savedAddresses[0];
-          applySavedAddress(defaultAddr);
-        }
+      if (Array.isArray(currentUser.savedAddresses) && currentUser.savedAddresses.length > 0) {
+        setSavedAddresses(currentUser.savedAddresses);
+        const defaultAddr = currentUser.savedAddresses.find((a: any) => a.isDefault) || currentUser.savedAddresses[0];
+        applySavedAddress(defaultAddr);
       }
-    } catch (err) {
-      console.warn('Error comprobando sesión de usuario:', err);
     }
-  };
+  }, [currentUser]);
 
   const applySavedAddress = (addr: any) => {
     if (!addr) return;
@@ -193,71 +168,11 @@ export default function CartPage() {
     showToast(`Cupón ${code} procesado`, 'info');
   };
 
-  const handleModalAuthLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthLoading(true);
-
-    try {
-      const res = await apiService.login(authEmail, authPassword);
-      if (res.success) {
-        showToast('¡Sesión iniciada con éxito! 💖', 'success');
-        setShowAuthModal(false);
-        await checkUserSession();
-        // Proceed automatically with checkout
-        processOrder();
-      } else {
-        setAuthError(res.error || 'Credenciales inválidas');
-      }
-    } catch (err) {
-      setAuthError('Error al conectar con el servidor');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleModalAuthRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    setAuthLoading(true);
-
-    try {
-      const res = await apiService.register({
-        email: authEmail,
-        password: authPassword,
-        fullName: authFullName,
-        phone: authPhone,
-        babyName: authBabyName,
-      });
-
-      if (res.success) {
-        showToast('¡Cuenta creada con éxito! Bienvenida a Ensueño ✨', 'success');
-        setShowAuthModal(false);
-        await checkUserSession();
-        // Save initial address automatically
-        await apiService.addSavedAddress({
-          title: 'Hogar',
-          department: currentDepartment,
-          city: selectedCity,
-          address,
-          isDefault: true,
-        });
-        processOrder();
-      } else {
-        setAuthError(res.error || 'Error al registrar la cuenta');
-      }
-    } catch (err) {
-      setAuthError('Error al crear tu cuenta');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
   const handleCheckoutClick = () => {
     if (items.length === 0) return;
     if (!currentUser) {
-      // Exigir inicio de sesión / registro obligatorio
-      setShowAuthModal(true);
+      // Exigir inicio de sesión / registro flotante universal
+      openAuthModal('login');
       return;
     }
     processOrder();
@@ -399,8 +314,8 @@ export default function CartPage() {
             </div>
           </div>
           <button
-            onClick={() => setShowAuthModal(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all shrink-0"
+            onClick={() => openAuthModal('login')}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
           >
             Iniciar Sesión / Registrarme
           </button>
@@ -668,155 +583,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Modal de Inicio de Sesión o Registro Obligatorio para Checkout */}
-      {showAuthModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-purple-100 relative space-y-6 animate-scale-in">
-            <button
-              onClick={() => setShowAuthModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-white">
-                <Baby className="w-7 h-7 text-purple-700" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-800">
-                {authMode === 'login' ? '¡Inicia Sesión para Finalizar Compra! 💖' : 'Registra tu Cuenta Ensueño ✨'}
-              </h3>
-              <p className="text-xs text-slate-500">
-                Inicia sesión o regístrate para almacenar tu dirección de envío y acumular Puntos Ensueño.
-              </p>
-            </div>
-
-            {authError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold text-center">
-                {authError}
-              </div>
-            )}
-
-            {authMode === 'login' ? (
-              <form onSubmit={handleModalAuthLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      required
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="tu.correo@ejemplo.com"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                    />
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña</label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                    />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs border border-white/40"
-                >
-                  {authLoading ? 'Verificando...' : 'Iniciar Sesión y Continuar'}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleModalAuthRegister} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Tu Nombre Completo</label>
-                  <input
-                    type="text"
-                    required
-                    value={authFullName}
-                    onChange={(e) => setAuthFullName(e.target.value)}
-                    placeholder="Ej: María Alejandra Morales"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      required
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="tu@correo.com"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono</label>
-                    <input
-                      type="tel"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      placeholder="+57 300 123 4567"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña de la Cuenta</label>
-                  <input
-                    type="password"
-                    required
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-purple-400"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={authLoading}
-                  className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs border border-white/40"
-                >
-                  {authLoading ? 'Creando cuenta...' : 'Crear Cuenta y Pagar'}
-                </button>
-              </form>
-            )}
-
-            <div className="text-center pt-3 border-t border-slate-100">
-              {authMode === 'login' ? (
-                <p className="text-xs text-slate-500">
-                  ¿No tienes cuenta aún?{' '}
-                  <button onClick={() => setAuthMode('register')} className="text-purple-600 font-extrabold hover:underline">
-                    Regístrate aquí
-                  </button>
-                </p>
-              ) : (
-                <p className="text-xs text-slate-500">
-                  ¿Ya tienes una cuenta?{' '}
-                  <button onClick={() => setAuthMode('login')} className="text-purple-600 font-extrabold hover:underline">
-                    Inicia sesión
-                  </button>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
