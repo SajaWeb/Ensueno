@@ -49,6 +49,14 @@ export class MercadoPagoService {
     const isLocal = rawAppUrl.includes('localhost') || rawAppUrl.includes('127.0.0.1');
     const appUrl = isLocal ? 'https://ensueno.com.co' : rawAppUrl;
 
+    const isTestCredentials = this.isSandbox || this.accessToken.startsWith('TEST-') || this.accessToken.includes('3573047533');
+
+    // In sandbox mode, sending a real email (e.g. gmail.com) in payer.email causes MercadoPago to reject
+    // the transaction with "Una de las partes con la que intentas hacer el pago es de prueba".
+    const payerEmail = (isTestCredentials && !data.customerEmail.includes('@testuser.com'))
+      ? undefined
+      : data.customerEmail;
+
     const body = {
       items: data.items.map((item) => ({
         title: item.title,
@@ -56,10 +64,7 @@ export class MercadoPagoService {
         unit_price: item.unit_price,
         currency_id: item.currency_id || 'COP',
       })),
-      payer: {
-        email: data.customerEmail,
-        name: data.customerName,
-      },
+      ...(payerEmail ? { payer: { email: payerEmail, name: data.customerName } } : {}),
       external_reference: data.orderNumber,
       back_urls: {
         success: `${appUrl}/confirmacion/${data.orderNumber}`,
