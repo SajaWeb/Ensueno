@@ -1458,11 +1458,11 @@ export default function AdminDashboardPage() {
                         if (!searchTerm) return true;
                         const s = searchTerm.toLowerCase();
                         const prof = c.profile || c.motherProfile;
-                        const fullName = prof?.fullName?.toLowerCase() || '';
-                        const email = c.email?.toLowerCase() || '';
-                        const phone = prof?.phone?.toLowerCase() || '';
-                        const city = prof?.city?.toLowerCase() || '';
-                        const babyName = prof?.babies?.[0]?.babyName?.toLowerCase() || '';
+                        const fullName = (c.fullName || prof?.fullName || '').toLowerCase();
+                        const email = (c.email || '').toLowerCase();
+                        const phone = (c.phone || prof?.phone || '').toLowerCase();
+                        const city = (c.city || prof?.city || '').toLowerCase();
+                        const babyName = (c.babies?.[0]?.babyName || prof?.babies?.[0]?.babyName || '').toLowerCase();
                         return (
                           fullName.includes(s) ||
                           email.includes(s) ||
@@ -1473,14 +1473,16 @@ export default function AdminDashboardPage() {
                       })
                       .map((customer: any) => {
                         const prof = customer.profile || customer.motherProfile;
-                        const motherName = prof?.fullName || customer.email.split('@')[0];
-                        const phone = prof?.phone || 'Sin teléfono';
+                        const motherName = customer.fullName || prof?.fullName || customer.email.split('@')[0];
+                        const phone = customer.phone || prof?.phone || 'Sin teléfono';
                         const location =
-                          [prof?.city, prof?.department].filter(Boolean).join(', ') ||
-                          'No especificada';
-                        const baby = prof?.babies?.[0];
+                          [customer.city || prof?.city, customer.department || prof?.department]
+                            .filter(Boolean)
+                            .join(', ') || 'No especificada';
+                        const babies = customer.babies || prof?.babies || [];
+                        const baby = babies[0];
                         const babyName = baby?.babyName || 'Bebé';
-                        const skin = baby?.skinCondition || 'Sensible';
+                        const skin = baby?.skinCondition || 'Normal';
                         const totalSpent = customer.orders?.reduce((sum: number, o: any) => sum + (o.total || 0), 0) || 0;
 
                         return (
