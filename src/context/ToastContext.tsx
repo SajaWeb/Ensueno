@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Sparkles, X, Star, Heart } from 'lucide-react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { CheckCircle2, AlertCircle, Sparkles, X, Star, ShieldAlert } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -20,101 +21,134 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const removeToast = useCallback((id: string) => {
-    // Trigger smooth exit animation before removing from DOM
+    // Trigger smooth exit animation before unmounting
     setToasts((prev) =>
       prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t))
     );
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 300);
+    }, 280);
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type, isExiting: false }]);
 
-    // Auto dismiss after 3.8 seconds with smooth exit animation
+    // Auto dismiss after 4 seconds
     setTimeout(() => {
       removeToast(id);
-    }, 3800);
+    }, 4000);
   }, [removeToast]);
+
+  const activeToast = toasts.length > 0 ? toasts[toasts.length - 1] : null;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* CENTER-SCREEN BACKDROP & TOAST NOTIFICATION CONTAINER */}
-      {toasts.length > 0 && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none">
-          {/* Full Screen Soft Backdrop Blur */}
-          <div className="fixed inset-0 bg-slate-950/45 backdrop-blur-md transition-opacity duration-300 pointer-events-auto" />
+      {/* REACT PORTAL TO DOCUMENT.BODY: GUARANTEES ULTRA-HIGH Z-INDEX ABOVE ALL TEXT & MODALS */}
+      {mounted && activeToast && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 sm:p-6 overflow-hidden pointer-events-auto">
+          {/* Backdrop Blur Layer */}
+          <div
+            onClick={() => removeToast(activeToast.id)}
+            className={`fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity duration-300 ${
+              activeToast.isExiting ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
 
-          {/* Centered Toast List */}
-          <div className="relative z-10 flex flex-col gap-4 max-w-sm sm:max-w-md w-full pointer-events-auto items-center">
-            {toasts.map((toast) => (
+          {/* SweetAlert-Style Professional Ensueño Modal Card */}
+          <div
+            className={`relative z-10 max-w-sm sm:max-w-md w-full rounded-3xl bg-white/95 backdrop-blur-2xl p-6 sm:p-7 shadow-2xl border transition-all duration-300 transform text-center space-y-4 ${
+              activeToast.isExiting
+                ? 'scale-90 opacity-0 translate-y-4'
+                : 'scale-100 opacity-100 translate-y-0 animate-fade-in'
+            } ${
+              activeToast.type === 'success'
+                ? 'border-emerald-200 shadow-emerald-950/20'
+                : activeToast.type === 'error'
+                ? 'border-rose-200 shadow-rose-950/20'
+                : 'border-purple-200 shadow-purple-950/20'
+            }`}
+          >
+            {/* Close X Button */}
+            <button
+              onClick={() => removeToast(activeToast.id)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+              title="Cerrar notificación"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Personaje Estrella Ensueño Avatar Badge (Can be replaced with <img src="/estrellita-ensueno.png" />) */}
+            <div className="relative inline-block mx-auto">
               <div
-                key={toast.id}
-                className={`w-full p-5 sm:p-6 rounded-3xl shadow-2xl border backdrop-blur-2xl transition-all duration-300 transform ${
-                  toast.isExiting
-                    ? 'opacity-0 scale-90 translate-y-4'
-                    : 'opacity-100 scale-100 translate-y-0 animate-fade-in'
-                } ${
-                  toast.type === 'success'
-                    ? 'bg-gradient-to-br from-emerald-950/95 via-slate-900/95 to-emerald-900/95 border-emerald-400/50 text-emerald-50 shadow-emerald-950/40 ring-1 ring-emerald-400/30'
-                    : toast.type === 'error'
-                    ? 'bg-gradient-to-br from-rose-950/95 via-slate-900/95 to-rose-900/95 border-rose-400/50 text-rose-50 shadow-rose-950/40 ring-1 ring-rose-400/30'
-                    : 'bg-gradient-to-br from-purple-950/95 via-slate-900/95 to-purple-900/95 border-purple-400/50 text-purple-50 shadow-purple-950/40 ring-1 ring-purple-400/30'
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl p-1 shadow-lg border-2 border-white flex items-center justify-center mx-auto transition-transform ${
+                  activeToast.type === 'success'
+                    ? 'bg-gradient-to-tr from-emerald-100 via-teal-200 to-amber-200 text-emerald-600'
+                    : activeToast.type === 'error'
+                    ? 'bg-gradient-to-tr from-rose-100 via-pink-200 to-amber-200 text-rose-600 animate-bounce'
+                    : 'bg-gradient-to-tr from-purple-100 via-pink-200 to-amber-200 text-purple-600'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  {/* PERSONAJE ESTRELLA ENSUEÑO (Puedes reemplazar el icono Star por tu etiqueta <img src="/estrellita-ensueno.png" /> cuando lo desees) */}
-                  <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-300 via-yellow-200 to-pink-300 p-0.5 shadow-md border border-white/60 flex items-center justify-center animate-bounce">
-                      <Star className="w-7 h-7 text-amber-600 fill-amber-400" />
-                    </div>
-                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-xs">
-                      {toast.type === 'success' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                      {toast.type === 'error' && <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
-                      {toast.type === 'info' && <Sparkles className="w-3.5 h-3.5 text-purple-600" />}
-                    </span>
-                  </div>
-
-                  {/* Mensaje de Alerta */}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-amber-300" /> Alerta de Cuidado Ensueño
-                      </span>
-                      <button
-                        onClick={() => removeToast(toast.id)}
-                        className="text-white/60 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10"
-                        title="Cerrar notificación"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <p className="text-xs sm:text-sm font-extrabold text-white leading-relaxed">
-                      {toast.message}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Botón de Confirmación Rápida "Entendido" */}
-                <div className="mt-4 pt-3 border-t border-white/10 flex justify-end">
-                  <button
-                    onClick={() => removeToast(toast.id)}
-                    className="px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/15 hover:bg-white/25 text-white transition-all border border-white/20 shadow-2xs cursor-pointer"
-                  >
-                    Entendido ✨
-                  </button>
-                </div>
+                {/* Estrella personaje de Ensueño (Intercambiable por PNG) */}
+                <Star className="w-9 h-9 sm:w-11 sm:h-11 fill-amber-400 text-amber-500 transform hover:scale-110 transition-transform" />
               </div>
-            ))}
+
+              {/* Status Badge Over Star */}
+              <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-md border border-slate-100">
+                {activeToast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                {activeToast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600" />}
+                {activeToast.type === 'info' && <Sparkles className="w-5 h-5 text-purple-600" />}
+              </div>
+            </div>
+
+            {/* Alert Header Badge */}
+            <div>
+              <span
+                className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-2xs ${
+                  activeToast.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    : activeToast.type === 'error'
+                    ? 'bg-rose-50 text-rose-800 border-rose-200'
+                    : 'bg-purple-50 text-purple-800 border-purple-200'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {activeToast.type === 'error' ? 'Alerta de Cuidado Ensueño ⚠️' : 'Notificación Ensueño ✨'}
+              </span>
+            </div>
+
+            {/* Alert Message Text */}
+            <p className="text-xs sm:text-sm font-extrabold text-slate-800 leading-relaxed px-2">
+              {activeToast.message}
+            </p>
+
+            {/* SweetAlert Style Action Button */}
+            <div className="pt-2">
+              <button
+                onClick={() => removeToast(activeToast.id)}
+                className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all transform active:scale-95 shadow-md cursor-pointer ${
+                  activeToast.type === 'success'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-emerald-200'
+                    : activeToast.type === 'error'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white shadow-rose-200'
+                    : 'btn-ensueno-primary'
+                }`}
+              >
+                Entendido ✨
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </ToastContext.Provider>
   );
