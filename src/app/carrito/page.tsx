@@ -57,6 +57,7 @@ function CartContent() {
   // Saved Addresses State
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
 
   // Shipping & Location state from Colombia dataset
   const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
@@ -118,11 +119,26 @@ function CartContent() {
       if (currentUser.profile?.fullName) setCustomerName(currentUser.profile.fullName);
       if (currentUser.profile?.phone) setCustomerPhone(currentUser.profile.phone);
 
-      if (Array.isArray(currentUser.savedAddresses) && currentUser.savedAddresses.length > 0) {
-        setSavedAddresses(currentUser.savedAddresses);
-        const defaultAddr = currentUser.savedAddresses.find((a: any) => a.isDefault) || currentUser.savedAddresses[0];
-        applySavedAddress(defaultAddr);
-      }
+      const fetchAddresses = async () => {
+        try {
+          const res = await apiService.getSavedAddresses();
+          if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+            setSavedAddresses(res.data);
+            const defaultAddr = res.data.find((a: any) => a.isDefault) || res.data[0];
+            applySavedAddress(defaultAddr);
+            setShowNewAddressForm(false);
+          } else {
+            setSavedAddresses([]);
+            setShowNewAddressForm(true);
+          }
+        } catch {
+          setShowNewAddressForm(true);
+        }
+      };
+
+      fetchAddresses();
+    } else {
+      setShowNewAddressForm(true);
     }
   }, [currentUser]);
 
@@ -206,6 +222,12 @@ function CartContent() {
       openAuthModal('login');
       return;
     }
+
+    if (!address || !address.trim() || !selectedCity || !currentDepartment) {
+      showToast('Debes seleccionar o ingresar una dirección de envío para continuar con tu compra.', 'error');
+      return;
+    }
+
     processOrder();
   };
 
@@ -413,14 +435,16 @@ function CartContent() {
             ))}
           </div>
 
-          {/* Selector de Direcciones Guardadas si el usuario ya inició sesión */}
-          {currentUser && savedAddresses.length > 0 && (
+          {/* Selector de Direcciones Guardadas o Formulario Nueva Dirección */}
+          {currentUser && savedAddresses.length > 0 ? (
             <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4">
               <div className="flex items-center justify-between border-b border-purple-50 pb-3">
                 <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-purple-600" /> Tus Direcciones Guardadas ({savedAddresses.length})
+                  <Building2 className="w-5 h-5 text-purple-600" /> Direcciones Guardadas de Envío ({savedAddresses.length})
                 </h3>
-                <span className="text-xs text-purple-600 font-semibold">Selección 1-Clic</span>
+                <span className="text-xs text-purple-600 font-bold bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+                  ⭐ Predeterminada Seleccionada
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -430,101 +454,133 @@ function CartContent() {
                     <div
                       key={addr.id}
                       onClick={() => applySavedAddress(addr)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all relative ${
+                      className={`p-4 rounded-xl border cursor-pointer transition-all relative flex flex-col justify-between ${
                         isSelected
-                          ? 'bg-purple-50/80 border-purple-400 shadow-sm ring-2 ring-purple-300'
+                          ? 'bg-purple-50/90 border-purple-400 shadow-sm ring-2 ring-purple-300'
                           : 'bg-slate-50/60 border-slate-200 hover:bg-purple-50/30'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-purple-600" /> {addr.title || 'Hogar'}
-                          {addr.isDefault && (
-                            <span className="text-[9px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">
-                              Principal
-                            </span>
-                          )}
-                        </span>
-                        <button
-                          onClick={(e) => handleDeleteSavedAddress(addr.id, e)}
-                          className="text-slate-400 hover:text-rose-600 p-1"
-                          title="Eliminar dirección"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-purple-600" /> {addr.title || 'Hogar'}
+                            {addr.isDefault && (
+                              <span className="text-[9px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">
+                                Predeterminada
+                              </span>
+                            )}
+                          </span>
+                          <button
+                            onClick={(e) => handleDeleteSavedAddress(addr.id, e)}
+                            className="text-slate-400 hover:text-rose-600 p-1"
+                            title="Eliminar dirección"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-700 line-clamp-1">{addr.address}</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {addr.city}, {addr.department}
+                        </p>
                       </div>
-                      <p className="text-xs font-semibold text-slate-700 line-clamp-1">{addr.address}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {addr.city}, {addr.department}
-                      </p>
+
+                      {isSelected && (
+                        <div className="mt-2 text-[10px] font-black text-purple-700 uppercase flex items-center gap-1">
+                          ✓ Seleccionada para este pedido
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewAddressForm(!showNewAddressForm)}
+                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-2xs"
+                >
+                  <Plus className="w-4 h-4 text-purple-600" />
+                  <span>{showNewAddressForm ? 'Ocultar Formulario de Nueva Dirección' : '+ Añadir Nueva Dirección'}</span>
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Formulario de Nueva Dirección (se muestra si no tiene direcciones guardadas o presiona Añadir Nueva Dirección) */}
+          {(showNewAddressForm || !currentUser || savedAddresses.length === 0) && (
+            <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-purple-50 pb-3">
+                <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-purple-600" /> Ingresar Dirección de Envío en Colombia
+                </h3>
+                {savedAddresses.length > 0 && (
+                  <button
+                    onClick={() => setShowNewAddressForm(false)}
+                    className="text-slate-400 hover:text-slate-600 p-1"
+                    title="Cerrar formulario"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">1. Departamento</label>
+                  <select
+                    value={selectedDeptIndex}
+                    onChange={(e) => {
+                      const idx = parseInt(e.target.value);
+                      setSelectedDeptIndex(idx);
+                      setSelectedCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
+                      setSelectedAddressId(null);
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                  >
+                    {COLOMBIA_LOCATION_DATA.map((d, index) => (
+                      <option key={d.name} value={index}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">2. Municipio / Ciudad</label>
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => {
+                      setSelectedCity(e.target.value);
+                      setSelectedAddressId(null);
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                  >
+                    {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Dirección Exacta de Entrega</label>
+                  <input
+                    type="text"
+                    required
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      setSelectedAddressId(null);
+                    }}
+                    placeholder="Calle, Carrera, Apto / Casa, Barrio"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                  />
+                </div>
+              </div>
             </div>
           )}
-
-          {/* Formulario Datos de Envío en Colombia con Selector Dinámico */}
-          <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4">
-            <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-purple-600" /> Destino de Envío en Colombia
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">1. Departamento</label>
-                <select
-                  value={selectedDeptIndex}
-                  onChange={(e) => {
-                    const idx = parseInt(e.target.value);
-                    setSelectedDeptIndex(idx);
-                    setSelectedCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
-                    setSelectedAddressId(null);
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                >
-                  {COLOMBIA_LOCATION_DATA.map((d, index) => (
-                    <option key={d.name} value={index}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">2. Municipio / Ciudad</label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => {
-                    setSelectedCity(e.target.value);
-                    setSelectedAddressId(null);
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                >
-                  {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Dirección Exacta de Entrega</label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    setSelectedAddressId(null);
-                  }}
-                  placeholder="Calle, Carrera, Apto / Casa, Barrio"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Summary Card */}

@@ -31,7 +31,7 @@ import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 export default function ProfilePage() {
   const { showToast } = useToast();
   const { currentUser, openAuthModal, refreshUser } = useUser();
-  const [activeTab, setActiveTab] = useState<'perfil' | 'pedidos' | 'preferencias'>('perfil');
+  const [activeTab, setActiveTab] = useState<'perfil' | 'direcciones' | 'pedidos' | 'preferencias'>('perfil');
 
   // Customer Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -45,6 +45,15 @@ export default function ProfilePage() {
   // User Profile Data state (real data from API)
   const [userData, setUserData] = useState<any>(null);
   const [userOrders, setUserOrders] = useState<any[]>([]);
+
+  // Saved Addresses State
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [newAddrTitle, setNewAddrTitle] = useState('Hogar');
+  const [newAddrDeptIdx, setNewAddrDeptIdx] = useState(0);
+  const [newAddrCity, setNewAddrCity] = useState(COLOMBIA_LOCATION_DATA[0].cities[0]);
+  const [newAddrLine, setNewAddrLine] = useState('');
+  const [newAddrIsDefault, setNewAddrIsDefault] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
 
   // Profile Edit Form State
   const [editFullName, setEditFullName] = useState('');
@@ -70,11 +79,85 @@ export default function ProfilePage() {
       setUserData(currentUser);
       populateEditForm(currentUser);
       fetchUserOrders();
+      fetchSavedAddresses();
     } else {
       setIsLoggedIn(false);
       setUserData(null);
     }
   }, [currentUser]);
+
+  const fetchSavedAddresses = async () => {
+    try {
+      const res = await apiService.getSavedAddresses();
+      if (res.success && Array.isArray(res.data)) {
+        setSavedAddresses(res.data);
+      }
+    } catch (err) {
+      console.warn('Error cargando direcciones:', err);
+    }
+  };
+
+  const handleCreateAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAddrLine.trim()) {
+      showToast('Ingresa la dirección exacta de entrega', 'error');
+      return;
+    }
+    const deptName = COLOMBIA_LOCATION_DATA[newAddrDeptIdx].name;
+    try {
+      const res = await apiService.addSavedAddress({
+        title: newAddrTitle || 'Hogar',
+        department: deptName,
+        city: newAddrCity,
+        address: newAddrLine.trim(),
+        isDefault: newAddrIsDefault || savedAddresses.length === 0,
+      });
+      if (res.success) {
+        showToast('¡Dirección de envío guardada! 🏠', 'success');
+        setNewAddrLine('');
+        setIsAddingAddress(false);
+        await fetchSavedAddresses();
+        await refreshUser();
+      } else {
+        showToast(res.error || 'Error al guardar dirección', 'error');
+      }
+    } catch {
+      showToast('Error al conectar con el servidor', 'error');
+    }
+  };
+
+  const handleSetDefaultAddress = async (addr: any) => {
+    try {
+      const res = await apiService.updateSavedAddress({
+        id: addr.id,
+        title: addr.title,
+        department: addr.department,
+        city: addr.city,
+        address: addr.address,
+        isDefault: true,
+      });
+      if (res.success) {
+        showToast(`Dirección "${addr.title}" fijada como predeterminada ⭐`, 'success');
+        await fetchSavedAddresses();
+        await refreshUser();
+      }
+    } catch {
+      showToast('Error al fijar dirección predeterminada', 'error');
+    }
+  };
+
+  const handleDeleteAddress = async (id: string) => {
+    try {
+      const res = await apiService.deleteSavedAddress(id);
+      if (res.success) {
+        showToast('Dirección eliminada correctamente', 'info');
+        await fetchSavedAddresses();
+        await refreshUser();
+      }
+    } catch {
+      showToast('Error al eliminar dirección', 'error');
+    }
+  };
 
   const loadUserSession = async () => {
     try {
@@ -331,7 +414,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs Bar (Favoritos eliminado) */}
+      {/* Tabs Bar */}
       <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('perfil')}
@@ -340,7 +423,17 @@ export default function ProfilePage() {
           }`}
         >
           <Baby className="w-4 h-4" />
-          <span>Perfil & Datos de Envío</span>
+          <span>Perfil & Datos Personales</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('direcciones')}
+          className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-bold text-xs transition-all ${
+            activeTab === 'direcciones' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+          }`}
+        >
+          <MapPin className="w-4 h-4" />
+          <span>Direcciones de Envío ({savedAddresses.length})</span>
         </button>
 
         <button
@@ -552,6 +645,186 @@ export default function ProfilePage() {
               <span>Guardar Todos los Cambios</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Tab 2: Mis Direcciones de Envío */}
+      {activeTab === 'direcciones' && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 max-w-3xl space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+            <div>
+              <h2 className="font-extrabold text-xl text-slate-800 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-purple-600" /> Mis Direcciones de Envío ({savedAddresses.length})
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Administra tus ubicaciones guardadas y establece tu dirección predeterminada para el checkout.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAddingAddress(!isAddingAddress)}
+              className="btn-ensueno-primary text-xs font-extrabold px-4 py-2.5 rounded-full inline-flex items-center gap-1.5 shrink-0 shadow-sm"
+            >
+              <span>{isAddingAddress ? 'Cancelar' : '+ Añadir Nueva Dirección'}</span>
+            </button>
+          </div>
+
+          {/* Formulario Nueva Dirección en Perfil */}
+          {isAddingAddress && (
+            <form onSubmit={handleCreateAddress} className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-5 space-y-4 animate-fade-in">
+              <h3 className="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-purple-600" /> Nueva Dirección de Envío
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre o Etiqueta (Ej: Hogar, Oficina)</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrTitle}
+                    onChange={(e) => setNewAddrTitle(e.target.value)}
+                    placeholder="Ej: Casa Mamá, Trabajo"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-purple-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Departamento</label>
+                  <select
+                    value={newAddrDeptIdx}
+                    onChange={(e) => {
+                      const idx = parseInt(e.target.value);
+                      setNewAddrDeptIdx(idx);
+                      setNewAddrCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
+                    }}
+                    className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-slate-800 bg-white"
+                  >
+                    {COLOMBIA_LOCATION_DATA.map((d, index) => (
+                      <option key={d.name} value={index}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Municipio / Ciudad</label>
+                  <select
+                    value={newAddrCity}
+                    onChange={(e) => setNewAddrCity(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-slate-800 bg-white"
+                  >
+                    {COLOMBIA_LOCATION_DATA[newAddrDeptIdx].cities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Dirección Exacta</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrLine}
+                    onChange={(e) => setNewAddrLine(e.target.value)}
+                    placeholder="Calle, Carrera, Apto, Barrio"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-purple-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="profileAddrIsDefault"
+                  checked={newAddrIsDefault}
+                  onChange={(e) => setNewAddrIsDefault(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer"
+                />
+                <label htmlFor="profileAddrIsDefault" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                  Establecer como mi dirección predeterminada de envío ⭐
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingAddress(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-ensueno-primary text-xs font-extrabold px-6 py-2 rounded-xl shadow-xs"
+                >
+                  Guardar Dirección
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Listado de Direcciones Guardadas */}
+          {savedAddresses.length === 0 ? (
+            <div className="text-center py-10 space-y-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              <MapPin className="w-10 h-10 text-slate-300 mx-auto" />
+              <p className="text-xs font-bold text-slate-600">Aún no tienes direcciones guardadas en tu cuenta.</p>
+              <p className="text-[11px] text-slate-400">Añade tu primera dirección para agilizar tus compras en el carrito.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {savedAddresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`p-4 rounded-2xl border transition-all space-y-2 relative ${
+                    addr.isDefault
+                      ? 'bg-purple-50/70 border-purple-300 shadow-xs ring-2 ring-purple-200'
+                      : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-purple-600" /> {addr.title || 'Hogar'}
+                      {addr.isDefault && (
+                        <span className="text-[9px] font-black uppercase bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full border border-pink-200">
+                          ⭐ Predeterminada
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteAddress(addr.id)}
+                      className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                      title="Eliminar dirección"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="text-xs text-slate-700 space-y-0.5">
+                    <p className="font-bold text-slate-800">{addr.address}</p>
+                    <p className="text-slate-500 font-semibold">{addr.city}, {addr.department}</p>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-200/60">
+                    {!addr.isDefault ? (
+                      <button
+                        onClick={() => handleSetDefaultAddress(addr)}
+                        className="text-[11px] font-bold text-purple-700 hover:text-purple-900 hover:underline inline-flex items-center gap-1"
+                      >
+                        ⭐ Marcar como predeterminada
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                        ✓ Seleccionada para envíos
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
