@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 import { remarketingRepository } from '@/infrastructure/repositories/RemarketingRepository';
 import { resendService } from '@/infrastructure/services/ResendService';
 
@@ -8,12 +9,54 @@ export async function GET(req: Request) {
     const surveyResponses = await remarketingRepository.getSurveyResponses();
     const pendingReminders = await remarketingRepository.getPendingReminders();
 
+    // Query real customer users stored in DB with their profile, baby info and order history
+    const customers = await prisma.user.findMany({
+      where: { role: 'CUSTOMER' },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loyaltyPoints: true,
+        createdAt: true,
+        profile: {
+          select: {
+            fullName: true,
+            phone: true,
+            city: true,
+            department: true,
+            address: true,
+            babies: {
+              select: {
+                id: true,
+                babyName: true,
+                birthDate: true,
+                expectedDueDate: true,
+                skinCondition: true,
+              },
+            },
+          },
+        },
+        orders: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            total: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
         babyCohorts,
         surveyResponses,
         pendingReminders,
+        customers,
       },
     });
   } catch (err: any) {

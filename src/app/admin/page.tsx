@@ -58,6 +58,7 @@ export default function AdminDashboardPage() {
     babyCohorts?: any;
     surveyResponses?: any[];
     pendingReminders?: any[];
+    customers?: any[];
   }>({});
 
   const [products, setProducts] = useState<any[]>([]);
@@ -1413,14 +1414,18 @@ export default function AdminDashboardPage() {
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Base de Datos Mamás y Bebés</h2>
-                <p className="text-xs text-slate-500 mt-1">Contacto directo de remarketing según la etapa del bebé.</p>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-purple-600" /> Base de Datos Mamás y Bebés ({data.customers?.length || 0})
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Clientes y perfiles registrados en la base de datos real con puntos acumulados e historial.
+                </p>
               </div>
 
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Buscar mamá o bebé..."
+                  placeholder="Buscar por nombre, email, ciudad o bebé..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs w-64 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -1434,46 +1439,107 @@ export default function AdminDashboardPage() {
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
                     <th className="py-3 px-4">Mamá (Cliente)</th>
-                    <th className="py-3 px-4">Contacto</th>
-                    <th className="py-3 px-4">Bebé & Etapa</th>
-                    <th className="py-3 px-4">Sensibilidad Piel</th>
+                    <th className="py-3 px-4">Contacto & Ubicación</th>
+                    <th className="py-3 px-4">Bebé & Piel</th>
+                    <th className="py-3 px-4">Órdenes & Puntos</th>
                     <th className="py-3 px-4 text-right">Acción Remarketing</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr className="hover:bg-purple-50/50 transition-colors">
-                    <td className="py-4 px-4 font-bold text-slate-800">
-                      María Alejandra Morales
-                      <div className="text-[11px] font-normal text-slate-500">Bogotá, Cundinamarca</div>
-                    </td>
-                    <td className="py-4 px-4 text-slate-600">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold">
-                        <Mail className="w-3.5 h-3.5 text-purple-600" /> maria.alejandra@example.com
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">+57 310 456 7890</div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
-                        <Baby className="w-3.5 h-3.5" /> Sofía (6 Meses)
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 font-medium text-slate-700">Piel Sensible / Atópica</td>
-                    <td className="py-4 px-4 text-right">
-                      <button
-                        onClick={() =>
-                          handleSendReminder(
-                            'maria.alejandra@example.com',
-                            'María Alejandra',
-                            'Sofía',
-                            'Cremas Corporales Ensueño'
-                          )
-                        }
-                        className="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
-                      >
-                        <Send className="w-3.5 h-3.5" /> Recordatorio Recompra
-                      </button>
-                    </td>
-                  </tr>
+                  {(!data.customers || data.customers.length === 0) ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                        No se encontraron clientes registrados en la base de datos.
+                      </td>
+                    </tr>
+                  ) : (
+                    data.customers
+                      .filter((c: any) => {
+                        if (!searchTerm) return true;
+                        const s = searchTerm.toLowerCase();
+                        const fullName = c.profile?.fullName?.toLowerCase() || '';
+                        const email = c.email?.toLowerCase() || '';
+                        const phone = c.profile?.phone?.toLowerCase() || '';
+                        const city = c.profile?.city?.toLowerCase() || '';
+                        const babyName = c.profile?.babies?.[0]?.babyName?.toLowerCase() || '';
+                        return (
+                          fullName.includes(s) ||
+                          email.includes(s) ||
+                          phone.includes(s) ||
+                          city.includes(s) ||
+                          babyName.includes(s)
+                        );
+                      })
+                      .map((customer: any) => {
+                        const motherName = customer.profile?.fullName || customer.email.split('@')[0];
+                        const phone = customer.profile?.phone || 'Sin teléfono';
+                        const location =
+                          [customer.profile?.city, customer.profile?.department].filter(Boolean).join(', ') ||
+                          'No especificada';
+                        const baby = customer.profile?.babies?.[0];
+                        const babyName = baby?.babyName || 'Bebé';
+                        const skin = baby?.skinCondition || 'Sensible';
+                        const totalSpent = customer.orders?.reduce((sum: number, o: any) => sum + o.total, 0) || 0;
+
+                        return (
+                          <tr key={customer.id} className="hover:bg-purple-50/50 transition-colors">
+                            <td className="py-4 px-4 align-top font-bold text-slate-800">
+                              {motherName}
+                              <div className="text-[11px] font-normal text-slate-400">
+                                Reg: {new Date(customer.createdAt).toLocaleDateString('es-CO')}
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4 align-top text-slate-600">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold">
+                                <Mail className="w-3.5 h-3.5 text-purple-600 shrink-0" /> {customer.email}
+                              </div>
+                              {phone !== 'Sin teléfono' && (
+                                <div className="text-[11px] text-slate-500 mt-0.5 font-mono">Tel: {phone}</div>
+                              )}
+                              <div className="text-[10px] text-slate-400 mt-0.5">{location}</div>
+                            </td>
+
+                            <td className="py-4 px-4 align-top">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
+                                <Baby className="w-3.5 h-3.5" /> {babyName}
+                              </span>
+                              <span className="text-[11px] font-medium text-slate-600 block mt-1">
+                                Piel: <strong className="text-purple-700">{skin}</strong>
+                              </span>
+                            </td>
+
+                            <td className="py-4 px-4 align-top">
+                              <span className="font-extrabold text-slate-800 block text-xs">
+                                {customer.orders?.length || 0} orden(es)
+                              </span>
+                              <span className="text-[11px] text-purple-700 font-bold block">
+                                ${totalSpent.toLocaleString('es-CO')} COP
+                              </span>
+                              <span className="text-[10px] text-amber-600 font-bold block mt-0.5">
+                                ⭐ {customer.loyaltyPoints || 0} pts
+                              </span>
+                            </td>
+
+                            <td className="py-4 px-4 align-top text-right">
+                              <button
+                                onClick={() =>
+                                  handleSendReminder(
+                                    customer.email,
+                                    motherName,
+                                    babyName,
+                                    'Cremas Corporales Ensueño'
+                                  )
+                                }
+                                className="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                              >
+                                <Send className="w-3.5 h-3.5" /> Recordatorio Recompra
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                  )}
                 </tbody>
               </table>
             </div>
