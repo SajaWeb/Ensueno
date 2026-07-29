@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,13 +14,13 @@ body {
   /* Soft, soothing gradient background from Sky Blue to Soft Pink */
   background: linear-gradient(135deg, #e8f3ff 0%, #fdf0f5 50%, #f4f8fd 100%);
   background-attachment: fixed;
-  font-family: 'Anton', sans-serif;
+  font-family: 'Open Sans', sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6, button, input, select, textarea {
-  font-family: 'Anton', sans-serif;
+  font-family: 'Open Sans', sans-serif;
 }
 
 /* Page Entry Keyframes */
