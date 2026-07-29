@@ -77,11 +77,16 @@ export default function Footer() {
 
           {/* Customer Care */}
           <div>
-            <h4 className="font-headline font-bold text-base text-on-surface mb-4">Explora</h4>
+            <h4 className="font-headline font-bold text-base text-on-surface mb-4">Explora & Legal</h4>
             <ul className="space-y-2.5 text-sm text-on-surface-variant">
               <li><Link href="/" className="hover:text-primary transition-colors">Inicio Funnel</Link></li>
               <li><Link href="/tips" className="hover:text-primary transition-colors">Guías y Tips de Sueño</Link></li>
               <li><Link href="/perfil" className="hover:text-primary transition-colors">Mi Perfil y Pedidos</Link></li>
+              <li>
+                <Link href="/politica-tratamiento-datos" className="hover:text-primary transition-colors font-medium">
+                  Política Tratamiento de Datos
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -108,8 +113,13 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="pt-8 border-t border-surface-container-high/60 text-center text-xs text-on-surface-variant">
-          <p>© {new Date().getFullYear()} Ensueño. Todos los derechos reservados.</p>
+        <div className="pt-8 border-t border-surface-container-high/60 flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-4">
+          <p>© {new Date().getFullYear()} Ensueño Baby. Todos los derechos reservados.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/politica-tratamiento-datos" className="hover:text-primary transition-colors underline font-medium">
+              Política de Tratamiento de Datos (Habeas Data)
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

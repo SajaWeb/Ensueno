@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [verificationCodeInput, setVerificationCodeInput] = useState('');
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
 
   // User Profile Data state (real data from API)
   const [userData, setUserData] = useState<any>(null);
@@ -147,6 +148,13 @@ export default function ProfilePage() {
   const handleCustomerRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+
+    if (!acceptDataPolicy) {
+      setAuthError('Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.');
+      showToast('Debes aceptar la Política de Tratamiento de Datos Personales', 'error');
+      return;
+    }
+
     setAuthLoading(true);
 
     try {
@@ -425,10 +433,32 @@ export default function ProfilePage() {
                 />
               </div>
 
+              <div className="flex items-start gap-2.5 pt-1">
+                <input
+                  type="checkbox"
+                  id="acceptDataPolicy"
+                  required
+                  checked={acceptDataPolicy}
+                  onChange={(e) => setAcceptDataPolicy(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer"
+                />
+                <label htmlFor="acceptDataPolicy" className="text-[11px] text-slate-600 leading-tight select-none">
+                  Acepto la{' '}
+                  <Link
+                    href="/politica-tratamiento-datos"
+                    target="_blank"
+                    className="text-purple-600 font-bold underline hover:text-purple-800"
+                  >
+                    Política de Tratamiento de Datos Personales
+                  </Link>{' '}
+                  y Términos de Uso de Ensueño Baby.
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition-all text-xs border border-white/40"
+                className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition-all text-xs border border-white/40 cursor-pointer"
               >
                 {authLoading ? 'Creando cuenta...' : 'Crear Mi Cuenta Ensueño'}
               </button>
