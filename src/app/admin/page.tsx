@@ -923,36 +923,50 @@ export default function AdminDashboardPage() {
                 </div>
               </>
             ) : activeTab === 'crm' ? (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>Total Bebés Registrados</span>
-                    <Baby className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.totalBabies || 12}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Mamás en Comunidad</span>
-                    <Users className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.surveyResponses?.length || 8}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                    <span>Piel Sensible / Atópica</span>
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">85%</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Recordatorios Pendientes</span>
-                    <Mail className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.pendingReminders?.length || 3}</p>
-                </div>
-              </>
+              (() => {
+                const totalMothersCount = data.customers?.length || 0;
+                const allBabies = (data.customers || []).flatMap((c: any) => c.babies || c.motherProfile?.babies || []);
+                const totalBabiesCount = data.babyCohorts?.totalBabies || allBabies.length;
+                const sensitiveBabies = allBabies.filter((b: any) => {
+                  const cond = (b.skinCondition || '').toLowerCase();
+                  return cond.includes('sensible') || cond.includes('atópica') || cond.includes('atopica');
+                });
+                const sensitivePercentage = totalBabiesCount > 0 ? Math.round((sensitiveBabies.length / totalBabiesCount) * 100) : 0;
+                const pendingRemindersCount = data.pendingReminders?.length || 0;
+
+                return (
+                  <>
+                    <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                      <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                        <span>Total Bebés Registrados</span>
+                        <Baby className="w-4 h-4 text-sky-500" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{totalBabiesCount}</p>
+                    </div>
+                    <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                      <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                        <span>Mamás en Comunidad</span>
+                        <Users className="w-4 h-4 text-pink-500" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{totalMothersCount}</p>
+                    </div>
+                    <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                      <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                        <span>Piel Sensible / Atópica</span>
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{sensitivePercentage}%</p>
+                    </div>
+                    <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                      <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                        <span>Recordatorios Pendientes</span>
+                        <Mail className="w-4 h-4 text-purple-500" />
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{pendingRemindersCount}</p>
+                    </div>
+                  </>
+                );
+              })()
             ) : activeTab === 'shipping' ? (
               <>
                 <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
@@ -988,33 +1002,35 @@ export default function AdminDashboardPage() {
               </>
             ) : activeTab === 'cohorts' ? (
               <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                    <span>Recién Nacidos (0-3m)</span>
-                    <Baby className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 5}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>Crecimiento (3-6m)</span>
-                    <Sparkles className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.crecimiento || 3}</p>
-                </div>
                 <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
                   <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Exploradores (6-12m)</span>
-                    <Users className="w-4 h-4 text-pink-500" />
+                    <span>Prenatal / Embarazo</span>
+                    <Sparkles className="w-4 h-4 text-pink-500" />
                   </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.exploradores || 2}</p>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.embarazo || 0}</p>
                 </div>
                 <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
                   <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Primeros Pasos (12m+)</span>
-                    <BarChart3 className="w-4 h-4 text-purple-500" />
+                    <span>Recién Nacidos (0-3m)</span>
+                    <Baby className="w-4 h-4 text-purple-500" />
                   </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.primerosPasos || 2}</p>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 0}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                    <span>Lactantes (3-12m)</span>
+                    <Users className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
+                    {(data.babyCohorts?.summary?.lactanteMenor || 0) + (data.babyCohorts?.summary?.lactanteMayor || 0)}
+                  </p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>Toddler / Mayores (12m+)</span>
+                    <BarChart3 className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.toddler || 0}</p>
                 </div>
               </>
             ) : activeTab === 'products' ? (
