@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { userRepository } from '@/infrastructure/repositories/UserRepository';
+import { resendService } from '@/infrastructure/services/ResendService';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/jwt';
 
@@ -17,6 +18,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'El correo electrónico ya se encuentra registrado' }, { status: 400 });
     }
 
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
     const user = await userRepository.createUser({
       email,
       password,
@@ -26,6 +30,13 @@ export async function POST(req: Request) {
       babyBirthDate: babyBirthDate ? new Date(babyBirthDate) : undefined,
       expectedDueDate: expectedDueDate ? new Date(expectedDueDate) : undefined,
       skinCondition,
+      verificationCode,
+      verificationExpires,
+    });
+
+    // Envío del correo con código numérico de 6 dígitos mediante Resend
+    resendService.sendVerificationCodeEmail(email, fullName, verificationCode).catch((e) => {
+      console.error('Error enviando correo de verificación con Resend:', e);
     });
 
     const secret = getJwtSecret();
@@ -38,15 +49,17 @@ export async function POST(req: Request) {
         id: user.id,
         email: user.email,
         role: user.role,
+        emailVerified: false,
         profile: user.motherProfile,
       },
+      message: 'Cuenta creada exitosamente. Se ha enviado un código de confirmación de 6 dígitos a tu correo.',
     });
 
     response.cookies.set('ensueno_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 días
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

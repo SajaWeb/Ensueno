@@ -20,7 +20,7 @@ export class UserRepository {
   }
 
   /**
-   * Registra un nuevo usuario con hashing seguro bcrypt y perfil inicial
+   * Registra un nuevo usuario con hashing seguro bcrypt, código de verificación e información inicial
    */
   async createUser(data: {
     email: string;
@@ -32,6 +32,8 @@ export class UserRepository {
     expectedDueDate?: Date;
     skinCondition?: string;
     role?: 'ADMIN' | 'CUSTOMER';
+    verificationCode?: string;
+    verificationExpires?: Date;
   }) {
     const passwordHash = await bcrypt.hash(data.password, 10);
 
@@ -40,6 +42,9 @@ export class UserRepository {
         email: data.email.toLowerCase().trim(),
         passwordHash,
         role: data.role || 'CUSTOMER',
+        verificationCode: data.verificationCode,
+        verificationExpires: data.verificationExpires,
+        emailVerified: false,
         motherProfile: {
           create: {
             fullName: data.fullName,
@@ -70,6 +75,65 @@ export class UserRepository {
   }
 
   /**
+   * Genera y asigna un nuevo código de verificación de 6 dígitos al usuario
+   */
+  async generateVerificationCode(userId: string) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        verificationCode: code,
+        verificationExpires: expiresAt,
+      },
+    });
+
+    return code;
+  }
+
+  /**
+   * Valida el código de confirmación de correo
+   */
+  async verifyEmailCode(email: string, code: string) {
+    const user = await this.findByEmail(email);
+
+    if (!user) {
+      return { success: false, error: 'Usuario no encontrado' };
+    }
+
+    if (user.emailVerified) {
+      return { success: true, message: 'El correo ya se encuentra verificado', user };
+    }
+
+    if (!user.verificationCode || user.verificationCode !== code.trim()) {
+      return { success: false, error: 'Código de verificación incorrecto' };
+    }
+
+    if (user.verificationExpires && user.verificationExpires < new Date()) {
+      return { success: false, error: 'El código de verificación ha expirado. Solicita uno nuevo.' };
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        verificationCode: null,
+        verificationExpires: null,
+      },
+      include: {
+        motherProfile: {
+          include: {
+            babies: true,
+          },
+        },
+      },
+    });
+
+    return { success: true, user: updatedUser };
+  }
+
+  /**
    * Verifica la contraseña del usuario
    */
   async verifyPassword(plainText: string, passwordHash: string): Promise<boolean> {
@@ -77,7 +141,7 @@ export class UserRepository {
   }
 
   /**
-   * Genera un token único de restablecimiento de contraseña con expiración de 1 hora
+   * Genera un código de 6 dígitos único para restablecer contraseña
    */
   async createPasswordResetToken(userId: string) {
     // Invalida tokens anteriores
@@ -86,37 +150,68 @@ export class UserRepository {
       data: { used: true },
     });
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
     return prisma.passwordResetToken.create({
       data: {
         userId,
-        token,
+        token: code,
         expiresAt,
       },
     });
   }
 
   /**
-   * Valida token y actualiza la contraseña del usuario
+   * Valida código de 6 dígitos o token y actualiza la contraseña del usuario
    */
-  async resetPasswordWithToken(token: string, newPassword: string) {
-    const resetRecord = await prisma.passwordResetToken.findUnique({
-      where: { token },
+  async resetPasswordWithToken(emailOrToken: string, codeOrToken: string, newPassword?: string) {
+    // Acepta parámetros sobrecargados (token, newPassword) o (email, code, newPassword)
+    let searchToken = codeOrToken;
+    let actualNewPassword = newPassword;
+
+    if (!newPassword) {
+      searchToken = emailOrToken;
+      actualNewPassword = codeOrToken;
+    }
+
+    let resetRecord = await prisma.passwordResetToken.findUnique({
+      where: { token: searchToken.trim() },
       include: { user: true },
     });
 
-    if (!resetRecord || resetRecord.used || resetRecord.expiresAt < new Date()) {
-      return { success: false, error: 'Token inválido o expirado' };
+    // Si se buscó por correo y código
+    if (!resetRecord && emailOrToken && searchToken) {
+      const user = await this.findByEmail(emailOrToken);
+      if (user) {
+        resetRecord = await prisma.passwordResetToken.findFirst({
+          where: {
+            userId: user.id,
+            token: searchToken.trim(),
+            used: false,
+          },
+          include: { user: true },
+        });
+      }
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    if (!resetRecord || resetRecord.used || resetRecord.expiresAt < new Date()) {
+      return { success: false, error: 'Código de seguridad inválido o expirado' };
+    }
+
+    if (!actualNewPassword || actualNewPassword.length < 6) {
+      return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres' };
+    }
+
+    const passwordHash = await bcrypt.hash(actualNewPassword, 10);
 
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetRecord.userId },
-        data: { passwordHash },
+        data: {
+          passwordHash,
+          emailVerified: true, // Auto-verifica correo al cambiar contraseña exitosamente
+        },
       }),
       prisma.passwordResetToken.update({
         where: { id: resetRecord.id },

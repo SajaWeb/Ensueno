@@ -21,6 +21,7 @@ import {
   Calendar,
   ShieldCheck,
   Truck,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { apiService } from '@/services/api';
@@ -41,6 +42,12 @@ export default function ProfilePage() {
   const [skinTypeState, setSkinTypeState] = useState('Sensible');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
+
+  // Email verification modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verificationCodeInput, setVerificationCodeInput] = useState('');
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // User Profile Data state (real data from API)
   const [userData, setUserData] = useState<any>(null);
@@ -153,8 +160,9 @@ export default function ProfilePage() {
       });
 
       if (res.success) {
-        showToast('¡Cuenta creada con éxito! Bienvenida a Ensueño ✨', 'success');
+        showToast('¡Cuenta creada! Se envió un código de 6 dígitos a tu correo ✨', 'success');
         await loadUserSession();
+        setShowVerifyModal(true);
       } else {
         setAuthError(res.error || 'Error al registrar usuario');
         showToast(res.error || 'Error al registrar la cuenta', 'error');
@@ -164,6 +172,46 @@ export default function ProfilePage() {
       showToast('Error al crear tu cuenta', 'error');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verificationCodeInput) return;
+
+    setIsVerifyingCode(true);
+    setVerifyMessage(null);
+    try {
+      const res = await apiService.verifyEmail(userData?.email || email, verificationCodeInput);
+      if (res.success) {
+        showToast('¡Correo electrónico verificado con éxito! 💖', 'success');
+        setVerifyMessage({ type: 'success', text: '¡Correo verificado exitosamente!' });
+        await loadUserSession();
+        setTimeout(() => {
+          setShowVerifyModal(false);
+          setVerifyMessage(null);
+        }, 1500);
+      } else {
+        setVerifyMessage({ type: 'error', text: res.error || 'Código de confirmación incorrecto' });
+      }
+    } catch (err: any) {
+      setVerifyMessage({ type: 'error', text: 'Error al conectar con el servidor.' });
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleResendVerificationCode = async () => {
+    try {
+      const res = await apiService.resendVerificationCode(userData?.email || email);
+      if (res.success) {
+        showToast(res.message || 'Nuevo código enviado', 'success');
+        setVerifyMessage({ type: 'success', text: 'Se ha enviado un nuevo código a tu correo.' });
+      } else {
+        showToast(res.error || 'Error al reenviar código', 'error');
+      }
+    } catch (err) {
+      showToast('Error al solicitar nuevo código', 'error');
     }
   };
 
@@ -417,6 +465,27 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Verification Banner if unverified */}
+      {userData && userData.emailVerified === false && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 text-amber-600 shrink-0" />
+            <div>
+              <h3 className="font-extrabold text-sm text-amber-900">Confirma tu Correo Electrónico</h3>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Hemos enviado un código de confirmación de 6 dígitos a <strong className="font-mono font-bold">{userData.email}</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowVerifyModal(true)}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-5 py-3 rounded-xl shadow-xs transition-all shrink-0 uppercase tracking-wider cursor-pointer"
+          >
+            Ingresar Código (6 Dígitos)
+          </button>
+        </div>
+      )}
+
       {/* Profile Header Hero Card */}
       <div className="bg-gradient-to-r from-pink-100/70 via-purple-100/60 to-sky-100/70 rounded-3xl p-6 sm:p-8 border border-pink-200/60 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
         <div className="flex items-center space-x-4">
@@ -785,6 +854,71 @@ export default function ProfilePage() {
               {isChangingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Modal de Confirmación de Correo (Código 6 Dígitos) */}
+      {showVerifyModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-purple-100 max-w-md w-full rounded-3xl p-6 text-slate-800 shadow-2xl space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+                <h3 className="font-bold text-lg text-slate-800">Confirmación de Correo</h3>
+              </div>
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {verifyMessage && (
+              <div
+                className={`p-3.5 rounded-xl text-xs font-semibold ${
+                  verifyMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}
+              >
+                {verifyMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <p className="text-xs text-slate-500">
+                Ingresa el código de 6 dígitos enviado por Resend a tu correo electrónico:
+              </p>
+
+              <div>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={verificationCodeInput}
+                  onChange={(e) => setVerificationCodeInput(e.target.value)}
+                  placeholder="Ej: 482915"
+                  className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-800 font-mono text-center tracking-widest text-xl font-black focus:outline-none focus:ring-2 focus:ring-purple-400 bg-purple-50/50"
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isVerifyingCode}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-3 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+              >
+                {isVerifyingCode ? 'Verificando...' : 'Confirmar Código'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResendVerificationCode}
+                className="w-full text-slate-500 hover:text-purple-700 text-xs font-bold text-center block pt-1 cursor-pointer"
+              >
+                ¿No recibiste el código? Reenviar correo
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

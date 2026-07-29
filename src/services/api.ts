@@ -136,11 +136,29 @@ export const apiService = {
     return res.json();
   },
 
-  async resetPassword(token: string, newPassword: string) {
+  async verifyEmail(email: string, code: string) {
+    const res = await fetch('/api/v1/auth/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+    return res.json();
+  },
+
+  async resendVerificationCode(email: string) {
+    const res = await fetch('/api/v1/auth/resend-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return res.json();
+  },
+
+  async resetPassword(token: string, newPassword: string, email?: string) {
     const res = await fetch('/api/v1/auth/reset-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword }),
+      body: JSON.stringify({ token, code: token, email, newPassword }),
     });
     return res.json();
   },

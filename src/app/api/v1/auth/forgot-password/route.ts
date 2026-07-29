@@ -12,22 +12,22 @@ export async function POST(req: Request) {
 
     const user = await userRepository.findByEmail(email);
     if (!user) {
-      // Retornar éxito por seguridad aunque no exista
+      // Retornar éxito por seguridad para prevenir enumeración de cuentas
       return NextResponse.json({
         success: true,
-        message: 'Si el correo existe en nuestro sistema, recibirás un enlace de recuperación pronto.',
+        message: 'Si el correo está registrado en nuestro sistema, recibirás un código de 6 dígitos pronto.',
       });
     }
 
     const resetTokenRecord = await userRepository.createPasswordResetToken(user.id);
-    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ensueno.com.co'}/recuperar-password?token=${resetTokenRecord.token}`;
-
     const motherName = user.motherProfile?.fullName || 'Mamá Ensueño';
-    await resendService.sendPasswordResetEmail(user.email, motherName, resetLink);
+
+    // Envío del correo con código numérico de 6 dígitos usando Resend
+    await resendService.sendPasswordResetCodeEmail(user.email, motherName, resetTokenRecord.token);
 
     return NextResponse.json({
       success: true,
-      message: 'Correo de recuperación enviado con éxito.',
+      message: 'Código de seguridad de 6 dígitos enviado exitosamente a tu correo.',
     });
   } catch (err: any) {
     console.error('Error en /api/v1/auth/forgot-password:', err);
