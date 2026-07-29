@@ -2028,25 +2028,55 @@ export default function AdminDashboardPage() {
         {/* Tab 3: Cohortes por Edad */}
         {activeTab === 'cohorts' && (
           <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <h2 className="text-xl font-bold text-slate-800">Distribución de Bebés por Etapa de Crecimiento</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-5 rounded-2xl bg-pink-50 border border-pink-200">
-                <h3 className="font-bold text-pink-900 text-sm">Recién Nacidos (0 - 3m)</h3>
-                <p className="text-xs text-pink-700 mt-2">
-                  Recomendación: Pañitos Húmedos sin alcohol + Jabón Líquido Sin Lágrimas.
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Baby className="w-6 h-6 text-purple-600" /> Distribución de Bebés por Etapa de Crecimiento
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Total de bebés registrados en la base de datos: <strong className="text-purple-700 font-extrabold">{data.babyCohorts?.totalBabies || 0}</strong>
                 </p>
               </div>
-              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200">
-                <h3 className="font-bold text-amber-900 text-sm">Lactantes (3 - 12m)</h3>
-                <p className="text-xs text-amber-700 mt-2">
-                  Recomendación: Bálsamo de Sueño Reparador + Colonia Ensueño.
-                </p>
+
+              <button
+                onClick={loadRemarketingData}
+                className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all flex items-center gap-1.5 text-xs font-bold w-fit shadow-2xs"
+              >
+                <RefreshCw className="w-4 h-4" /> Actualizar Cohortes
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="p-5 rounded-2xl bg-pink-50 border border-pink-200 shadow-2xs space-y-1">
+                <h3 className="font-extrabold text-pink-900 text-sm">Embarazo / Prenatal</h3>
+                <span className="text-3xl font-black text-pink-700 block">
+                  {data.babyCohorts?.summary?.embarazo || 0}
+                </span>
+                <p className="text-[11px] font-medium text-pink-700">Bebés en camino registrados por las mamás.</p>
               </div>
-              <div className="p-5 rounded-2xl bg-sky-50 border border-sky-200">
-                <h3 className="font-bold text-sky-900 text-sm">Prenatal / Embarazo</h3>
-                <p className="text-xs text-sky-700 mt-2">
-                  Recomendación: Kit Completo Sueño Dorado con Neceser de regalo.
-                </p>
+
+              <div className="p-5 rounded-2xl bg-purple-50 border border-purple-200 shadow-2xs space-y-1">
+                <h3 className="font-extrabold text-purple-900 text-sm">Recién Nacidos (0 - 3m)</h3>
+                <span className="text-3xl font-black text-purple-700 block">
+                  {data.babyCohorts?.summary?.recienNacido || 0}
+                </span>
+                <p className="text-[11px] font-medium text-purple-700">Etapa de máxima cuidado y piel delicada.</p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 shadow-2xs space-y-1">
+                <h3 className="font-extrabold text-amber-900 text-sm">Lactantes (3 - 12m)</h3>
+                <span className="text-3xl font-black text-amber-700 block">
+                  {(data.babyCohorts?.summary?.lactanteMenor || 0) + (data.babyCohorts?.summary?.lactanteMayor || 0)}
+                </span>
+                <p className="text-[11px] font-medium text-amber-700">Etapa de rutina de baño y sueño dulce.</p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-sky-50 border border-sky-200 shadow-2xs space-y-1">
+                <h3 className="font-extrabold text-sky-900 text-sm">Toddler / Mayores (12m+)</h3>
+                <span className="text-3xl font-black text-sky-700 block">
+                  {data.babyCohorts?.summary?.toddler || 0}
+                </span>
+                <p className="text-[11px] font-medium text-sky-700">Niños exploradores e hidratación diaria.</p>
               </div>
             </div>
           </div>
