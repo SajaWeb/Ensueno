@@ -28,7 +28,8 @@ export interface CartItem {
 
 export interface Order {
   id: string;
-  date: string;
+  orderNumber?: string;
+  date?: string;
   status: 'confirmado' | 'preparando' | 'en_camino' | 'entregado';
   statusStep: number; // 1 to 4
   items: CartItem[];
