@@ -637,17 +637,23 @@ export default function AdminDashboardPage() {
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 relative">
                 <ShoppingBag className="w-4 h-4 shrink-0" />
+                {isSidebarCollapsed && (orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white shadow-2xs">
+                    {orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length}
+                  </span>
+                )}
                 {!isSidebarCollapsed && <span className="truncate">Control de Pedidos</span>}
               </div>
               {!isSidebarCollapsed && (
                 <span
+                  title="Órdenes con Pago Aprobado pendientes por empacar y enviar"
                   className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'
+                    activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                   }`}
                 >
-                  {adminOrders.length}
+                  {orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length}
                 </span>
               )}
             </button>
