@@ -41,6 +41,8 @@ import {
   Pencil,
   Check,
   Tag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -71,8 +73,9 @@ export default function AdminDashboardPage() {
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
-  // Mobile Menu Drawer State
+  // Mobile Menu Drawer & Sidebar Collapse State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Password Change Modal State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -559,183 +562,247 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col md:flex-row">
-      {/* Left Sidebar Navigation (Desktop & Mobile Drawer) */}
-      <aside className="w-full md:w-64 lg:w-72 bg-white/95 border-b md:border-b-0 md:border-r border-purple-100/80 backdrop-blur-md shrink-0 flex flex-col justify-between z-30 shadow-sm md:min-h-screen sticky top-0 md:h-screen">
-        <div className="p-6 space-y-6">
-          {/* Brand Logo & Mobile Toggle */}
+      {/* Left Sidebar Navigation (Desktop Collapsible & Mobile Drawer) */}
+      <aside
+        className={`w-full bg-white/95 border-b md:border-b-0 md:border-r border-purple-100/80 backdrop-blur-md shrink-0 flex flex-col justify-between z-30 shadow-sm md:min-h-screen sticky top-0 md:h-screen transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'
+        }`}
+      >
+        <div className="p-4 sm:p-6 space-y-6">
+          {/* Brand Logo & Mobile/Collapse Toggles */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white shrink-0">
                 <Baby className="w-5 h-5 text-purple-700" />
               </div>
-              <div>
+              {!isSidebarCollapsed && (
+                <div className="hidden md:block overflow-hidden transition-all duration-300">
+                  <span className="font-extrabold text-base text-slate-800 block leading-tight truncate">
+                    Panel Admin
+                  </span>
+                  <span className="text-[11px] text-purple-600 font-semibold truncate">Ensueño Baby</span>
+                </div>
+              )}
+              <div className="md:hidden">
                 <span className="font-extrabold text-base text-slate-800 block leading-tight">Panel Admin</span>
                 <span className="text-[11px] text-purple-600 font-semibold">Ensueño Baby</span>
               </div>
             </div>
 
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-slate-500 hover:text-slate-800"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Desktop Collapse Toggle */}
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                title={isSidebarCollapsed ? 'Expandir Menú' : 'Colapsar Menú'}
+                className="hidden md:flex p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all shadow-2xs"
+              >
+                {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+
+              {/* Mobile Toggle */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 text-slate-500 hover:text-slate-800"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           {/* Navigation Links */}
           <nav className={`space-y-1.5 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
-            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block px-3 mb-2">
-              Módulos de Gestión
-            </span>
+            {!isSidebarCollapsed && (
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block px-3 mb-2 transition-all duration-300">
+                Módulos de Gestión
+              </span>
+            )}
 
+            {/* Item 1: Orders */}
             <button
               onClick={() => {
                 setActiveTab('orders');
                 setIsMobileMenuOpen(false);
                 loadAdminOrders();
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Control de Pedidos y Contabilidad"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'orders'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <ShoppingBag className="w-4 h-4" />
-                <span>Control de Pedidos</span>
+                <ShoppingBag className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Control de Pedidos</span>}
               </div>
-              <span
-                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'
-                }`}
-              >
-                {adminOrders.length}
-              </span>
+              {!isSidebarCollapsed && (
+                <span
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'
+                  }`}
+                >
+                  {adminOrders.length}
+                </span>
+              )}
             </button>
 
+            {/* Item 2: CRM */}
             <button
               onClick={() => {
                 setActiveTab('crm');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Clientes & Remarketing CRM"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'crm'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Users className="w-4 h-4" />
-                <span>Clientes & CRM</span>
+                <Users className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Clientes & CRM</span>}
               </div>
             </button>
 
+            {/* Item 3: Shipping */}
             <button
               onClick={() => {
                 setActiveTab('shipping');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Tarifas de Envío y Municipios"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'shipping'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Truck className="w-4 h-4" />
-                <span>Tarifas de Envío</span>
+                <Truck className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Tarifas de Envío</span>}
               </div>
-              <span
-                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  activeTab === 'shipping' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {shippingRates.length}
-              </span>
+              {!isSidebarCollapsed && (
+                <span
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    activeTab === 'shipping' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {shippingRates.length}
+                </span>
+              )}
             </button>
 
+            {/* Item 4: Cohorts */}
             <button
               onClick={() => {
                 setActiveTab('cohorts');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Cohortes por Edad del Bebé"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'cohorts'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <BarChart3 className="w-4 h-4" />
-                <span>Cohortes por Edad</span>
+                <BarChart3 className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Cohortes por Edad</span>}
               </div>
             </button>
 
+            {/* Item 5: Products */}
             <button
               onClick={() => {
                 setActiveTab('products');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Galería y URLs de Productos"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'products'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <ImageIcon className="w-4 h-4" />
-                <span>Imágenes Productos</span>
+                <ImageIcon className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Imágenes Productos</span>}
               </div>
             </button>
 
+            {/* Item 6: Coupons */}
             <button
               onClick={() => {
                 setActiveTab('coupons');
                 setIsMobileMenuOpen(false);
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+              title="Cupones y Descuentos Activos"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
                 activeTab === 'coupons'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
                   : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Tag className="w-4 h-4" />
-                <span>Cupones Descuento</span>
+                <Tag className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Cupones Descuento</span>}
               </div>
-              <span
-                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                  activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-pink-100 text-pink-700'
-                }`}
-              >
-                {promotionsList.length}
-              </span>
+              {!isSidebarCollapsed && (
+                <span
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-pink-100 text-pink-700'
+                  }`}
+                >
+                  {promotionsList.length}
+                </span>
+              )}
             </button>
           </nav>
         </div>
 
         {/* Sidebar Footer User Info */}
-        <div className="p-4 m-4 rounded-2xl bg-purple-50/80 border border-purple-100 space-y-3 hidden md:block">
-          <div className="flex items-center gap-2.5">
+        <div className={`p-4 m-4 rounded-2xl bg-purple-50/80 border border-purple-100 space-y-3 hidden md:block transition-all duration-300 ${
+          isSidebarCollapsed ? 'p-2 m-2 text-center' : ''
+        }`}>
+          <div className="flex items-center gap-2.5 justify-center md:justify-start">
             <UserCheck className="w-4 h-4 text-purple-600 shrink-0" />
-            <div className="overflow-hidden">
-              <span className="font-extrabold text-slate-800 block text-xs truncate">admin@ensueno.com.co</span>
-              <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
-            </div>
+            {!isSidebarCollapsed && (
+              <div className="overflow-hidden">
+                <span className="font-extrabold text-slate-800 block text-xs truncate">admin@ensueno.com.co</span>
+                <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 pt-1 border-t border-purple-100">
+          <div className={`flex items-center gap-2 pt-1 border-t border-purple-100 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
             <button
               onClick={() => setShowSettingsModal(true)}
-              className="flex-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+              title="Ajustes de Cuenta"
+              className="flex-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs w-full"
             >
-              <Settings className="w-3.5 h-3.5" /> Ajustes
+              <Settings className="w-3.5 h-3.5" />
+              {!isSidebarCollapsed && <span>Ajustes</span>}
             </button>
             <button
               onClick={handleLogout}
-              className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+              title="Cerrar Sesión"
+              className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs w-full"
             >
-              <LogOut className="w-3.5 h-3.5" /> Salir
+              <LogOut className="w-3.5 h-3.5" />
+              {!isSidebarCollapsed && <span>Salir</span>}
             </button>
           </div>
         </div>
@@ -743,57 +810,252 @@ export default function AdminDashboardPage() {
 
       {/* Main Dashboard Area */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8 overflow-y-auto">
-        {/* Header Hero Banner */}
-        <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-6 sm:p-8 border border-purple-200/60 shadow-sm relative overflow-hidden">
+        {/* Header Hero Banner (Dinamico segun el modulo activo) */}
+        <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-6 sm:p-8 border border-purple-200/60 shadow-sm relative overflow-hidden transition-all duration-300">
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 text-purple-700 text-xs font-bold uppercase tracking-wider mb-3 border border-purple-200 shadow-sm">
-                <Sparkles className="w-4 h-4 text-amber-500" /> Control de Envíos, Pedidos y Remarketing
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                {activeTab === 'orders'
+                  ? 'Módulo de Órdenes y Finanzas'
+                  : activeTab === 'crm'
+                  ? 'Gestión de Mamás y Familias'
+                  : activeTab === 'shipping'
+                  ? 'Logística & Despachos Colombia'
+                  : activeTab === 'cohorts'
+                  ? 'Analítica por Etapas de Crecimiento'
+                  : activeTab === 'products'
+                  ? 'Catálogo Multimedia HD'
+                  : 'Estrategia Promocional'}
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-                Dashboard Ensueño Baby
+                {activeTab === 'orders'
+                  ? 'Control de Pedidos y Contabilidad'
+                  : activeTab === 'crm'
+                  ? 'CRM & Base de Datos Remarketing'
+                  : activeTab === 'shipping'
+                  ? 'Configuración de Tarifas y Envíos'
+                  : activeTab === 'cohorts'
+                  ? 'Cohortes por Edad del Bebé'
+                  : activeTab === 'products'
+                  ? 'Galería y URLs de Productos'
+                  : 'Cupones y Descuentos Activos'}
               </h1>
               <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                Gestión simplificada de pedidos, trazabilidad de envíos, catálogo de productos y remarketing CRM.
+                {activeTab === 'orders'
+                  ? 'Monitoreo de ingresos recaudados, aprobación de pasarela MercadoPago y trazabilidad logística de despachos.'
+                  : activeTab === 'crm'
+                  ? 'Directorio de usuarias registradas, seguimiento de teléfonos de contacto y perfilado de piel del bebé.'
+                  : activeTab === 'shipping'
+                  ? 'Administración de fletes por departamento, fletes para municipios especiales y reglas de envío gratis.'
+                  : activeTab === 'cohorts'
+                  ? 'Agrupación automática de bebés según su edad para envíos segmentados de productos y fragancias.'
+                  : activeTab === 'products'
+                  ? 'Gestión de imágenes de alta resolución, descripciones sensoriales e información técnica del catálogo.'
+                  : 'Creación y auditoría de códigos de descuento por porcentaje o monto fijo para campañas de conversión.'}
               </p>
             </div>
           </div>
 
-          {/* Tarjetas KPI Top */}
+          {/* Tarjetas KPI Dinámicas */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-purple-200/50">
-            <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-              <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                <span>Umbral Envío Gratis</span>
-                <Truck className="w-4 h-4 text-pink-500" />
-              </div>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                ${shippingConfig.freeShippingThreshold?.toLocaleString('es-CO')} COP
-              </p>
-            </div>
-
-            <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-              <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                <span>Total Bebés Registrados</span>
-                <Baby className="w-4 h-4 text-sky-500" />
-              </div>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.totalBabies || 12}</p>
-            </div>
-
-            <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-              <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                <span>Recién Nacidos (0-3m)</span>
-                <Sparkles className="w-4 h-4 text-amber-500" />
-              </div>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 5}</p>
-            </div>
-
-            <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-              <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                <span>Productos Estrella</span>
-                <ShoppingBag className="w-4 h-4 text-purple-500" />
-              </div>
-              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length || 6}</p>
-            </div>
+            {activeTab === 'orders' ? (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
+                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
+                    <span>Recaudado Confirmado</span>
+                    <ShoppingBag className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
+                    ${(orderMetrics.totalRevenue || 0).toLocaleString('es-CO')} COP
+                  </p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                    <span>Órdenes Generadas</span>
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{orderMetrics.generatedCount || 0}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Pagos Aprobados</span>
+                    <CheckCircle2 className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{orderMetrics.confirmedCount || 0}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>En Camino / Entregadas</span>
+                    <Truck className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
+                    {(orderMetrics.shippedCount || 0) + (orderMetrics.deliveredCount || 0)}
+                  </p>
+                </div>
+              </>
+            ) : activeTab === 'crm' ? (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>Total Bebés Registrados</span>
+                    <Baby className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.totalBabies || 12}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                    <span>Mamás en Comunidad</span>
+                    <Users className="w-4 h-4 text-pink-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.surveyResponses?.length || 8}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                    <span>Piel Sensible / Atópica</span>
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">85%</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Recordatorios Pendientes</span>
+                    <Mail className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.pendingReminders?.length || 3}</p>
+                </div>
+              </>
+            ) : activeTab === 'shipping' ? (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                    <span>Umbral Envío Gratis</span>
+                    <Truck className="w-4 h-4 text-pink-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
+                    ${shippingConfig.freeShippingThreshold?.toLocaleString('es-CO')} COP
+                  </p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Tarifas Configuradas</span>
+                    <MapPin className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{shippingRates.length}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>Departamentos Colombia</span>
+                    <Building2 className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">32 Coberturas</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
+                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
+                    <span>Tiempo Promedio</span>
+                    <Calendar className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">2-4 Días</p>
+                </div>
+              </>
+            ) : activeTab === 'cohorts' ? (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                    <span>Recién Nacidos (0-3m)</span>
+                    <Baby className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 5}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>Crecimiento (3-6m)</span>
+                    <Sparkles className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.crecimiento || 3}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                    <span>Exploradores (6-12m)</span>
+                    <Users className="w-4 h-4 text-pink-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.exploradores || 2}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Primeros Pasos (12m+)</span>
+                    <BarChart3 className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.primerosPasos || 2}</p>
+                </div>
+              </>
+            ) : activeTab === 'products' ? (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Productos Activos</span>
+                    <ShoppingBag className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                    <span>Galería Multimedia HD</span>
+                    <ImageIcon className="w-4 h-4 text-pink-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length} HD</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
+                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
+                    <span>Notas Aromáticas</span>
+                    <Sparkles className="w-4 h-4 text-sky-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">4 Variedades</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
+                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
+                    <span>Estado del Catálogo</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-2">100% En Stock</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
+                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
+                    <span>Cupones Creados</span>
+                    <Tag className="w-4 h-4 text-pink-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{promotionsList.length}</p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
+                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
+                    <span>Cupones Activos</span>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
+                    {promotionsList.filter((p: any) => p.isActive).length}
+                  </p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
+                    <span>Promoción Destacada</span>
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-lg font-black text-amber-700 mt-2 truncate">
+                    {promotionsList[0]?.code || 'N/A'}
+                  </p>
+                </div>
+                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
+                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
+                    <span>Descuento Máximo</span>
+                    <Tag className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">25% Off</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
