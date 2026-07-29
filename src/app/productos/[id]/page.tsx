@@ -241,9 +241,9 @@ export default function ProductDetailPage() {
 
                 <button
                   onClick={() => addToCart(product, selectedFragrance, selectedSize, quantity)}
-                  className="flex-1 flex items-center justify-center space-x-3 bg-primary text-white hover:bg-primary-container hover:text-primary font-headline font-bold text-base py-4 rounded-full transition-all squishy-button shadow-soft-glow"
+                  className="btn-ensueno-primary flex-1 h-12 text-xs font-extrabold uppercase tracking-wider"
                 >
-                  <ShoppingBag className="w-5 h-5" />
+                  <ShoppingBag className="w-4 h-4" />
                   <span>Añadir al Carrito ({formatPrice(product.price * quantity)})</span>
                 </button>
               </div>

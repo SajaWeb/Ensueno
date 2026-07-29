@@ -131,22 +131,22 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => openAuthModal('login')}
-                  className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-2 rounded-full font-headline font-bold text-xs shadow-md shadow-purple-200 transition-all hover:scale-105 active:scale-95 border border-purple-400/30 cursor-pointer"
+                  className="btn-ensueno-primary h-11 px-5 text-xs font-extrabold uppercase tracking-wider hidden sm:inline-flex"
                   title="Mi Cuenta & Iniciar Sesión"
                 >
-                  <User className="w-4 h-4 text-amber-300 animate-pulse" />
+                  <User className="w-4 h-4 text-amber-200 animate-pulse" />
                   <span>Ingresar / Mi Cuenta</span>
                 </button>
               )}
 
               <Link
                 href="/carrito"
-                className="relative flex items-center space-x-2 bg-gradient-to-r from-primary-container to-secondary-container text-primary px-4 py-2.5 rounded-full font-headline font-bold text-sm transition-all squishy-button shadow-soft-glow hover:opacity-95"
+                className="btn-ensueno-sky h-11 px-5 text-xs font-extrabold uppercase tracking-wider relative"
               >
-                <ShoppingBag className="w-5 h-5 text-primary" />
+                <ShoppingBag className="w-4 h-4 text-sky-700" />
                 <span className="hidden sm:inline">Carrito</span>
                 {cartCount > 0 && (
-                  <span className="flex items-center justify-center w-5 h-5 bg-secondary text-white text-xs font-bold rounded-full animate-pulse-subtle">
+                  <span className="flex items-center justify-center w-5 h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full animate-pulse-subtle ml-0.5">
                     {cartCount}
                   </span>
                 )}

@@ -254,7 +254,7 @@ export default function ProfilePage() {
           </p>
           <button
             onClick={() => openAuthModal('login')}
-            className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider cursor-pointer"
+            className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider"
           >
             Iniciar Sesión / Registrarme
           </button>
@@ -285,7 +285,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={() => setShowVerifyModal(true)}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs px-5 py-3 rounded-xl shadow-xs transition-all shrink-0 uppercase tracking-wider cursor-pointer"
+            className="btn-ensueno-amber h-11 px-6 text-xs font-extrabold uppercase tracking-wider shrink-0"
           >
             Ingresar Código (6 Dígitos)
           </button>

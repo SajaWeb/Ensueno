@@ -145,7 +145,7 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-purple-200 transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-ensueno-primary w-full shadow-md shadow-purple-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? 'Enviando Código...' : 'Enviar Código de Seguridad'}
             </button>
@@ -213,7 +213,7 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-purple-200 transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-ensueno-primary w-full shadow-md shadow-purple-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? 'Restableciendo...' : 'Guardar Nueva Contraseña'}
             </button>

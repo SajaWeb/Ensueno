@@ -219,7 +219,7 @@ export default function UniversalAuthModal() {
               <button
                 type="submit"
                 disabled={verifyingCode}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider disabled:opacity-50"
               >
                 {verifyingCode ? 'Verificando...' : 'Confirmar Código'}
               </button>
@@ -321,7 +321,7 @@ export default function UniversalAuthModal() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                  className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider disabled:opacity-50"
                 >
                   {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                 </button>
@@ -436,7 +436,7 @@ export default function UniversalAuthModal() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                  className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider disabled:opacity-50"
                 >
                   {loading ? 'Creando cuenta...' : 'Crear Mi Cuenta Ensueño'}
                 </button>

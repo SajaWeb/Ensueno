@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShoppingBag,
   Trash2,
@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   X,
   Building2,
+  AlertCircle,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
@@ -30,13 +31,28 @@ import { useToast } from '@/context/ToastContext';
 import { apiService } from '@/services/api';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 
-export default function CartPage() {
+function CartContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { currentUser, openAuthModal } = useUser();
   const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon } = useCart();
   const [inputCoupon, setInputCoupon] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const paymentParam = searchParams.get('payment');
+  const statusParam = searchParams.get('status') || searchParams.get('collection_status');
+  const externalRef = searchParams.get('external_reference') || searchParams.get('orderNumber');
+
+  useEffect(() => {
+    if (externalRef) {
+      if (paymentParam === 'failure' || statusParam === 'rejected') {
+        router.replace(`/confirmacion/${externalRef}?status=rejected`);
+      } else if (statusParam === 'approved' || statusParam === 'pending') {
+        router.replace(`/confirmacion/${externalRef}?status=${statusParam}`);
+      }
+    }
+  }, [externalRef, paymentParam, statusParam, router]);
 
   // Saved Addresses State
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -570,7 +586,7 @@ export default function CartPage() {
           <button
             onClick={handleCheckoutClick}
             disabled={isSubmitting}
-            className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:via-purple-500 hover:to-sky-500 text-white font-extrabold text-base py-4 rounded-2xl shadow-md shadow-pink-200/60 hover:shadow-purple-300/80 transition-all transform hover:-translate-y-0.5 active:translate-y-0 border border-white/50 disabled:opacity-50 cursor-pointer"
+            className="btn-ensueno-primary w-full h-13 text-sm font-extrabold uppercase tracking-wider disabled:opacity-50"
           >
             <span>{isSubmitting ? 'Generando Pago...' : 'Pagar con MercadoPago'}</span>
             <ArrowRight className="w-5 h-5" />
@@ -584,5 +600,13 @@ export default function CartPage() {
       </div>
 
     </div>
+  );
+}
+
+export default function CartPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-slate-500">Cargando carrito...</div>}>
+      <CartContent />
+    </Suspense>
   );
 }

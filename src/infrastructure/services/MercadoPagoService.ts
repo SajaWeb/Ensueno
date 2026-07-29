@@ -67,8 +67,8 @@ export class MercadoPagoService {
       ...(payerEmail ? { payer: { email: payerEmail, name: data.customerName } } : {}),
       external_reference: data.orderNumber,
       back_urls: {
-        success: `${appUrl}/confirmacion/${data.orderNumber}`,
-        failure: `${appUrl}/carrito?payment=failure`,
+        success: `${appUrl}/confirmacion/${data.orderNumber}?status=approved`,
+        failure: `${appUrl}/confirmacion/${data.orderNumber}?status=rejected`,
         pending: `${appUrl}/confirmacion/${data.orderNumber}?status=pending`,
       },
       auto_return: 'approved',

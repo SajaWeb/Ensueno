@@ -39,6 +39,135 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   animation: pageFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Universal Ensueño Button System - Pasteles Rosa, Azul, Amarillo, Blanco (Sin Neón) */
+.btn-ensueno-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px symmetrical height */
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: linear-gradient(135deg, #f7a8b8 0%, #f472b6 50%, #c084fc 100%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 14px 0 rgba(244, 114, 182, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-ensueno-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px 0 rgba(244, 114, 182, 0.35);
+  background: linear-gradient(135deg, #f472b6 0%, #e879f9 50%, #a855f7 100%);
+}
+
+.btn-ensueno-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-ensueno-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px symmetrical height */
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1e293b;
+  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-ensueno-secondary:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.3);
+}
+
+.btn-ensueno-secondary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-ensueno-amber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px symmetrical height */
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #451a03;
+  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-ensueno-amber:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
+  box-shadow: 0 6px 16px rgba(250, 204, 21, 0.35);
+}
+
+.btn-ensueno-amber:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-ensueno-sky {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.75rem; /* 44px symmetrical height */
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0c4a6e;
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-ensueno-sky:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.3);
+}
+
+.btn-ensueno-sky:active {
+  transform: translateY(0) scale(0.98);
+}
+
 /* Soft Glow Cards */
 .soft-glow-card {
   background: rgba(255, 255, 255, 0.88);

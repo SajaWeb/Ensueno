@@ -97,10 +97,10 @@ export default function HomePage() {
             <div className="pt-6">
               <a
                 href="#productos"
-                className="inline-flex items-center space-x-3 bg-primary text-white hover:bg-primary-container hover:text-primary px-10 py-5 rounded-full font-headline font-bold text-lg sm:text-xl transition-all squishy-button shadow-soft-glow group"
+                className="btn-ensueno-primary h-13 px-8 text-sm sm:text-base font-extrabold uppercase tracking-wider group"
               >
                 <span>Descubre la ternura</span>
-                <ArrowDownCircle className="w-6 h-6 group-hover:translate-y-1 transition-transform" />
+                <ArrowDownCircle className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
               </a>
             </div>
           </div>
@@ -185,16 +185,16 @@ export default function HomePage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="p-6 sm:p-8 pt-0 space-y-2">
+                  <div className="p-6 sm:p-8 pt-0 space-y-2.5">
                     <Link
                       href={`/productos/${product.id}`}
-                      className="block w-full py-3.5 rounded-full border-2 border-primary text-primary font-headline font-bold text-sm text-center hover:bg-primary hover:text-white transition-all duration-300 squishy-button shadow-sm"
+                      className="btn-ensueno-secondary w-full h-11 text-xs font-extrabold uppercase tracking-wider"
                     >
                       Ver Detalles
                     </Link>
                     <button
                       onClick={() => addToCart(product)}
-                      className="block w-full py-3.5 rounded-full bg-primary-container/60 text-primary font-headline font-bold text-sm text-center hover:bg-primary-container transition-all squishy-button"
+                      className="btn-ensueno-primary w-full h-11 text-xs font-extrabold uppercase tracking-wider"
                     >
                       + Agregar al Carrito
                     </button>
@@ -263,7 +263,7 @@ export default function HomePage() {
               <div className="pt-6">
                 <button
                   onClick={handleAddPromo1}
-                  className="w-full flex items-center justify-center space-x-2 bg-secondary text-white hover:bg-secondary-container hover:text-secondary font-headline font-bold text-sm py-4 rounded-full transition-all squishy-button shadow-soft-pink-glow"
+                  className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Aprovechar Oferta 3x2</span>
@@ -311,7 +311,7 @@ export default function HomePage() {
               <div className="pt-6">
                 <button
                   onClick={handleAddPromo2}
-                  className="w-full flex items-center justify-center space-x-2 bg-primary text-white hover:bg-primary-container hover:text-primary font-headline font-bold text-sm py-4 rounded-full transition-all squishy-button shadow-soft-glow"
+                  className="btn-ensueno-sky w-full h-12 text-xs font-extrabold uppercase tracking-wider"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Llevar Combo + Pañitos Gratis</span>
@@ -359,7 +359,7 @@ export default function HomePage() {
               <div className="pt-6">
                 <button
                   onClick={handleAddPromo3}
-                  className="w-full flex items-center justify-center space-x-2 bg-tertiary text-white hover:bg-tertiary-container hover:text-tertiary font-headline font-bold text-sm py-4 rounded-full transition-all squishy-button shadow-sm"
+                  className="btn-ensueno-amber w-full h-12 text-xs font-extrabold uppercase tracking-wider"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Agregar Kit Trío Completo</span>
