@@ -44,7 +44,10 @@ export class MercadoPagoService {
     customerName: string;
     items: MercadoPagoPreferenceItem[];
   }): Promise<{ preferenceId: string; checkoutUrl: string }> {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ensueno.com.co';
+    let rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ensueno.com.co';
+    // MercadoPago API rejects back_urls with localhost or 127.0.0.1 with "Algo ha salido mal" error.
+    const isLocal = rawAppUrl.includes('localhost') || rawAppUrl.includes('127.0.0.1');
+    const appUrl = isLocal ? 'https://ensueno.com.co' : rawAppUrl;
 
     const body = {
       items: data.items.map((item) => ({
@@ -85,9 +88,16 @@ export class MercadoPagoService {
 
     const preference: MercadoPagoPreference = await response.json();
 
+    // Use sandbox_init_point ONLY if using a TEST access token (TEST-...)
+    // Production tokens (APP_USR-...) must use init_point to prevent credential mismatch errors
+    const isTestToken = this.accessToken.startsWith('TEST-');
+    const checkoutUrl = isTestToken
+      ? (preference.sandbox_init_point || preference.init_point)
+      : (preference.init_point || preference.sandbox_init_point);
+
     return {
       preferenceId: preference.id,
-      checkoutUrl: this.isSandbox ? preference.sandbox_init_point : preference.init_point,
+      checkoutUrl,
     };
   }
 
