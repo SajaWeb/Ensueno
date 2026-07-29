@@ -36,7 +36,7 @@ function CartContent() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { currentUser, openAuthModal } = useUser();
-  const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon } = useCart();
+  const { items, updateQuantity, removeFromCart, clearCart, subtotal, discount, couponCode, applyCoupon, setCustomShippingCost } = useCart();
   const [inputCoupon, setInputCoupon] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,6 +74,43 @@ function CartContent() {
 
   const currentDepartment = COLOMBIA_LOCATION_DATA[selectedDeptIndex].name;
   const productCount = items.reduce((a, b) => a + b.quantity, 0);
+
+  const calculateShippingRate = async () => {
+    if (items.length === 0) {
+      setShippingCost(0);
+      setCustomShippingCost(0);
+      setIsFreeShipping(true);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          department: currentDepartment,
+          city: selectedCity,
+          subtotal,
+          productCount,
+        }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setShippingCost(json.data.shippingCost);
+        setCustomShippingCost(json.data.shippingCost);
+        setDeliveryEstimate(json.data.deliveryEstimate || '2-4 días hábiles');
+        setIsFreeShipping(json.data.isFree);
+        setShippingDiscount(json.data.discountApplied || 0);
+      }
+    } catch (err) {
+      console.warn('Error calculando envío:', err);
+    }
+  };
+
+  // Recalculate shipping dynamically whenever location, subtotal or item count changes
+  useEffect(() => {
+    calculateShippingRate();
+  }, [currentDepartment, selectedCity, subtotal, productCount, items.length]);
 
   useEffect(() => {
     if (currentUser) {
@@ -143,29 +180,7 @@ function CartContent() {
     }
   };
 
-  const calculateShippingRate = async () => {
-    try {
-      const res = await fetch('/api/v1/shipping/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          department: currentDepartment,
-          city: selectedCity,
-          subtotal,
-          productCount,
-        }),
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        setShippingCost(json.data.shippingCost);
-        setDeliveryEstimate(json.data.deliveryEstimate || '2-4 días hábiles');
-        setIsFreeShipping(json.data.isFree);
-        setShippingDiscount(json.data.discountApplied || 0);
-      }
-    } catch (err) {
-      console.warn('Error calculando envío:', err);
-    }
-  };
+
 
   const finalTotal = Math.max(0, subtotal - discount + shippingCost);
   const loyaltyPointsEarned = Math.floor(finalTotal / 1000);

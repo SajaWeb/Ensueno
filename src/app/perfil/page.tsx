@@ -405,11 +405,23 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Tipo de Documento</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold uppercase text-slate-600">Tipo de Documento</label>
+                  {userData?.profile?.docNumber && (
+                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-slate-400" /> Facturación
+                    </span>
+                  )}
+                </div>
                 <select
                   value={editDocType}
+                  disabled={!!userData?.profile?.docNumber}
                   onChange={(e) => setEditDocType(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold text-slate-800"
+                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold text-slate-800 ${
+                    userData?.profile?.docNumber
+                      ? 'bg-slate-100/80 border-slate-200 cursor-not-allowed opacity-75'
+                      : 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-purple-400'
+                  }`}
                 >
                   <option value="CC">Cédula de Ciudadanía (CC)</option>
                   <option value="CE">Cédula de Extranjería (CE)</option>
@@ -420,13 +432,27 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Número de Documento (Factura)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold uppercase text-slate-600">
+                    Número de Documento (Factura)
+                  </label>
+                  {userData?.profile?.docNumber && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-amber-600" /> No Modificable
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={editDocNumber}
+                  disabled={!!userData?.profile?.docNumber}
                   onChange={(e) => setEditDocNumber(e.target.value)}
                   placeholder="Ej: 1020304050"
-                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold ${
+                    userData?.profile?.docNumber
+                      ? 'bg-slate-100/80 border-slate-200 text-slate-600 cursor-not-allowed font-mono'
+                      : 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-purple-400'
+                  }`}
                 />
               </div>
             </div>

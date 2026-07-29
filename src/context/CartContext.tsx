@@ -14,10 +14,13 @@ interface CartContextType {
   couponCode: string;
   applyCoupon: (code: string) => boolean;
   shipping: number;
+  customShippingCost: number | null;
+  setCustomShippingCost: (cost: number | null) => void;
   total: number;
   cartCount: number;
   toastMessage: string | null;
   dismissToast: () => void;
+  freeShippingThreshold: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -27,6 +30,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [couponCode, setCouponCode] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [customShippingCost, setCustomShippingCost] = useState<number | null>(null);
+  const [shippingConfig, setShippingConfig] = useState<{ freeShippingThreshold: number; defaultRate: number }>({
+    freeShippingThreshold: 60000,
+    defaultRate: 12000,
+  });
+
+  // Fetch real shipping config from server on mount
+  useEffect(() => {
+    fetch('/api/v1/shipping/config')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.config) {
+          setShippingConfig({
+            freeShippingThreshold: json.config.freeShippingThreshold || 60000,
+            defaultRate: json.config.defaultRate || 12000,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -110,6 +133,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems([]);
     setCouponCode('');
     setDiscountPercent(0);
+    setCustomShippingCost(null);
+    try {
+      localStorage.removeItem('ensueno_cart');
+    } catch {}
   };
 
   const applyCoupon = (code: string): boolean => {
@@ -131,7 +158,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
   const discount = Math.round(subtotal * discountPercent);
-  const shipping = subtotal > 60000 || items.length === 0 ? 0 : 7500;
+
+  // Dynamic shipping calculation based on server threshold & custom rates
+  const shipping =
+    items.length === 0
+      ? 0
+      : subtotal >= shippingConfig.freeShippingThreshold
+      ? 0
+      : customShippingCost !== null
+      ? customShippingCost
+      : shippingConfig.defaultRate;
+
   const total = Math.max(0, subtotal - discount + shipping);
   const cartCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -148,10 +185,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         couponCode,
         applyCoupon,
         shipping,
+        customShippingCost,
+        setCustomShippingCost,
         total,
         cartCount,
         toastMessage,
         dismissToast: () => setToastMessage(null),
+        freeShippingThreshold: shippingConfig.freeShippingThreshold,
       }}
     >
       {children}

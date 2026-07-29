@@ -112,8 +112,10 @@ export async function PUT(request: Request) {
       });
     }
 
-    // Upsert MotherProfile
+    // Upsert MotherProfile (docType and docNumber are immutable once set for electronic invoicing)
     let mother = user.motherProfile;
+    const canSetDoc = !mother || !mother.docNumber;
+
     if (!mother) {
       mother = await prisma.motherProfile.create({
         data: {
@@ -133,8 +135,8 @@ export async function PUT(request: Request) {
         where: { id: mother.id },
         data: {
           ...(fullName !== undefined ? { fullName } : {}),
-          ...(docType !== undefined ? { docType } : {}),
-          ...(docNumber !== undefined ? { docNumber } : {}),
+          ...(canSetDoc && docType !== undefined ? { docType } : {}),
+          ...(canSetDoc && docNumber !== undefined ? { docNumber } : {}),
           ...(phone !== undefined ? { phone } : {}),
           ...(department !== undefined ? { department } : {}),
           ...(city !== undefined ? { city } : {}),
