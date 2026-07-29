@@ -48,6 +48,8 @@ export async function GET() {
         role: user.role,
         loyaltyPoints: user.loyaltyPoints || 0,
         fullName: user.motherProfile?.fullName || '',
+        docType: user.motherProfile?.docType || 'CC',
+        docNumber: user.motherProfile?.docNumber || '',
         phone: user.motherProfile?.phone || '',
         department: user.motherProfile?.department || '',
         city: user.motherProfile?.city || '',
@@ -73,6 +75,8 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const {
       fullName,
+      docType,
+      docNumber,
       phone,
       department,
       city,
@@ -115,6 +119,8 @@ export async function PUT(request: Request) {
         data: {
           userId,
           fullName: fullName || user.email.split('@')[0],
+          docType: docType || 'CC',
+          docNumber: docNumber || null,
           phone: phone || null,
           department: department || null,
           city: city || null,
@@ -127,6 +133,8 @@ export async function PUT(request: Request) {
         where: { id: mother.id },
         data: {
           ...(fullName !== undefined ? { fullName } : {}),
+          ...(docType !== undefined ? { docType } : {}),
+          ...(docNumber !== undefined ? { docNumber } : {}),
           ...(phone !== undefined ? { phone } : {}),
           ...(department !== undefined ? { department } : {}),
           ...(city !== undefined ? { city } : {}),

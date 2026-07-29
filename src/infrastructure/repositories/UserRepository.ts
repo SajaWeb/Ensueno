@@ -26,6 +26,8 @@ export class UserRepository {
     email: string;
     password: string;
     fullName: string;
+    docType?: string;
+    docNumber?: string;
     phone?: string;
     babyName?: string;
     babyBirthDate?: Date;
@@ -48,6 +50,8 @@ export class UserRepository {
         motherProfile: {
           create: {
             fullName: data.fullName,
+            docType: data.docType || 'CC',
+            docNumber: data.docNumber,
             phone: data.phone,
             babies: data.babyName
               ? {

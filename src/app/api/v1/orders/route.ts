@@ -40,6 +40,19 @@ export async function GET(req: Request) {
           include: { items: { include: { product: true } } },
         });
         console.log(`[Order API] Order #${order.orderNumber} confirmed via redirect params`);
+
+        // Send rich confirmation email with product images & sweet message
+        resendService.sendOrderConfirmationEmail({
+          to: order.customerEmail,
+          customerName: order.customerName,
+          orderNumber: order.orderNumber,
+          total: order.total,
+          items: order.items,
+          shippingAddress: order.shippingAddress,
+          city: order.city || undefined,
+          department: order.department || undefined,
+          deliveryEstimate: order.deliveryEstimate || '2-4 días hábiles',
+        }).catch((e) => console.error('Error enviando correo de confirmación:', e));
       } else if (order && (mpStatus === 'rejected' || mpStatus === 'failure') && order.status === 'orden_generada') {
         order = await prisma.order.update({
           where: { id: order.id },
@@ -217,7 +230,17 @@ export async function POST(req: Request) {
     );
 
     // 3. Enviar correo de confirmación de pedido con Resend
-    await resendService.sendOrderConfirmationEmail(customerEmail, customerName, order.orderNumber, total);
+    await resendService.sendOrderConfirmationEmail({
+      to: customerEmail,
+      customerName,
+      orderNumber: order.orderNumber,
+      total,
+      items: order.items,
+      shippingAddress,
+      city,
+      department,
+      deliveryEstimate,
+    });
 
     return NextResponse.json({
       success: true,

@@ -15,6 +15,9 @@ import {
   KeyRound,
   CheckCircle,
   AlertCircle,
+  FileText,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
@@ -27,11 +30,19 @@ export default function UniversalAuthModal() {
   // Registration Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [docType, setDocType] = useState('CC');
+  const [docNumber, setDocNumber] = useState('');
   const [phone, setPhone] = useState('');
   const [babyName, setBabyName] = useState('');
   const [skinCondition, setSkinCondition] = useState('Sensible');
   const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
+
+  // Show password states (supports hover & click toggle)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   // Status & Error States
   const [loading, setLoading] = useState(false);
@@ -72,6 +83,24 @@ export default function UniversalAuthModal() {
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!docNumber.trim()) {
+      setErrorMsg('Debes ingresar tu número de documento para la facturación.');
+      showToast('Debes ingresar tu número de documento', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
+      showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Las contraseñas no coinciden. Por favor verifícalas antes de continuar.');
+      showToast('Las contraseñas no coinciden', 'error');
+      return;
+    }
+
     if (!acceptDataPolicy) {
       setErrorMsg('Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.');
       showToast('Debes aceptar la Política de Tratamiento de Datos Personales', 'error');
@@ -85,6 +114,8 @@ export default function UniversalAuthModal() {
         email,
         password,
         fullName,
+        docType,
+        docNumber: docNumber.trim(),
         phone,
         babyName,
         skinCondition,
@@ -150,7 +181,7 @@ export default function UniversalAuthModal() {
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
       <div className="bg-white/95 backdrop-blur-xl border border-purple-100 max-w-md w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-6 relative my-8">
-        {/* Header Bar with Back / Exit option */}
+        {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <button
             onClick={closeAuthModal}
@@ -307,14 +338,24 @@ export default function UniversalAuthModal() {
                   </div>
                   <div className="relative">
                     <input
-                      type="password"
+                      type={showLoginPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
                     />
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <button
+                      type="button"
+                      onMouseEnter={() => setShowLoginPassword(true)}
+                      onMouseLeave={() => setShowLoginPassword(false)}
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3.5 top-2.5 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                      title="Mantén sobre el icono o haz clic para ver contraseña"
+                    >
+                      {showLoginPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -328,7 +369,7 @@ export default function UniversalAuthModal() {
               </form>
             ) : (
               /* REGISTER FORM */
-              <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+              <form onSubmit={handleRegisterSubmit} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
                     Nombre Completo
@@ -341,6 +382,42 @@ export default function UniversalAuthModal() {
                     placeholder="Ej: María Alejandra Morales"
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400"
                   />
+                </div>
+
+                {/* Tipo y Número de Documento (Para Facturación Electrónica) */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                      Tipo Doc.
+                    </label>
+                    <select
+                      value={docType}
+                      onChange={(e) => setDocType(e.target.value)}
+                      className="w-full px-2 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-white"
+                    >
+                      <option value="CC">C.C.</option>
+                      <option value="CE">C.E.</option>
+                      <option value="NIT">NIT</option>
+                      <option value="PASAPORTE">Pasaporte</option>
+                      <option value="TI">T.I.</option>
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                      Número de Documento (Factura)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={docNumber}
+                        onChange={(e) => setDocNumber(e.target.value)}
+                        placeholder="Ej: 1020304050"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400"
+                      />
+                      <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5">
@@ -399,16 +476,72 @@ export default function UniversalAuthModal() {
                   </div>
                 </div>
 
+                {/* Password & Confirm Password con Hover / Click Toggle Eye */}
                 <div>
                   <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">Contraseña</label>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full pl-9 pr-10 py-2 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <button
+                      type="button"
+                      onMouseEnter={() => setShowPassword(true)}
+                      onMouseLeave={() => setShowPassword(false)}
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                      title="Mantén sobre el icono o haz clic para ver contraseña"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-extrabold uppercase text-slate-600">
+                      Confirmar Contraseña
+                    </label>
+                    {confirmPassword && (
+                      <span
+                        className={`text-[10px] font-bold ${
+                          password === confirmPassword ? 'text-emerald-600' : 'text-rose-600'
+                        }`}
+                      >
+                        {password === confirmPassword ? '✓ Coinciden' : '✗ No coinciden'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repite tu contraseña"
+                      className={`w-full pl-9 pr-10 py-2 rounded-xl border text-xs font-semibold focus:ring-2 focus:ring-purple-400 ${
+                        confirmPassword && password !== confirmPassword
+                          ? 'border-rose-300 bg-rose-50/50'
+                          : 'border-slate-200'
+                      }`}
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <button
+                      type="button"
+                      onMouseEnter={() => setShowConfirmPassword(true)}
+                      onMouseLeave={() => setShowConfirmPassword(false)}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-2 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                      title="Mantén sobre el icono o haz clic para ver contraseña"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-start gap-2 pt-1">

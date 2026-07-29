@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { mercadoPagoService } from '@/infrastructure/services/MercadoPagoService';
 import { orderRepository } from '@/infrastructure/repositories/OrderRepository';
+import { resendService } from '@/infrastructure/services/ResendService';
 
 /**
  * Webhook IPN de MercadoPago.
@@ -70,6 +71,23 @@ export async function POST(req: Request) {
             paymentStatus: mpStatus,
             paymentMethod: mpPaymentMethod,
           });
+
+          if (mpStatus === 'approved' && order.status !== 'confirmado') {
+            const fullOrder = await orderRepository.getOrderById(order.id);
+            if (fullOrder) {
+              resendService.sendOrderConfirmationEmail({
+                to: fullOrder.customerEmail,
+                customerName: fullOrder.customerName,
+                orderNumber: fullOrder.orderNumber,
+                total: fullOrder.total,
+                items: fullOrder.items,
+                shippingAddress: fullOrder.shippingAddress,
+                city: fullOrder.city || undefined,
+                department: fullOrder.department || undefined,
+                deliveryEstimate: fullOrder.deliveryEstimate || '2-4 días hábiles',
+              }).catch((e) => console.error('Error enviando correo desde webhook:', e));
+            }
+          }
 
           console.log(`[MercadoPago Webhook] Orden ${externalReference} actualizada a ${mpStatus} -> ${newStatus}`);
         }

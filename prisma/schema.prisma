@@ -49,6 +49,8 @@ model MotherProfile {
   userId           String               @unique
   user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   fullName         String
+  docType          String?              @default("CC") // CC, CE, NIT, PASAPORTE, TI
+  docNumber        String?
   phone            String?
   city             String?
   department       String?

@@ -48,6 +48,8 @@ export default function ProfilePage() {
 
   // Profile Edit Form State
   const [editFullName, setEditFullName] = useState('');
+  const [editDocType, setEditDocType] = useState('CC');
+  const [editDocNumber, setEditDocNumber] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editDeptIndex, setEditDeptIndex] = useState(0);
   const [editCity, setEditCity] = useState(COLOMBIA_LOCATION_DATA[0].cities[0]);
@@ -178,6 +180,8 @@ export default function ProfilePage() {
     try {
       const res = await apiService.updateUserProfile({
         fullName: editFullName,
+        docType: editDocType,
+        docNumber: editDocNumber,
         phone: editPhone,
         department: currentDeptName,
         city: editCity,
@@ -396,6 +400,32 @@ export default function ProfilePage() {
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="+57 300 123 4567"
+                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Tipo de Documento</label>
+                <select
+                  value={editDocType}
+                  onChange={(e) => setEditDocType(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold text-slate-800"
+                >
+                  <option value="CC">Cédula de Ciudadanía (CC)</option>
+                  <option value="CE">Cédula de Extranjería (CE)</option>
+                  <option value="NIT">NIT (Empresa)</option>
+                  <option value="PASAPORTE">Pasaporte</option>
+                  <option value="TI">Tarjeta de Identidad (TI)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Número de Documento (Factura)</label>
+                <input
+                  type="text"
+                  value={editDocNumber}
+                  onChange={(e) => setEditDocNumber(e.target.value)}
+                  placeholder="Ej: 1020304050"
                   className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
                 />
               </div>

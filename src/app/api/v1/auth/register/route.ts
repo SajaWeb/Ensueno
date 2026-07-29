@@ -7,10 +7,10 @@ import { getJwtSecret } from '@/lib/jwt';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, fullName, phone, babyName, babyBirthDate, expectedDueDate, skinCondition } = body;
+    const { email, password, fullName, docType, docNumber, phone, babyName, babyBirthDate, expectedDueDate, skinCondition } = body;
 
-    if (!email || !password || !fullName) {
-      return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (email, contraseña, nombre)' }, { status: 400 });
+    if (!email || !password || !fullName || !docNumber) {
+      return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (email, contraseña, nombre, número de documento)' }, { status: 400 });
     }
 
     const existing = await userRepository.findByEmail(email);
@@ -25,6 +25,8 @@ export async function POST(req: Request) {
       email,
       password,
       fullName,
+      docType: docType || 'CC',
+      docNumber,
       phone,
       babyName,
       babyBirthDate: babyBirthDate ? new Date(babyBirthDate) : undefined,
