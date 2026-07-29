@@ -59,49 +59,129 @@ export default function OrderConfirmationPage() {
         </div>
       </div>
 
-      {/* Progress Timeline Stepper */}
+      {/* Progress Timeline Stepper (Dinamico) */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 soft-glow-card border border-surface-container-high space-y-6">
-        <h2 className="font-headline font-bold text-lg text-on-surface text-center">
-          Estado del Envío en Tiempo Real
-        </h2>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
-          {/* Step 1 */}
-          <div className="flex flex-col items-center text-center space-y-2 relative z-10">
-            <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold shadow-soft-glow">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <span className="font-headline font-bold text-xs text-on-surface">1. Confirmado</span>
-            <span className="text-[10px] text-outline">Pago Aprobado</span>
-          </div>
-
-          {/* Step 2 */}
-          <div className="flex flex-col items-center text-center space-y-2 relative z-10">
-            <div className="w-12 h-12 rounded-full bg-primary-container text-primary flex items-center justify-center font-bold border-2 border-primary">
-              <PackageCheck className="w-6 h-6" />
-            </div>
-            <span className="font-headline font-bold text-xs text-primary">2. Preparando</span>
-            <span className="text-[10px] text-outline">Empaque Cuidado</span>
-          </div>
-
-          {/* Step 3 */}
-          <div className="flex flex-col items-center text-center space-y-2 opacity-60">
-            <div className="w-12 h-12 rounded-full bg-surface-container-low text-outline flex items-center justify-center font-bold">
-              <Truck className="w-6 h-6" />
-            </div>
-            <span className="font-headline font-bold text-xs text-on-surface">3. En Camino</span>
-            <span className="text-[10px] text-outline">Despacho Servientrega</span>
-          </div>
-
-          {/* Step 4 */}
-          <div className="flex flex-col items-center text-center space-y-2 opacity-60">
-            <div className="w-12 h-12 rounded-full bg-surface-container-low text-outline flex items-center justify-center font-bold">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <span className="font-headline font-bold text-xs text-on-surface">4. Entregado</span>
-            <span className="text-[10px] text-outline">En tu Hogar</span>
+        <div className="flex flex-col items-center justify-center space-y-1">
+          <h2 className="font-headline font-bold text-lg text-on-surface text-center">
+            Estado del Envío en Tiempo Real
+          </h2>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200">
+            <span>Estado Actual:</span>
+            <strong className="text-purple-900 font-extrabold">
+              {order?.status === 'orden_generada'
+                ? '1. Orden Generada (Pendiente Pago)'
+                : order?.status === 'confirmado'
+                ? '1. Pago Aprobado'
+                : order?.status === 'empacada'
+                ? '2. Empacada'
+                : order?.status === 'en_camino'
+                ? '3. En Camino'
+                : order?.status === 'sin_poder_entregarse'
+                ? '⚠️ Sin Poder Entregarse'
+                : order?.status === 'entregada'
+                ? '4. Entregada'
+                : order?.status === 'devolucion'
+                ? '🔄 Devolución'
+                : order?.status === 'anulada'
+                ? '❌ Anulada'
+                : '1. Confirmado'}
+            </strong>
           </div>
         </div>
+
+        {order?.status === 'anulada' ? (
+          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold text-center">
+            Esta orden ha sido anulada o cancelada. Si tienes alguna inquietud, contáctanos por WhatsApp.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative">
+            {/* Step 1: Confirmado / Orden Generada */}
+            <div
+              className={`flex flex-col items-center text-center space-y-2 relative z-10 transition-all ${
+                (order?.statusStep || 1) >= 1 ? 'opacity-100' : 'opacity-40'
+              }`}
+            >
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold shadow-soft-glow transition-all ${
+                  (order?.statusStep || 1) >= 1 ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <span className="font-headline font-bold text-xs text-on-surface">1. Confirmado</span>
+              <span className="text-[10px] text-outline">
+                {order?.status === 'orden_generada' ? 'Pendiente Pago' : 'Pago Registrado'}
+              </span>
+            </div>
+
+            {/* Step 2: Empacada */}
+            <div
+              className={`flex flex-col items-center text-center space-y-2 relative z-10 transition-all ${
+                (order?.statusStep || 1) >= 2 ? 'opacity-100' : 'opacity-40'
+              }`}
+            >
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                  (order?.statusStep || 1) >= 2 ? 'bg-purple-600 text-white shadow-soft-glow' : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <PackageCheck className="w-6 h-6" />
+              </div>
+              <span className="font-headline font-bold text-xs text-on-surface">2. Empacada</span>
+              <span className="text-[10px] text-outline">Empaque Cuidado</span>
+            </div>
+
+            {/* Step 3: En Camino */}
+            <div
+              className={`flex flex-col items-center text-center space-y-2 relative z-10 transition-all ${
+                (order?.statusStep || 1) >= 3 ? 'opacity-100' : 'opacity-40'
+              }`}
+            >
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                  order?.status === 'sin_poder_entregarse'
+                    ? 'bg-amber-500 text-white shadow-soft-glow animate-pulse'
+                    : (order?.statusStep || 1) >= 3
+                    ? 'bg-purple-600 text-white shadow-soft-glow'
+                    : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <Truck className="w-6 h-6" />
+              </div>
+              <span className="font-headline font-bold text-xs text-on-surface">
+                {order?.status === 'sin_poder_entregarse' ? 'Novedad Entrega' : '3. En Camino'}
+              </span>
+              <span className="text-[10px] text-outline">
+                {order?.status === 'sin_poder_entregarse' ? 'Verificar Dirección' : 'Despacho Servientrega'}
+              </span>
+            </div>
+
+            {/* Step 4: Entregado */}
+            <div
+              className={`flex flex-col items-center text-center space-y-2 relative z-10 transition-all ${
+                (order?.statusStep || 1) >= 4 ? 'opacity-100' : 'opacity-40'
+              }`}
+            >
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
+                  order?.status === 'devolucion'
+                    ? 'bg-rose-500 text-white shadow-soft-glow'
+                    : (order?.statusStep || 1) >= 4
+                    ? 'bg-emerald-600 text-white shadow-soft-glow'
+                    : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <MapPin className="w-6 h-6" />
+              </div>
+              <span className="font-headline font-bold text-xs text-on-surface">
+                {order?.status === 'devolucion' ? 'Devolución' : '4. Entregado'}
+              </span>
+              <span className="text-[10px] text-outline">
+                {order?.status === 'devolucion' ? 'Retorno a Taller' : 'En tu Hogar'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-2">
           <div className="flex items-center space-x-2">

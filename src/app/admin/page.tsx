@@ -71,6 +71,9 @@ export default function AdminDashboardPage() {
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  // Mobile Menu Drawer State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Password Change Modal State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -555,71 +558,215 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-      {/* Top Navbar Exclusivo de Administración en Tonos Pastel Ensueño */}
-      <header className="bg-white/95 border-b border-purple-100 backdrop-blur-md sticky top-0 z-30 px-6 py-4 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white">
-              <Baby className="w-5 h-5 text-purple-700" />
-            </div>
-            <div>
-              <span className="font-extrabold text-base text-slate-800 block leading-tight">Panel Administrador</span>
-              <span className="text-[11px] text-purple-600 font-semibold">Ensueño Baby Cosmetics</span>
-            </div>
-          </div>
-
-          {/* Opciones de Usuario Administrador (Superior Derecha) */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2.5 bg-purple-50 border border-purple-100 px-3.5 py-1.5 rounded-full text-xs">
-              <UserCheck className="w-4 h-4 text-purple-600" />
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col md:flex-row">
+      {/* Left Sidebar Navigation (Desktop & Mobile Drawer) */}
+      <aside className="w-full md:w-64 lg:w-72 bg-white/95 border-b md:border-b-0 md:border-r border-purple-100/80 backdrop-blur-md shrink-0 flex flex-col justify-between z-30 shadow-sm md:min-h-screen sticky top-0 md:h-screen">
+        <div className="p-6 space-y-6">
+          {/* Brand Logo & Mobile Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white">
+                <Baby className="w-5 h-5 text-purple-700" />
+              </div>
               <div>
-                <span className="font-bold text-slate-800 block text-[11px]">admin@ensueno.com.co</span>
-                <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
+                <span className="font-extrabold text-base text-slate-800 block leading-tight">Panel Admin</span>
+                <span className="text-[11px] text-purple-600 font-semibold">Ensueño Baby</span>
               </div>
             </div>
 
             <button
-              onClick={() => setShowSettingsModal(true)}
-              className="bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-slate-500 hover:text-slate-800"
             >
-              <Settings className="w-4 h-4 text-purple-500" /> Configurar Cuenta
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
+            </button>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className={`space-y-1.5 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block px-3 mb-2">
+              Módulos de Gestión
+            </span>
+
+            <button
+              onClick={() => {
+                setActiveTab('orders');
+                setIsMobileMenuOpen(false);
+                loadAdminOrders();
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'orders'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShoppingBag className="w-4 h-4" />
+                <span>Control de Pedidos</span>
+              </div>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-700'
+                }`}
+              >
+                {adminOrders.length}
+              </span>
             </button>
 
             <button
-              onClick={handleLogout}
-              className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-xs font-semibold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+              onClick={() => {
+                setActiveTab('crm');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'crm'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
             >
-              <LogOut className="w-4 h-4 text-rose-500" /> Salir
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4" />
+                <span>Clientes & CRM</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('shipping');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'shipping'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Truck className="w-4 h-4" />
+                <span>Tarifas de Envío</span>
+              </div>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  activeTab === 'shipping' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {shippingRates.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('cohorts');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'cohorts'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <BarChart3 className="w-4 h-4" />
+                <span>Cohortes por Edad</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('products');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'products'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ImageIcon className="w-4 h-4" />
+                <span>Imágenes Productos</span>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('coupons');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'coupons'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Tag className="w-4 h-4" />
+                <span>Cupones Descuento</span>
+              </div>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                  activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-pink-100 text-pink-700'
+                }`}
+              >
+                {promotionsList.length}
+              </span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer User Info */}
+        <div className="p-4 m-4 rounded-2xl bg-purple-50/80 border border-purple-100 space-y-3 hidden md:block">
+          <div className="flex items-center gap-2.5">
+            <UserCheck className="w-4 h-4 text-purple-600 shrink-0" />
+            <div className="overflow-hidden">
+              <span className="font-extrabold text-slate-800 block text-xs truncate">admin@ensueno.com.co</span>
+              <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1 border-t border-purple-100">
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="flex-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+            >
+              <Settings className="w-3.5 h-3.5" /> Ajustes
+            </button>
+            <button
+              onClick={handleLogout}
+              className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Salir
             </button>
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Main Dashboard Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Header Hero Banner Pastel */}
-        <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-8 border border-purple-200/60 shadow-sm relative overflow-hidden">
+      {/* Main Dashboard Area */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8 overflow-y-auto">
+        {/* Header Hero Banner */}
+        <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-6 sm:p-8 border border-purple-200/60 shadow-sm relative overflow-hidden">
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div>
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 text-purple-700 text-xs font-bold uppercase tracking-wider mb-3 border border-purple-200 shadow-sm">
-                <Sparkles className="w-4 h-4 text-amber-500" /> Control de Envíos y Remarketing
+                <Sparkles className="w-4 h-4 text-amber-500" /> Control de Envíos, Pedidos y Remarketing
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Dashboard Ensueño Baby</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+                Dashboard Ensueño Baby
+              </h1>
               <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                Gestión simplificada de envíos por departamentos de Colombia, umbrales gratis, catálogo de productos y remarketing CRM.
+                Gestión simplificada de pedidos, trazabilidad de envíos, catálogo de productos y remarketing CRM.
               </p>
             </div>
           </div>
 
-          {/* Tarjetas KPI */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8 pt-8 border-t border-purple-200/50">
+          {/* Tarjetas KPI Top */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-purple-200/50">
             <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
               <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
                 <span>Umbral Envío Gratis</span>
                 <Truck className="w-4 h-4 text-pink-500" />
               </div>
-              <p className="text-2xl font-black text-slate-800 mt-2">
+              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
                 ${shippingConfig.freeShippingThreshold?.toLocaleString('es-CO')} COP
               </p>
             </div>
@@ -629,7 +776,7 @@ export default function AdminDashboardPage() {
                 <span>Total Bebés Registrados</span>
                 <Baby className="w-4 h-4 text-sky-500" />
               </div>
-              <p className="text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.totalBabies || 12}</p>
+              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.totalBabies || 12}</p>
             </div>
 
             <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
@@ -637,7 +784,7 @@ export default function AdminDashboardPage() {
                 <span>Recién Nacidos (0-3m)</span>
                 <Sparkles className="w-4 h-4 text-amber-500" />
               </div>
-              <p className="text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 5}</p>
+              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 5}</p>
             </div>
 
             <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
@@ -645,69 +792,9 @@ export default function AdminDashboardPage() {
                 <span>Productos Estrella</span>
                 <ShoppingBag className="w-4 h-4 text-purple-500" />
               </div>
-              <p className="text-2xl font-black text-slate-800 mt-2">{products.length || 6}</p>
+              <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length || 6}</p>
             </div>
           </div>
-        </div>
-
-        {/* Pestañas de Navegación del Dashboard */}
-        <div className="flex gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
-          <button
-            onClick={() => {
-              setActiveTab('orders');
-              loadAdminOrders();
-            }}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'orders' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" /> Control de Pedidos y Contabilidad ({adminOrders.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('crm')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'crm' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <Users className="w-4 h-4" /> Clientes y Remarketing CRM
-          </button>
-
-          <button
-            onClick={() => setActiveTab('shipping')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'shipping' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <Truck className="w-4 h-4" /> Tarifas de Envío y Municipios ({shippingRates.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cohorts')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'cohorts' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" /> Cohortes por Edad
-          </button>
-
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'products' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" /> URLs de Imágenes Productos
-          </button>
-
-          <button
-            onClick={() => setActiveTab('coupons')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
-              activeTab === 'coupons' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
-            }`}
-          >
-            <Tag className="w-4 h-4" /> Cupones de Descuento ({promotionsList.length})
-          </button>
         </div>
 
         {/* Tab 0: Módulo de Verificación de Pedidos y Contabilidad */}
