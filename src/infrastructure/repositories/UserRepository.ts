@@ -20,6 +20,26 @@ export class UserRepository {
   }
 
   /**
+   * Busca si existe un perfil de mamá registrado con el número de documento
+   */
+  async findByDocNumber(docNumber: string) {
+    if (!docNumber || !docNumber.trim()) return null;
+    return prisma.motherProfile.findFirst({
+      where: { docNumber: docNumber.trim() },
+    });
+  }
+
+  /**
+   * Busca si existe un perfil de mamá registrado con el teléfono / WhatsApp
+   */
+  async findByPhone(phone: string) {
+    if (!phone || !phone.trim()) return null;
+    return prisma.motherProfile.findFirst({
+      where: { phone: phone.trim() },
+    });
+  }
+
+  /**
    * Registra un nuevo usuario con hashing seguro bcrypt, código de verificación e información inicial
    */
   async createUser(data: {

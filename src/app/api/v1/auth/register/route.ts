@@ -7,15 +7,31 @@ import { getJwtSecret } from '@/lib/jwt';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, fullName, docType, docNumber, phone, babyName, babyBirthDate, expectedDueDate, skinCondition } = body;
+    const { email, password, fullName, docType, docNumber, phone, babyName, babyBirthDate, expectedDueDate, skinCondition, acceptDataPolicy } = body;
+
+    if (!acceptDataPolicy) {
+      return NextResponse.json({ success: false, error: 'Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.' }, { status: 400 });
+    }
 
     if (!email || !password || !fullName || !docNumber) {
       return NextResponse.json({ success: false, error: 'Faltan campos obligatorios (email, contraseña, nombre, número de documento)' }, { status: 400 });
     }
 
-    const existing = await userRepository.findByEmail(email);
-    if (existing) {
-      return NextResponse.json({ success: false, error: 'El correo electrónico ya se encuentra registrado' }, { status: 400 });
+    const existingEmail = await userRepository.findByEmail(email);
+    if (existingEmail) {
+      return NextResponse.json({ success: false, error: 'El correo electrónico ya se encuentra registrado con otra cuenta.' }, { status: 400 });
+    }
+
+    const existingDoc = await userRepository.findByDocNumber(docNumber);
+    if (existingDoc) {
+      return NextResponse.json({ success: false, error: 'El número de documento ya se encuentra registrado con otra cuenta.' }, { status: 400 });
+    }
+
+    if (phone && phone.trim()) {
+      const existingPhone = await userRepository.findByPhone(phone);
+      if (existingPhone) {
+        return NextResponse.json({ success: false, error: 'El número de teléfono / WhatsApp ya se encuentra registrado con otra cuenta.' }, { status: 400 });
+      }
     }
 
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
