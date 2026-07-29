@@ -462,8 +462,8 @@ export default function ProfilePage() {
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 max-w-3xl space-y-6 shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h2 className="font-extrabold text-xl text-slate-800">Tus Datos de Perfil y Envío</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Sincronizados automáticamente con tus compras en el carrito.</p>
+              <h2 className="font-extrabold text-xl text-slate-800">Tus Datos Personales</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Información general de tu cuenta de usuario.</p>
             </div>
             {savedSuccess && (
               <span className="text-xs font-bold text-emerald-600 flex items-center space-x-1 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
@@ -547,60 +547,6 @@ export default function ProfilePage() {
                       : 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-purple-400'
                   }`}
                 />
-              </div>
-            </div>
-
-            {/* Dirección de Envío */}
-            <div className="border-t border-slate-100 pt-4 space-y-4">
-              <h3 className="font-bold text-sm text-purple-700 flex items-center gap-1.5 uppercase tracking-wide">
-                <MapPin className="w-4 h-4 text-purple-600" /> Ubicación Habitual de Envío
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Departamento</label>
-                  <select
-                    value={editDeptIndex}
-                    onChange={(e) => {
-                      const idx = parseInt(e.target.value);
-                      setEditDeptIndex(idx);
-                      setEditCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50"
-                  >
-                    {COLOMBIA_LOCATION_DATA.map((d, index) => (
-                      <option key={d.name} value={index}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Municipio / Ciudad</label>
-                  <select
-                    value={editCity}
-                    onChange={(e) => setEditCity(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50"
-                  >
-                    {COLOMBIA_LOCATION_DATA[editDeptIndex].cities.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Dirección Exacta</label>
-                  <input
-                    type="text"
-                    value={editAddress}
-                    onChange={(e) => setEditAddress(e.target.value)}
-                    placeholder="Calle, Carrera, Apto / Casa, Barrio"
-                    className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
-                  />
-                </div>
               </div>
             </div>
 
