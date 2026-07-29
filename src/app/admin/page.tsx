@@ -133,6 +133,23 @@ export default function AdminDashboardPage() {
     loadProductsAndShipping();
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated && (activeTab === 'crm' || activeTab === 'cohorts')) {
+      loadRemarketingData();
+    }
+  }, [activeTab, isAuthenticated]);
+
+  const loadRemarketingData = async () => {
+    try {
+      const res = await apiService.getAdminRemarketingData();
+      if (res.success && res.data) {
+        setData(res.data);
+      }
+    } catch (err) {
+      console.error('Error cargando datos de remarketing:', err);
+    }
+  };
+
   const checkAdminAuth = async () => {
     try {
       const res = await apiService.getAdminRemarketingData();
@@ -1422,15 +1439,26 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre, email, ciudad o bebé..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs w-64 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={loadRemarketingData}
+                  title="Actualizar datos de clientes"
+                  className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all flex items-center gap-1.5 text-xs font-bold shadow-2xs"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">Actualizar</span>
+                </button>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, email, ciudad o bebé..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs w-64 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                </div>
               </div>
             </div>
 
