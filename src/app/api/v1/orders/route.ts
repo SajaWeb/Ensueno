@@ -13,6 +13,17 @@ export async function GET(req: Request) {
     let userId: string | undefined;
     let email: string | undefined;
 
+    const { searchParams } = new URL(req.url);
+    const orderNumber = searchParams.get('orderNumber');
+
+    if (orderNumber) {
+      const order = await prisma.order.findFirst({
+        where: { OR: [{ orderNumber }, { id: orderNumber }] },
+        include: { items: { include: { product: true } } },
+      });
+      return NextResponse.json({ success: true, data: order });
+    }
+
     const cookieStore = await cookies();
     const token = cookieStore.get('ensueno_token')?.value;
     if (token) {
@@ -26,7 +37,6 @@ export async function GET(req: Request) {
     }
 
     if (!userId && !email) {
-      const { searchParams } = new URL(req.url);
       userId = searchParams.get('userId') || undefined;
       email = searchParams.get('email') || undefined;
     }

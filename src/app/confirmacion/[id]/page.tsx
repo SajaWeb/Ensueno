@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import confetti from 'canvas-confetti';
-import { CheckCircle2, Truck, PackageCheck, MapPin, ArrowRight, Sparkles, Clock, Calendar } from 'lucide-react';
+import { CheckCircle2, Truck, PackageCheck, MapPin, ArrowRight, Clock, Calendar } from 'lucide-react';
 
 export default function OrderConfirmationPage() {
   const params = useParams();
   const id = (params.id as string) || 'ENS-84920';
+  const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
     // Trigger celebration confetti
@@ -22,7 +23,19 @@ export default function OrderConfirmationPage() {
     } catch (e) {
       console.error('Confetti error:', e);
     }
-  }, []);
+
+    // Fetch order details
+    if (id) {
+      fetch(`/api/v1/orders?orderNumber=${id}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.data) {
+            setOrder(json.data);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [id]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
@@ -42,7 +55,7 @@ export default function OrderConfirmationPage() {
         </p>
         <div className="inline-flex items-center space-x-2 bg-white px-5 py-2.5 rounded-full border border-surface-container-high shadow-sm font-headline font-bold text-sm text-primary">
           <span>Número de Orden:</span>
-          <span className="text-secondary font-mono tracking-wider">#{id}</span>
+          <span className="text-secondary font-mono tracking-wider">#{order?.orderNumber || id}</span>
         </div>
       </div>
 
@@ -93,7 +106,7 @@ export default function OrderConfirmationPage() {
         <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-2">
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-primary" />
-            <span>Entrega Estimada: <strong>2 - 3 días hábiles</strong></span>
+            <span>Entrega Estimada: <strong>{order?.deliveryEstimate || '2 - 3 días hábiles'}</strong></span>
           </div>
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-secondary" />
@@ -110,13 +123,14 @@ export default function OrderConfirmationPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-on-surface-variant">
           <div>
             <span className="font-semibold block text-on-surface mb-1">Destinatario:</span>
-            <p>María Alejandra Morales</p>
-            <p>Tel: +57 310 456 7890</p>
+            <p className="font-bold text-slate-800">{order?.customerName || 'Cliente Ensueño'}</p>
+            <p>{order?.customerEmail || ''}</p>
+            {order?.customerPhone && <p>Tel: {order.customerPhone}</p>}
           </div>
           <div>
             <span className="font-semibold block text-on-surface mb-1">Dirección de Envío:</span>
-            <p>Calle 127 # 14-45, Apto 502</p>
-            <p>Bogotá, Colombia</p>
+            <p className="font-bold text-slate-800">{order?.shippingAddress || 'Dirección de Entrega'}</p>
+            <p>{order?.city ? `${order.city}, ${order.department || 'Colombia'}` : 'Colombia'}</p>
           </div>
         </div>
       </div>
