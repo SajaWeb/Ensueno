@@ -1511,7 +1511,14 @@ export default function AdminDashboardPage() {
                         const baby = babies[0];
                         const babyName = baby?.babyName || 'Bebé';
                         const skin = baby?.skinCondition || 'Normal';
-                        const totalSpent = customer.orders?.reduce((sum: number, o: any) => sum + (o.total || 0), 0) || 0;
+                        const approvedOrders = (customer.orders || []).filter(
+                          (o: any) =>
+                            o.paymentStatus === 'approved' ||
+                            (o.status && o.status !== 'orden_generada' && o.status !== 'anulada')
+                        );
+                        const approvedCount = approvedOrders.length;
+                        const totalSpentApproved = approvedOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+                        const loyaltyPointsApproved = Math.floor(totalSpentApproved / 1000);
 
                         return (
                           <tr key={customer.id} className="hover:bg-purple-50/50 transition-colors">
@@ -1543,13 +1550,13 @@ export default function AdminDashboardPage() {
 
                             <td className="py-4 px-4 align-top">
                               <span className="font-extrabold text-slate-800 block text-xs">
-                                {customer.orders?.length || 0} orden(es)
+                                {approvedCount} orden(es) aprobadas
                               </span>
-                              <span className="text-[11px] text-purple-700 font-bold block">
-                                ${totalSpent.toLocaleString('es-CO')} COP
+                              <span className="text-[11px] text-emerald-700 font-bold block">
+                                ${totalSpentApproved.toLocaleString('es-CO')} COP
                               </span>
                               <span className="text-[10px] text-amber-600 font-bold block mt-0.5">
-                                ⭐ {customer.loyaltyPoints || 0} pts
+                                ⭐ {loyaltyPointsApproved} pts
                               </span>
                             </td>
 

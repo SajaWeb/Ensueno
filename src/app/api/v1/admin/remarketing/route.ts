@@ -44,6 +44,7 @@ export async function GET(req: Request) {
             id: true,
             orderNumber: true,
             status: true,
+            paymentStatus: true,
             total: true,
             createdAt: true,
           },
