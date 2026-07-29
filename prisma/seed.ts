@@ -2,8 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const connectionString =
-  process.env.DATABASE_URL || 'postgresql://ensueno:aX2DKbHldtM0xuC1eApi@76.13.113.31:5434/ensuenodb?sslmode=disable';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error('[seed.ts] Error de configuración: La variable de entorno DATABASE_URL es obligatoria para la siembra (seeding).');
+}
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
@@ -11,7 +13,8 @@ async function main() {
   console.log('🌱 Iniciando carga de datos (Seeding)...');
 
   // 1. Crear usuario Administrador
-  const adminPasswordHash = await bcrypt.hash('AdminEnsueno2026*', 10);
+  const seedPassword = process.env.ADMIN_SEED_PASSWORD || 'AdminEnsueno2026*';
+  const adminPasswordHash = await bcrypt.hash(seedPassword, 10);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@ensueno.com.co' },
     update: {

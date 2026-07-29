@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { userRepository } from '@/infrastructure/repositories/UserRepository';
 import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912';
+import { getJwtSecret } from '@/lib/jwt';
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +21,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const secret = getJwtSecret();
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, secret, { expiresIn: '7d' });
 
     const response = NextResponse.json({
       success: true,

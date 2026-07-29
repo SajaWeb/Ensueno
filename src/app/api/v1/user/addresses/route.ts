@@ -2,15 +2,14 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912');
+import { getJwtSecretEncoded } from '@/lib/jwt';
 
 async function getUserIdFromCookie() {
   const cookieStore = await cookies();
   const token = cookieStore.get('ensueno_token')?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecretEncoded());
     return payload.id as string;
   } catch {
     return null;

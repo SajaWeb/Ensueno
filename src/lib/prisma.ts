@@ -1,8 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const connectionString =
-  process.env.DATABASE_URL || 'postgresql://ensueno:aX2DKbHldtM0xuC1eApi@76.13.113.31:5434/ensuenodb?sslmode=disable';
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('[prisma.ts] Error de configuración: La variable de entorno DATABASE_URL no está definida.');
+}
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const pg = require('pg');

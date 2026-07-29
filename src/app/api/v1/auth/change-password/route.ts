@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912');
+import { getJwtSecretEncoded } from '@/lib/jwt';
 
 export async function POST(req: Request) {
   try {
@@ -15,8 +14,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'No autorizado: Token no proporcionado' }, { status: 401 });
     }
 
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    const userId = payload.userId as string;
+    const { payload } = await jwtVerify(token, getJwtSecretEncoded());
+    const userId = (payload.id || payload.userId) as string;
 
     const { currentPassword, newPassword } = await req.json();
 

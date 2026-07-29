@@ -46,8 +46,8 @@ import {
 export default function AdminDashboardPage() {
   const { showToast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [loginEmail, setLoginEmail] = useState('admin@ensueno.com.co');
-  const [loginPassword, setLoginPassword] = useState('AdminEnsueno2026*');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons'>('crm');
@@ -497,18 +497,7 @@ export default function AdminDashboardPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-slate-100 text-center">
-            <button
-              onClick={() => {
-                setLoginEmail('admin@ensueno.com.co');
-                setLoginPassword('AdminEnsueno2026*');
-                showToast('Credenciales maestras autocompletadas', 'info');
-              }}
-              className="text-xs text-purple-600 font-semibold hover:underline"
-            >
-              Cargar Credenciales Maestras por Defecto
-            </button>
-          </div>
+
         </div>
       </main>
     );

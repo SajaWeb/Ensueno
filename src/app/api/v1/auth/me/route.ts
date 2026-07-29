@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912');
+import { getJwtSecretEncoded } from '@/lib/jwt';
 
 export async function GET() {
   try {
@@ -14,7 +13,7 @@ export async function GET() {
       return NextResponse.json({ success: false, authenticated: false }, { status: 401 });
     }
 
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecretEncoded());
     const userId = payload.id as string;
 
     const user = await prisma.user.findUnique({

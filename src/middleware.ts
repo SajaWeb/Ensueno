@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912');
+import { getJwtSecretEncoded } from '@/lib/jwt';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -16,7 +15,8 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const secretKey = getJwtSecretEncoded();
+      const { payload } = await jwtVerify(token, secretKey);
       if (payload.role !== 'ADMIN') {
         return NextResponse.json({ success: false, error: 'Acceso denegado: Se requieren permisos de Administrador' }, { status: 403 });
       }

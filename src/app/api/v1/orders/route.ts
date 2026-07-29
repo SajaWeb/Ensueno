@@ -6,8 +6,7 @@ import { mercadoPagoService } from '@/infrastructure/services/MercadoPagoService
 import { resendService } from '@/infrastructure/services/ResendService';
 import { metaPixelService } from '@/infrastructure/services/MetaPixelService';
 import { prisma } from '@/lib/prisma';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'ensueno_jwt_secret_token_9912');
+import { getJwtSecretEncoded } from '@/lib/jwt';
 
 export async function GET(req: Request) {
   try {
@@ -18,7 +17,7 @@ export async function GET(req: Request) {
     const token = cookieStore.get('ensueno_token')?.value;
     if (token) {
       try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const { payload } = await jwtVerify(token, getJwtSecretEncoded());
         userId = payload.id as string;
         email = payload.email as string;
       } catch {
@@ -75,7 +74,7 @@ export async function POST(req: Request) {
       const token = cookieStore.get('ensueno_token')?.value;
       if (token) {
         try {
-          const { payload } = await jwtVerify(token, JWT_SECRET);
+          const { payload } = await jwtVerify(token, getJwtSecretEncoded());
           userId = payload.id as string;
         } catch {
           // ignore
