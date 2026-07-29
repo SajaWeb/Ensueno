@@ -47,16 +47,20 @@ export async function POST(req: Request) {
 
           switch (mpStatus) {
             case 'approved':
-              newStatus = 'preparando';
-              newStep = 2;
+              newStatus = 'confirmado';
+              newStep = 1;
               break;
             case 'rejected':
             case 'cancelled':
-              newStatus = 'cancelado';
+            case 'refunded':
+            case 'charged_back':
+              newStatus = 'anulada';
+              newStep = 0;
               break;
             case 'pending':
             case 'in_process':
-              newStatus = 'confirmado';
+            default:
+              newStatus = 'orden_generada';
               newStep = 1;
               break;
           }

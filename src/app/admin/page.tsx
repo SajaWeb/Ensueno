@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons'>('crm');
+  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons'>('orders');
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     babyCohorts?: any;
@@ -63,6 +63,13 @@ export default function AdminDashboardPage() {
   const [newImageUrl, setNewImageUrl] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [rateSearchTerm, setRateSearchTerm] = useState('');
+
+  // Orders & Accounting Module State
+  const [adminOrders, setAdminOrders] = useState<any[]>([]);
+  const [orderMetrics, setOrderMetrics] = useState<any>({});
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   // Password Change Modal State
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -148,8 +155,48 @@ export default function AdminDashboardPage() {
 
       const promos = await apiService.getPromotions(undefined, true);
       setPromotionsList(promos);
+
+      await loadAdminOrders();
     } catch (err) {
       console.error('Error cargando configuración de envíos:', err);
+    }
+  };
+
+  const loadAdminOrders = async (status = orderStatusFilter, search = orderSearchTerm) => {
+    try {
+      const params = new URLSearchParams();
+      if (status && status !== 'all') params.append('status', status);
+      if (search) params.append('search', search);
+      const res = await fetch(`/api/v1/admin/orders?${params.toString()}`);
+      const json = await res.json();
+      if (json.success) {
+        setAdminOrders(json.data || []);
+        if (json.metrics) setOrderMetrics(json.metrics);
+      }
+    } catch (err) {
+      console.error('Error cargando órdenes para admin:', err);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await fetch('/api/v1/admin/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast(`Estado de la orden actualizado a "${newStatus.replace(/_/g, ' ')}"`, 'success');
+        loadAdminOrders();
+      } else {
+        showToast(json.error || 'Error al actualizar pedido', 'error');
+      }
+    } catch (err) {
+      showToast('Error al conectar con el servidor', 'error');
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -606,8 +653,20 @@ export default function AdminDashboardPage() {
         {/* Pestañas de Navegación del Dashboard */}
         <div className="flex gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
           <button
+            onClick={() => {
+              setActiveTab('orders');
+              loadAdminOrders();
+            }}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
+              activeTab === 'orders' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4" /> Control de Pedidos y Contabilidad ({adminOrders.length})
+          </button>
+
+          <button
             onClick={() => setActiveTab('crm')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'crm' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
             }`}
           >
@@ -616,7 +675,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('shipping')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'shipping' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
             }`}
           >
@@ -625,7 +684,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('cohorts')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'cohorts' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
             }`}
           >
@@ -634,7 +693,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('products')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'products' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
             }`}
           >
@@ -643,13 +702,260 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('coupons')}
-            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ${
               activeTab === 'coupons' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-white text-slate-600 hover:bg-purple-50 border border-slate-200'
             }`}
           >
             <Tag className="w-4 h-4" /> Cupones de Descuento ({promotionsList.length})
           </button>
         </div>
+
+        {/* Tab 0: Módulo de Verificación de Pedidos y Contabilidad */}
+        {activeTab === 'orders' && (
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-purple-600" /> Módulo de Verificación de Pedidos y Contabilidad
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Control, trazabilidad y cambio de estado de pedidos en tiempo real para la contabilidad del e-commerce.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => loadAdminOrders()}
+                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-purple-200 transition-all flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Actualizar Datos
+                </button>
+              </div>
+            </div>
+
+            {/* Resumen Contable */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-purple-50/60 rounded-2xl p-4 border border-purple-100">
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Recaudado Confirmado</span>
+                <span className="text-lg font-black text-emerald-700">
+                  ${(orderMetrics.totalRevenue || 0).toLocaleString('es-CO')} COP
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Órdenes Generadas</span>
+                <span className="text-lg font-black text-amber-600">{orderMetrics.generatedCount || 0}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Pagos Aprobados</span>
+                <span className="text-lg font-black text-purple-700">{orderMetrics.confirmedCount || 0}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Empacadas / En Camino</span>
+                <span className="text-lg font-black text-sky-600">
+                  {(orderMetrics.packedCount || 0) + (orderMetrics.shippedCount || 0)}
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Entregadas</span>
+                <span className="text-lg font-black text-emerald-600">{orderMetrics.deliveredCount || 0}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Sin Entregar / Devolución</span>
+                <span className="text-lg font-black text-rose-600">
+                  {(orderMetrics.failedDeliveryCount || 0) + (orderMetrics.returnedCount || 0)}
+                </span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Anuladas</span>
+                <span className="text-lg font-black text-slate-500">{orderMetrics.canceledCount || 0}</span>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Registros</span>
+                <span className="text-lg font-black text-slate-800">{orderMetrics.totalOrders || 0}</span>
+              </div>
+            </div>
+
+            {/* Barra de Filtros y Búsqueda */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Filter className="w-4 h-4 text-slate-400" />
+                <select
+                  value={orderStatusFilter}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOrderStatusFilter(val);
+                    loadAdminOrders(val, orderSearchTerm);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-400"
+                >
+                  <option value="all">Ver Todos los Estados ({adminOrders.length})</option>
+                  <option value="orden_generada">1. Orden Generada (Pendiente Pago)</option>
+                  <option value="confirmado">2. Pago Aprobado</option>
+                  <option value="empacada">3. Empacada</option>
+                  <option value="en_camino">4. En Camino</option>
+                  <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
+                  <option value="entregada">6. Entregada</option>
+                  <option value="devolucion">7. Devolución</option>
+                  <option value="anulada">8. Anulada</option>
+                </select>
+              </div>
+
+              <div className="relative w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Buscar por Nº orden, cliente o ciudad..."
+                  value={orderSearchTerm}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setOrderSearchTerm(val);
+                    loadAdminOrders(orderStatusFilter, val);
+                  }}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              </div>
+            </div>
+
+            {/* Tabla de Órdenes */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
+                    <th className="py-3 px-4">Nº Orden & Fecha</th>
+                    <th className="py-3 px-4">Cliente / Contacto</th>
+                    <th className="py-3 px-4">Destino & Dirección</th>
+                    <th className="py-3 px-4">Productos & Total</th>
+                    <th className="py-3 px-4">Pasarela MercadoPago</th>
+                    <th className="py-3 px-4">Estado Contable / Logístico</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {adminOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                        No se encontraron pedidos registrados con los filtros seleccionados.
+                      </td>
+                    </tr>
+                  ) : (
+                    adminOrders.map((ord) => {
+                      const dateStr = new Date(ord.createdAt).toLocaleDateString('es-CO', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+
+                      return (
+                        <tr key={ord.id} className="hover:bg-purple-50/40 transition-colors">
+                          <td className="py-4 px-4 align-top">
+                            <span className="font-extrabold text-purple-700 block font-mono text-sm">
+                              #{ord.orderNumber || ord.id.slice(-6)}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">{dateStr}</span>
+                          </td>
+
+                          <td className="py-4 px-4 align-top">
+                            <span className="font-bold text-slate-800 block">{ord.customerName}</span>
+                            <span className="text-[11px] text-slate-500 block">{ord.customerEmail}</span>
+                            {ord.customerPhone && (
+                              <span className="text-[10px] text-slate-400 block mt-0.5">Tel: {ord.customerPhone}</span>
+                            )}
+                          </td>
+
+                          <td className="py-4 px-4 align-top">
+                            <span className="font-semibold text-slate-800 block line-clamp-2">{ord.shippingAddress}</span>
+                            <span className="text-[11px] text-slate-500 block">
+                              {ord.city}, {ord.department}
+                            </span>
+                          </td>
+
+                          <td className="py-4 px-4 align-top">
+                            <div className="space-y-1">
+                              {ord.items?.map((it: any) => (
+                                <div key={it.id} className="text-[11px] text-slate-700">
+                                  <strong>{it.quantity}x</strong> {it.productName || it.product?.name}{' '}
+                                  <span className="text-slate-400 text-[10px]">
+                                    (${it.unitPrice?.toLocaleString('es-CO')})
+                                  </span>
+                                </div>
+                              ))}
+                              <div className="pt-1 border-t border-slate-100 font-extrabold text-sm text-purple-700">
+                                Total: ${ord.total?.toLocaleString('es-CO')} COP
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="py-4 px-4 align-top">
+                            {ord.paymentStatus === 'approved' ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <CheckCircle2 className="w-3 h-3" /> Aprobado MP
+                              </span>
+                            ) : ord.paymentStatus === 'rejected' || ord.paymentStatus === 'cancelled' ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                                Rechazado MP
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                Pendiente Pago
+                              </span>
+                            )}
+                            {ord.paymentTransactionId && (
+                              <span className="text-[9px] text-slate-400 block font-mono mt-1">
+                                ID: {ord.paymentTransactionId}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-4 px-4 align-top">
+                            <select
+                              value={ord.status}
+                              disabled={updatingOrderId === ord.id}
+                              onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                ord.status === 'orden_generada'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                  : ord.status === 'confirmado'
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                  : ord.status === 'empacada'
+                                  ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                  : ord.status === 'en_camino'
+                                  ? 'bg-sky-50 text-sky-800 border-sky-300'
+                                  : ord.status === 'sin_poder_entregarse'
+                                  ? 'bg-orange-50 text-orange-800 border-orange-300'
+                                  : ord.status === 'entregada'
+                                  ? 'bg-teal-50 text-teal-800 border-teal-300'
+                                  : ord.status === 'devolucion'
+                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                  : 'bg-slate-100 text-slate-700 border-slate-300'
+                              }`}
+                            >
+                              <option value="orden_generada">1. Orden Generada</option>
+                              <option value="confirmado">2. Pago Aprobado</option>
+                              <option value="empacada">3. Empacada</option>
+                              <option value="en_camino">4. En Camino</option>
+                              <option value="sin_poder_entregarse">5. Sin Poder Entregarse</option>
+                              <option value="entregada">6. Entregada</option>
+                              <option value="devolucion">7. Devolución</option>
+                              <option value="anulada">8. Anulada</option>
+                            </select>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Tab 1: CRM Clientes */}
         {activeTab === 'crm' && (

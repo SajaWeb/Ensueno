@@ -656,8 +656,40 @@ export default function ProfilePage() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-base text-slate-800">Orden #{order.orderNumber}</span>
-                        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 uppercase">
-                          {order.status || 'Confirmado'}
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
+                            order.status === 'orden_generada'
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : order.status === 'confirmado'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : order.status === 'empacada'
+                              ? 'bg-purple-100 text-purple-800 border-purple-300'
+                              : order.status === 'en_camino'
+                              ? 'bg-sky-100 text-sky-800 border-sky-300'
+                              : order.status === 'sin_poder_entregarse'
+                              ? 'bg-orange-100 text-orange-800 border-orange-300'
+                              : order.status === 'entregada'
+                              ? 'bg-teal-100 text-teal-800 border-teal-300'
+                              : order.status === 'devolucion'
+                              ? 'bg-rose-100 text-rose-800 border-rose-300'
+                              : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          {order.status === 'orden_generada'
+                            ? 'Orden Generada (Pendiente Pago)'
+                            : order.status === 'confirmado'
+                            ? 'Pago Aprobado'
+                            : order.status === 'empacada'
+                            ? 'Empacada'
+                            : order.status === 'en_camino'
+                            ? 'En Camino'
+                            : order.status === 'sin_poder_entregarse'
+                            ? 'Sin Poder Entregarse'
+                            : order.status === 'entregada'
+                            ? 'Entregada'
+                            : order.status === 'devolucion'
+                            ? 'Devolución'
+                            : 'Anulada'}
                         </span>
                       </div>
                       <span className="text-xs text-slate-400 mt-0.5 block">
@@ -688,7 +720,9 @@ export default function ProfilePage() {
                     <span className="flex items-center gap-1 font-semibold">
                       <MapPin className="w-3.5 h-3.5 text-purple-600" /> Entrega en: {order.shippingAddress}
                     </span>
-                    <span className="font-bold text-emerald-600">Pago Aprobado</span>
+                    <span className="font-bold text-purple-700 font-mono text-[11px]">
+                      Estado Pago MP: {order.paymentStatus === 'approved' ? 'Aprobado ✅' : 'Pendiente ⏳'}
+                    </span>
                   </div>
                 </div>
               ))}

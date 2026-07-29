@@ -46,8 +46,9 @@ export class OrderRepository {
         shippingCost: data.shippingCost || 0,
         total: data.total,
         deliveryEstimate: data.deliveryEstimate || '2-4 días hábiles',
-        status: 'confirmado',
+        status: 'orden_generada',
         statusStep: 1,
+        paymentStatus: 'pending',
         items: {
           create: data.items.map((item) => ({
             productId: item.productId,
