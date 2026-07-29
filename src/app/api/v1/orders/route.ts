@@ -20,10 +20,40 @@ export async function GET(req: Request) {
     const orderNumber = searchParams.get('orderNumber');
 
     if (orderNumber) {
-      const order = await prisma.order.findFirst({
+      let order = await prisma.order.findFirst({
         where: { OR: [{ orderNumber }, { id: orderNumber }] },
         include: { items: { include: { product: true } } },
       });
+
+      const mpStatus = (searchParams.get('status') || searchParams.get('collection_status') || '').toLowerCase();
+      const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id') || undefined;
+
+      if (order && (mpStatus === 'approved' || mpStatus === 'success') && order.status !== 'confirmado') {
+        order = await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'confirmado',
+            statusStep: 1,
+            paymentStatus: 'approved',
+            ...(paymentId ? { paymentTransactionId: paymentId } : {}),
+          },
+          include: { items: { include: { product: true } } },
+        });
+        console.log(`[Order API] Order #${order.orderNumber} confirmed via redirect params`);
+      } else if (order && (mpStatus === 'rejected' || mpStatus === 'failure') && order.status === 'orden_generada') {
+        order = await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            status: 'anulada',
+            statusStep: 0,
+            paymentStatus: 'rejected',
+            ...(paymentId ? { paymentTransactionId: paymentId } : {}),
+          },
+          include: { items: { include: { product: true } } },
+        });
+        console.log(`[Order API] Order #${order.orderNumber} set to rejected via redirect params`);
+      }
+
       return NextResponse.json({ success: true, data: order });
     }
 

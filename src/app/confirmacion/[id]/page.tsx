@@ -38,25 +38,31 @@ function ConfirmationContent() {
   const paymentParam = (searchParams.get('payment') || '').toLowerCase();
   const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id') || '';
 
-  // Determine overall payment outcome from params & order status
-  const isRejected =
-    statusParam === 'rejected' ||
-    statusParam === 'failure' ||
-    paymentParam === 'failure' ||
-    order?.status === 'anulada';
-
-  const isPending =
-    statusParam === 'pending' ||
-    statusParam === 'in_process' ||
-    order?.status === 'orden_generada';
-
+  // Determine overall payment outcome from params & order status (approved takes precedence)
   const isApproved =
     statusParam === 'approved' ||
+    statusParam === 'success' ||
     order?.status === 'confirmado' ||
-    (!isRejected && !isPending && order);
+    order?.paymentStatus === 'approved';
+
+  const isRejected =
+    !isApproved &&
+    (statusParam === 'rejected' ||
+      statusParam === 'failure' ||
+      paymentParam === 'failure' ||
+      order?.status === 'anulada' ||
+      order?.paymentStatus === 'rejected' ||
+      order?.paymentStatus === 'expired');
+
+  const isPending =
+    !isApproved &&
+    !isRejected &&
+    (statusParam === 'pending' ||
+      statusParam === 'in_process' ||
+      order?.status === 'orden_generada');
 
   useEffect(() => {
-    if (isApproved && !isRejected) {
+    if (isApproved) {
       try {
         confetti({
           particleCount: 80,
@@ -71,7 +77,13 @@ function ConfirmationContent() {
 
     if (id) {
       setLoading(true);
-      fetch(`/api/v1/orders?orderNumber=${id}`)
+      const queryStr = new URLSearchParams({
+        orderNumber: id,
+        ...(statusParam ? { status: statusParam } : {}),
+        ...(paymentId ? { payment_id: paymentId } : {}),
+      }).toString();
+
+      fetch(`/api/v1/orders?${queryStr}`)
         .then((res) => res.json())
         .then((json) => {
           if (json.success && json.data) {
@@ -83,7 +95,7 @@ function ConfirmationContent() {
     } else {
       setLoading(false);
     }
-  }, [id, isApproved, isRejected]);
+  }, [id, statusParam, paymentId, isApproved]);
 
   const handleRetryPayment = async () => {
     const targetOrderNumber = order?.orderNumber || id;

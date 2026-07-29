@@ -533,12 +533,12 @@ export default function ProfilePage() {
                         <span className="font-extrabold text-base text-slate-800">Orden #{order.orderNumber}</span>
                         <span
                           className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
-                            order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
+                            order.status === 'confirmado' || order.paymentStatus === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold'
+                              : order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
                               ? 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold'
                               : order.status === 'orden_generada'
                               ? 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
-                              : order.status === 'confirmado'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                               : order.status === 'empacada'
                               ? 'bg-purple-100 text-purple-800 border-purple-300'
                               : order.status === 'en_camino'
@@ -552,12 +552,12 @@ export default function ProfilePage() {
                               : 'bg-rose-100 text-rose-800 border-rose-300'
                           }`}
                         >
-                          {order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
+                          {order.status === 'confirmado' || order.paymentStatus === 'approved'
+                            ? '✅ Pago Aprobado'
+                            : order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
                             ? '❌ Pago Rechazado / Anulada'
                             : order.status === 'orden_generada'
                             ? '⏳ Pendiente de Pago (<15m)'
-                            : order.status === 'confirmado'
-                            ? 'Pago Aprobado'
                             : order.status === 'empacada'
                             ? 'Empacada'
                             : order.status === 'en_camino'
