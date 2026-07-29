@@ -55,11 +55,11 @@ export default function CartPage() {
   // Shipping & Location state from Colombia dataset
   const [selectedDeptIndex, setSelectedDeptIndex] = useState(0);
   const [selectedCity, setSelectedCity] = useState(COLOMBIA_LOCATION_DATA[0].cities[0]);
-  const [address, setAddress] = useState('Calle 127 # 14-45, Apto 502');
+  const [address, setAddress] = useState('');
   const [addressTitle, setAddressTitle] = useState('Hogar');
-  const [customerName, setCustomerName] = useState('María Alejandra Morales');
-  const [customerEmail, setCustomerEmail] = useState('maria.alejandra@example.com');
-  const [customerPhone, setCustomerPhone] = useState('+57 310 456 7890');
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
 
   const [shippingCost, setShippingCost] = useState(0);
   const [deliveryEstimate, setDeliveryEstimate] = useState('2-4 días hábiles');
@@ -268,14 +268,25 @@ export default function CartPage() {
     showToast('Generando orden de pago segura con MercadoPago...', 'info');
 
     try {
-      // Automatically save/update address if logged in
-      if (currentUser) {
-        handleSaveNewAddress();
+      // Only save address if user typed a new one (not selecting an existing saved address)
+      if (currentUser && !selectedAddressId) {
+        await handleSaveNewAddress();
       }
+
+      // Map cart items to the flat shape expected by OrderRepository
+      const mappedItems = items.map((item) => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        selectedFragrance: item.selectedFragrance,
+        selectedSize: item.selectedSize,
+        unitPrice: item.product.price,
+        quantity: item.quantity,
+        subtotal: item.product.price * item.quantity,
+      }));
 
       const { order, mercadopago } = await apiService.createOrder({
         userId: currentUser?.id,
-        items,
+        items: mappedItems,
         subtotal,
         discount,
         couponCode,
