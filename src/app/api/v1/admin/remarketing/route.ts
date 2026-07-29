@@ -9,34 +9,34 @@ export async function GET(req: Request) {
     const surveyResponses = await remarketingRepository.getSurveyResponses();
     const pendingReminders = await remarketingRepository.getPendingReminders();
 
-    // 1. Fetch ALL MotherProfiles directly from database with associated babies and user orders
-    const motherProfiles = await prisma.motherProfile.findMany({
-      include: {
-        babies: true,
-        user: {
-          include: {
-            orders: {
+    // Consulta optimizada única: Obtiene EXCLUSIVAMENTE usuarios con rol CUSTOMER y sus perfiles asociados
+    const customerUsers = await prisma.user.findMany({
+      where: {
+        role: 'CUSTOMER',
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        loyaltyPoints: true,
+        createdAt: true,
+        motherProfile: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            city: true,
+            department: true,
+            address: true,
+            babies: {
               select: {
                 id: true,
-                orderNumber: true,
-                status: true,
-                total: true,
-                createdAt: true,
+                babyName: true,
+                birthDate: true,
+                expectedDueDate: true,
+                skinCondition: true,
               },
-              orderBy: { createdAt: 'desc' },
             },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    // 2. Fetch ALL Users from database to ensure no user is left out
-    const allUsers = await prisma.user.findMany({
-      include: {
-        motherProfile: {
-          include: {
-            babies: true,
           },
         },
         orders: {
@@ -53,76 +53,23 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map to build unified customer list
-    const customerMap = new Map<string, any>();
-
-    // Add all MotherProfile entries (guarantees mothers in screenshot like Juliana Carvajal Torres appear)
-    motherProfiles.forEach((mp) => {
-      const key = mp.userId || mp.id;
-      customerMap.set(key, {
-        id: mp.id,
-        userId: mp.userId,
-        email: mp.user?.email || 'Sin correo',
-        fullName: mp.fullName,
-        phone: mp.phone,
-        city: mp.city,
-        department: mp.department,
-        address: mp.address,
-        loyaltyPoints: mp.user?.loyaltyPoints || 0,
-        createdAt: mp.createdAt,
-        profile: {
-          fullName: mp.fullName,
-          phone: mp.phone,
-          city: mp.city,
-          department: mp.department,
-          address: mp.address,
-          babies: mp.babies || [],
-        },
-        motherProfile: {
-          fullName: mp.fullName,
-          phone: mp.phone,
-          city: mp.city,
-          department: mp.department,
-          address: mp.address,
-          babies: mp.babies || [],
-        },
-        babies: mp.babies || [],
-        orders: mp.user?.orders || [],
-      });
-    });
-
-    // Add any Users that might not have a MotherProfile record yet
-    allUsers.forEach((u) => {
-      if (!customerMap.has(u.id)) {
-        customerMap.set(u.id, {
-          id: u.id,
-          userId: u.id,
-          email: u.email,
-          fullName: u.motherProfile?.fullName || u.email.split('@')[0],
-          phone: u.motherProfile?.phone || 'Sin teléfono',
-          city: u.motherProfile?.city || 'No especificada',
-          department: u.motherProfile?.department || '',
-          address: u.motherProfile?.address || '',
-          loyaltyPoints: u.loyaltyPoints || 0,
-          createdAt: u.createdAt,
-          profile: u.motherProfile
-            ? {
-                fullName: u.motherProfile.fullName,
-                phone: u.motherProfile.phone,
-                city: u.motherProfile.city,
-                department: u.motherProfile.department,
-                address: u.motherProfile.address,
-                babies: u.motherProfile.babies || [],
-              }
-            : null,
-          motherProfile: u.motherProfile,
-          babies: u.motherProfile?.babies || [],
-          orders: u.orders || [],
-        });
-      }
-    });
-
-    const customers = Array.from(customerMap.values());
+    // Mapeo limpio y directo para el módulo CRM
+    const customers = customerUsers.map((user) => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      loyaltyPoints: user.loyaltyPoints,
+      createdAt: user.createdAt,
+      fullName: user.motherProfile?.fullName || user.email.split('@')[0],
+      phone: user.motherProfile?.phone || 'Sin teléfono',
+      city: user.motherProfile?.city || 'No especificada',
+      department: user.motherProfile?.department || '',
+      address: user.motherProfile?.address || '',
+      profile: user.motherProfile,
+      motherProfile: user.motherProfile,
+      babies: user.motherProfile?.babies || [],
+      orders: user.orders || [],
+    }));
 
     return NextResponse.json({
       success: true,
