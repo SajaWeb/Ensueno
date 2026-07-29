@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Anton } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { UserProvider } from '@/context/UserContext';
@@ -6,6 +7,12 @@ import AppLayoutWrapper from '@/components/layout/AppLayoutWrapper';
 import { ToastProvider } from '@/context/ToastContext';
 import ParticleBackground from '@/components/layout/ParticleBackground';
 import MetaPixel from '@/components/analytics/MetaPixel';
+
+const anton = Anton({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Ensueño | Cuidado Natural y Sueño Profundo para tu Bebé',
@@ -20,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="light">
-      <body className="min-h-screen flex flex-col bg-surface text-on-surface antialiased relative">
+      <body className={`${anton.className} min-h-screen flex flex-col bg-surface text-on-surface antialiased relative`}>
         <ToastProvider>
           <CartProvider>
             <UserProvider>
