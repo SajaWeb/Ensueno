@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowDownCircle, ChevronDown, ShieldCheck, Sparkles, Heart, Gift, ArrowRight, Star, ShoppingBag, Check } from 'lucide-react';
-import { Product, Tip } from '@/types';
+import { Product, Tip, Promotion } from '@/types';
 import { apiService } from '@/services/api';
 import { useCart } from '@/context/CartContext';
 import ScrollReveal from '@/components/ui/ScrollReveal';
@@ -12,6 +12,7 @@ import ScrollReveal from '@/components/ui/ScrollReveal';
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const { addToCart } = useCart();
 
   const mascotUrl = 'https://i.postimg.cc/25VxdkZn/Whats-App-Image-2026-07-24-at-10-04-09-AM-1-removebg-preview.png';
@@ -19,12 +20,14 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [prodsData, tipsData] = await Promise.all([
+        const [prodsData, tipsData, promosData] = await Promise.all([
           apiService.getProducts(),
           apiService.getTips(),
+          apiService.getPromotions(undefined, true),
         ]);
         setProducts(prodsData);
         setTips(tipsData);
+        setPromotions(promosData);
       } catch (e) {
         console.error('Error loading funnel data:', e);
       }
@@ -76,6 +79,7 @@ export default function HomePage() {
             alt="Mascota Ensueño"
             fill
             priority
+            sizes="(max-width: 640px) 128px, 192px"
             className="object-contain drop-shadow-xl"
           />
         </div>
@@ -107,7 +111,7 @@ export default function HomePage() {
         </ScrollReveal>
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-1 animate-bounce-slow text-primary/70">
+        <div className="absolute bottom-6 left-0 right-0 mx-auto w-max flex flex-col items-center justify-center space-y-1 animate-bounce-slow text-primary/70 z-20 pointer-events-none text-center">
           <span className="text-[11px] font-headline font-bold uppercase tracking-wider">Sigue explorando</span>
           <ChevronDown className="w-5 h-5" />
         </div>
@@ -133,75 +137,119 @@ export default function HomePage() {
             </div>
           </ScrollReveal>
 
-          {/* Grid of the 3 Products with Staggered ScrollReveal */}
+          {/* Grid of Essential Products (Filtered by Admin isFeatured) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
-            {products.map((product, index) => (
-              <ScrollReveal
-                key={product.id}
-                animation="pop-in"
-                delay={index * 150}
-                duration={700}
-              >
-                <div className="group bg-white rounded-[36px] overflow-hidden soft-glow-card border border-surface-container-high/80 flex flex-col justify-between hover:-translate-y-3 transition-all duration-500 h-full">
-                  <div>
-                    {/* Image Banner */}
-                    <Link
-                      href={`/productos/${product.id}`}
-                      className="block relative aspect-[4/3] overflow-hidden bg-surface-container-low"
-                    >
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                      <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-sm animate-float">
+            {(products.filter((p) => p.isFeatured !== false).length > 0
+              ? products.filter((p) => p.isFeatured !== false)
+              : products
+            ).map((product, index) => {
+              const hasPromo = product.originalPrice && product.originalPrice > product.price;
+
+              return (
+                <ScrollReveal
+                  key={product.id}
+                  animation="pop-in"
+                  delay={index * 150}
+                  duration={700}
+                >
+                  <div className="group bg-white rounded-[36px] overflow-hidden soft-glow-card border border-surface-container-high/80 flex flex-col justify-between hover:-translate-y-3 transition-all duration-500 h-full relative">
+                    <div>
+                      {/* Image Banner */}
+                      <Link
+                        href={`/productos/${product.id}`}
+                        className="block relative aspect-[4/3] overflow-hidden bg-surface-container-low"
+                      >
                         <Image
-                          src={mascotUrl}
-                          alt="Mascota"
+                          src={product.image}
+                          alt={product.name}
                           fill
-                          className="object-contain"
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-700"
                         />
-                      </div>
-                    </Link>
+                        {product.badge && (
+                          <div className="absolute top-4 left-4 bg-purple-700 text-white text-[11px] font-headline font-bold px-3 py-1 rounded-full shadow-md z-10">
+                            {product.badge}
+                          </div>
+                        )}
+                        <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm p-1.5 shadow-sm animate-float">
+                          <Image
+                            src={mascotUrl}
+                            alt="Mascota"
+                            fill
+                            sizes="40px"
+                            className="object-contain"
+                          />
+                        </div>
+                      </Link>
 
-                    {/* Card Content */}
-                    <div className="p-6 sm:p-8 text-center space-y-3">
-                      <div className="flex justify-center text-tertiary">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-tertiary" />
-                        ))}
-                      </div>
+                      {/* Card Content */}
+                      <div className="p-6 sm:p-8 text-center space-y-3">
+                        {/* Dynamic Rating Above Title */}
+                        <div className="flex items-center justify-center space-x-1.5">
+                          <div className="flex text-amber-400">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`w-3.5 h-3.5 ${
+                                  i < Math.round(product.reviewsCount > 0 ? product.rating : 0)
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'fill-slate-100 text-slate-200'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          {product.reviewsCount > 0 ? (
+                            <>
+                              <span className="text-xs font-black text-slate-700">
+                                {product.rating.toFixed(1)}
+                              </span>
+                              <span className="text-[11px] font-bold text-slate-400">
+                                ({product.reviewsCount})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[11px] font-bold text-slate-400">
+                              (Sin reseñas)
+                            </span>
+                          )}
+                        </div>
 
-                      <Link href={`/productos/${product.id}`} className="block group-hover:text-primary transition-colors">
-                        <h3 className="font-headline font-extrabold text-2xl text-on-surface">
-                          {product.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-on-surface-variant line-clamp-2 mt-1">
-                          {product.subtitle}
-                        </p>
+                        <Link href={`/productos/${product.id}`} className="block group-hover:text-primary transition-colors">
+                          <h3 className="font-headline font-extrabold text-2xl text-on-surface">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-on-surface-variant line-clamp-2 mt-1">
+                            {product.subtitle}
+                          </p>
+                        </Link>
+
+                        {/* Price & Promo Display */}
+                        <div className="pt-2 flex items-center justify-center gap-2">
+                          <span className="font-headline font-black text-xl text-purple-700">
+                            {formatPrice(product.price)}
+                          </span>
+                          {hasPromo && (
+                            <span className="text-xs text-slate-400 line-through font-bold">
+                              {formatPrice(product.originalPrice!)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-2">
+                      <Link
+                        href={`/productos/${product.id}`}
+                        className="btn-ensueno-secondary w-full h-11 text-xs font-extrabold uppercase tracking-wider flex items-center justify-center"
+                      >
+                        Ver Detalles
                       </Link>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="p-6 sm:p-8 pt-0 space-y-2.5">
-                    <Link
-                      href={`/productos/${product.id}`}
-                      className="btn-ensueno-secondary w-full h-11 text-xs font-extrabold uppercase tracking-wider"
-                    >
-                      Ver Detalles
-                    </Link>
-                    <button
-                      onClick={() => addToCart(product)}
-                      className="btn-ensueno-primary w-full h-11 text-xs font-extrabold uppercase tracking-wider"
-                    >
-                      + Agregar al Carrito
-                    </button>
-                  </div>
-                </div>
-              </ScrollReveal>
-            ))}
+                </ScrollReveal>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -222,151 +270,152 @@ export default function HomePage() {
           </div>
         </ScrollReveal>
 
-        {/* Promos Grid with Staggered Animations */}
+        {/* Promos Grid with Dynamic Promotions & Video/Image Support */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Promo Card 1 */}
-          <ScrollReveal animation="fade-up" delay={0}>
-            <div className="bg-white rounded-[36px] p-6 sm:p-8 soft-glow-card border-2 border-secondary-container/80 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-2 transition-all h-full">
-              <div className="absolute -top-1 -right-1 bg-secondary text-white font-headline font-extrabold text-[11px] px-4 py-1.5 rounded-bl-2xl shadow-sm">
-                OFERTA ESTRELLA ⭐
-              </div>
+          {(promotions.length > 0
+            ? promotions.filter((p) => p.isActive !== false)
+            : [
+                {
+                  id: 'promo-1',
+                  title: 'Trío de Pañitos Húmedos',
+                  subtitle: 'Lleva 3 paquetes de Pañitos Húmedos Ensueño (x80 telas cada uno) y paga solo 2. ¡Un paquete va de regalo!',
+                  tagline: 'Paga 2 y Lleva 3',
+                  badge: 'OFERTA ESTRELLA ⭐',
+                  badgeColor: 'secondary',
+                  price: 37800,
+                  originalPrice: 56700,
+                  savingText: 'Ahorras $18.900 COP',
+                  imageUrl: 'https://i.postimg.cc/dV03DDbN/Whats-App-Image-2026-07-24-at-10-08-29-AM-(3).jpg',
+                  isActive: true,
+                  productId: 'panitos-humedos',
+                },
+                {
+                  id: 'promo-2',
+                  title: '2 Colonias + Pañitos GRATIS',
+                  subtitle: 'Compra 2 Colonias Ensueño de 250ml y te regalamos 1 paquete de Pañitos Húmedos Ensueño de extracto de algodón.',
+                  tagline: 'Combo Dueto Fragancia',
+                  badge: 'REGALO GRATIS 🎁',
+                  badgeColor: 'primary',
+                  price: 57000,
+                  originalPrice: 75900,
+                  savingText: 'Pañitos Húmedos valorados en $18.900 GRATIS',
+                  imageUrl: 'https://i.postimg.cc/wjBM33Ch/Whats-App-Image-2026-07-24-at-10-05-27-AM.jpg',
+                  isActive: true,
+                  productId: 'colonia-ensueno',
+                },
+                {
+                  id: 'promo-3',
+                  title: 'Trío Esencial Ensueño',
+                  subtitle: 'Lleva los 3 productos indispensables (Pañitos + Colonia + Crema Corporal) en un empaque especial de regalo.',
+                  tagline: 'Kit Cuidado Completo',
+                  badge: '25% DESCUENTO ✨',
+                  badgeColor: 'amber',
+                  price: 59500,
+                  originalPrice: 79400,
+                  savingText: 'Ahorro del 25% vs compra individual',
+                  imageUrl: 'https://i.postimg.cc/QdMCVV2n/Whats-App-Image-2026-07-24-at-10-11-38-AM.jpg',
+                  isActive: true,
+                  productId: 'crema-corporal-ensueno',
+                },
+              ]
+          ).map((promo, index) => {
+            const hasVideo = Boolean(promo.videoUrl);
+            const isYouTube = promo.videoUrl?.includes('youtube.com') || promo.videoUrl?.includes('youtu.be');
 
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-secondary-container/60 flex items-center justify-center text-secondary font-bold text-2xl">
-                  3x2
-                </div>
+            return (
+              <ScrollReveal key={promo.id} animation="fade-up" delay={index * 150}>
+                <div className="bg-white rounded-[36px] p-6 sm:p-8 soft-glow-card border-2 border-purple-100 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-2 transition-all h-full shadow-sm">
+                  {/* Badge Promocional */}
+                  {promo.badge && (
+                    <div className="absolute -top-1 -right-1 bg-purple-700 text-white font-headline font-extrabold text-[11px] px-4 py-1.5 rounded-bl-2xl shadow-sm z-10">
+                      {promo.badge}
+                    </div>
+                  )}
 
-                <div>
-                  <span className="text-xs font-bold text-secondary uppercase tracking-wider block mb-1">
-                    Paga 2 y Lleva 3
-                  </span>
-                  <h3 className="font-headline font-extrabold text-2xl text-on-surface">
-                    Trío de Pañitos Húmedos
-                  </h3>
-                  <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
-                    Lleva 3 paquetes de Pañitos Húmedos Ensueño (x80 telas cada uno) y paga solo 2. ¡Un paquete va de regalo!
-                  </p>
-                </div>
+                  <div className="space-y-4">
+                    {/* Media Preview: Video o Imagen */}
+                    {hasVideo ? (
+                      <div className="w-full h-48 rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 relative">
+                        {isYouTube ? (
+                          <iframe
+                            src={promo.videoUrl?.replace('watch?v=', 'embed/')}
+                            title={promo.title}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            src={promo.videoUrl || undefined}
+                            controls
+                            className="w-full h-full object-cover"
+                            poster={promo.imageUrl || undefined}
+                          />
+                        )}
+                      </div>
+                    ) : promo.imageUrl ? (
+                      <div className="w-full h-44 rounded-2xl overflow-hidden bg-slate-50 relative border border-slate-100">
+                        <img
+                          src={promo.imageUrl}
+                          alt={promo.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    ) : null}
 
-                <div className="bg-surface-container-low p-3.5 rounded-2xl border space-y-1 text-xs">
-                  <div className="flex items-center space-x-2 text-secondary font-bold">
-                    <Check className="w-4 h-4" />
-                    <span>Ahorras $18.900 COP</span>
+                    <div>
+                      {promo.tagline && (
+                        <span className="text-xs font-bold text-purple-700 uppercase tracking-wider block mb-1">
+                          {promo.tagline}
+                        </span>
+                      )}
+                      <h3 className="font-headline font-extrabold text-2xl text-on-surface leading-tight">
+                        {promo.title}
+                      </h3>
+                      {promo.subtitle && (
+                        <p className="text-xs text-on-surface-variant mt-2 leading-relaxed line-clamp-3">
+                          {promo.subtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Precios & Ahorro */}
+                    <div className="bg-surface-container-low p-4 rounded-2xl border space-y-1.5 text-xs">
+                      {promo.savingText && (
+                        <div className="flex items-center space-x-2 text-purple-700 font-extrabold">
+                          <Check className="w-4 h-4 text-purple-600 shrink-0" />
+                          <span>{promo.savingText}</span>
+                        </div>
+                      )}
+                      <div className="flex items-baseline space-x-2.5 pt-0.5">
+                        {promo.price && (
+                          <span className="font-headline font-extrabold text-2xl text-purple-800">
+                            {formatPrice(promo.price)}
+                          </span>
+                        )}
+                        {promo.originalPrice && (
+                          <span className="text-sm text-slate-400 line-through font-bold">
+                            {formatPrice(promo.originalPrice)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-baseline space-x-2">
-                    <span className="font-headline font-extrabold text-xl text-primary">$37.800</span>
-                    <span className="text-outline line-through">$56.700</span>
+
+                  {/* Acciones */}
+                  <div className="pt-6">
+                    <Link
+                      href={`/productos/combo-${promo.id}`}
+                      className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-transform"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Ver Oferta & Detalles</span>
+                    </Link>
                   </div>
                 </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  onClick={handleAddPromo1}
-                  className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Aprovechar Oferta 3x2</span>
-                </button>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          {/* Promo Card 2 */}
-          <ScrollReveal animation="fade-up" delay={150}>
-            <div className="bg-white rounded-[36px] p-6 sm:p-8 soft-glow-card border-2 border-primary-container/80 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-2 transition-all h-full">
-              <div className="absolute -top-1 -right-1 bg-primary text-white font-headline font-extrabold text-[11px] px-4 py-1.5 rounded-bl-2xl shadow-sm">
-                REGALO GRATIS 🎁
-              </div>
-
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-primary-container/60 flex items-center justify-center text-primary font-bold text-2xl">
-                  2+1
-                </div>
-
-                <div>
-                  <span className="text-xs font-bold text-primary uppercase tracking-wider block mb-1">
-                    Combo Dueto Fragancia
-                  </span>
-                  <h3 className="font-headline font-extrabold text-2xl text-on-surface">
-                    2 Colonias + Pañitos GRATIS
-                  </h3>
-                  <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
-                    Compra 2 Colonias Ensueño de 250ml y te regalamos 1 paquete de Pañitos Húmedos Ensueño de extracto de algodón.
-                  </p>
-                </div>
-
-                <div className="bg-surface-container-low p-3.5 rounded-2xl border space-y-1 text-xs">
-                  <div className="flex items-center space-x-2 text-primary font-bold">
-                    <Check className="w-4 h-4" />
-                    <span>Pañitos Húmedos valorados en $18.900 GRATIS</span>
-                  </div>
-                  <div className="flex items-baseline space-x-2">
-                    <span className="font-headline font-extrabold text-xl text-primary">$57.000</span>
-                    <span className="text-outline line-through">$75.900</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  onClick={handleAddPromo2}
-                  className="btn-ensueno-sky w-full h-12 text-xs font-extrabold uppercase tracking-wider"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Llevar Combo + Pañitos Gratis</span>
-                </button>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          {/* Promo Card 3 */}
-          <ScrollReveal animation="fade-up" delay={300}>
-            <div className="bg-white rounded-[36px] p-6 sm:p-8 soft-glow-card border-2 border-tertiary-container/80 flex flex-col justify-between relative overflow-hidden group hover:-translate-y-2 transition-all h-full">
-              <div className="absolute -top-1 -right-1 bg-tertiary text-white font-headline font-extrabold text-[11px] px-4 py-1.5 rounded-bl-2xl shadow-sm">
-                25% DESCUENTO ✨
-              </div>
-
-              <div className="space-y-4">
-                <div className="w-14 h-14 rounded-2xl bg-tertiary-container/60 flex items-center justify-center text-tertiary font-bold text-2xl">
-                  ☁️
-                </div>
-
-                <div>
-                  <span className="text-xs font-bold text-tertiary uppercase tracking-wider block mb-1">
-                    Kit Cuidado Completo
-                  </span>
-                  <h3 className="font-headline font-extrabold text-2xl text-on-surface">
-                    Trío Esencial Ensueño
-                  </h3>
-                  <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
-                    Lleva los 3 productos indispensables (Pañitos + Colonia + Crema Corporal) en un empaque especial de regalo.
-                  </p>
-                </div>
-
-                <div className="bg-surface-container-low p-3.5 rounded-2xl border space-y-1 text-xs">
-                  <div className="flex items-center space-x-2 text-tertiary font-bold">
-                    <Check className="w-4 h-4" />
-                    <span>Ahorro del 25% vs compra individual</span>
-                  </div>
-                  <div className="flex items-baseline space-x-2">
-                    <span className="font-headline font-extrabold text-xl text-primary">$59.500</span>
-                    <span className="text-outline line-through">$79.400</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  onClick={handleAddPromo3}
-                  className="btn-ensueno-amber w-full h-12 text-xs font-extrabold uppercase tracking-wider"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Agregar Kit Trío Completo</span>
-                </button>
-              </div>
-            </div>
-          </ScrollReveal>
+              </ScrollReveal>
+            );
+          })}
         </div>
       </section>
 
@@ -406,6 +455,7 @@ export default function HomePage() {
                   src="https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=800&q=80"
                   alt="Cuidado amoroso para tu bebé"
                   fill
+                  sizes="(max-width: 640px) 100vw, 448px"
                   className="object-cover"
                 />
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 sm:w-40 sm:h-40 animate-float z-20 pointer-events-none">
@@ -413,6 +463,7 @@ export default function HomePage() {
                     src={mascotUrl}
                     alt="Mascota Ensueño"
                     fill
+                    sizes="(max-width: 640px) 128px, 160px"
                     className="object-contain drop-shadow-lg"
                   />
                 </div>

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, AlertCircle, Sparkles, X, Star, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Sparkles, X, Star } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -21,14 +21,20 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const [mounted, setMounted] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // Create dedicated portal root attached directly to document.body at max z-index
+    let container = document.getElementById('ensueno-sweetalert-root');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'ensueno-sweetalert-root';
+      document.body.appendChild(container);
+    }
+    setPortalContainer(container);
   }, []);
 
   const removeToast = useCallback((id: string) => {
-    // Trigger smooth exit animation before unmounting
     setToasts((prev) =>
       prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t))
     );
@@ -41,10 +47,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type, isExiting: false }]);
 
-    // Auto dismiss after 4 seconds
+    // Auto dismiss after 4.5 seconds
     setTimeout(() => {
       removeToast(id);
-    }, 4000);
+    }, 4500);
   }, [removeToast]);
 
   const activeToast = toasts.length > 0 ? toasts[toasts.length - 1] : null;
@@ -53,102 +59,153 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* REACT PORTAL TO DOCUMENT.BODY: GUARANTEES ULTRA-HIGH Z-INDEX ABOVE ALL TEXT & MODALS */}
-      {mounted && activeToast && createPortal(
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 sm:p-6 overflow-hidden pointer-events-auto">
-          {/* Backdrop Blur Layer */}
+      {/* DEDICATED HIGH-PRIORITY SWEETALERT MODAL PORTAL */}
+      {portalContainer && activeToast && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 2147483647, // MAXIMUM INT Z-INDEX IN ALL BROWSERS
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            boxSizing: 'border-box',
+          }}
+          onClick={() => removeToast(activeToast.id)}
+        >
+          {/* SweetAlert Solid Professional Card */}
           <div
-            onClick={() => removeToast(activeToast.id)}
-            className={`fixed inset-0 bg-slate-950/60 backdrop-blur-md transition-opacity duration-300 ${
-              activeToast.isExiting ? 'opacity-0' : 'opacity-100'
-            }`}
-          />
-
-          {/* SweetAlert-Style Professional Ensueño Modal Card */}
-          <div
-            className={`relative z-10 max-w-sm sm:max-w-md w-full rounded-3xl bg-white/95 backdrop-blur-2xl p-6 sm:p-7 shadow-2xl border transition-all duration-300 transform text-center space-y-4 ${
-              activeToast.isExiting
-                ? 'scale-90 opacity-0 translate-y-4'
-                : 'scale-100 opacity-100 translate-y-0 animate-fade-in'
-            } ${
-              activeToast.type === 'success'
-                ? 'border-emerald-200 shadow-emerald-950/20'
-                : activeToast.type === 'error'
-                ? 'border-rose-200 shadow-rose-950/20'
-                : 'border-purple-200 shadow-purple-950/20'
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '440px',
+              backgroundColor: '#ffffff',
+              borderRadius: '28px',
+              padding: '28px 24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.45)',
+              border: activeToast.type === 'error' ? '3px solid #f43f5e' : activeToast.type === 'success' ? '3px solid #10b981' : '3px solid #c084fc',
+              textAlign: 'center',
+              margin: 'auto',
+              boxSizing: 'border-box',
+            }}
+            className={`transition-all duration-300 transform ${
+              activeToast.isExiting ? 'scale-90 opacity-0' : 'scale-100 opacity-100 animate-fade-in'
             }`}
           >
-            {/* Close X Button */}
+            {/* Close Button */}
             <button
               onClick={() => removeToast(activeToast.id)}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
-              title="Cerrar notificación"
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#94a3b8',
+                padding: '6px',
+              }}
+              title="Cerrar alerta"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Personaje Estrella Ensueño Avatar Badge (Can be replaced with <img src="/estrellita-ensueno.png" />) */}
-            <div className="relative inline-block mx-auto">
+            {/* PERSONAJE ESTRELLA ENSUEÑO (Intercambiable por <img src="/estrellita-ensueno.png" />) */}
+            <div style={{ display: 'inline-block', margin: '0 auto 12px auto' }}>
               <div
-                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-3xl p-1 shadow-lg border-2 border-white flex items-center justify-center mx-auto transition-transform ${
-                  activeToast.type === 'success'
-                    ? 'bg-gradient-to-tr from-emerald-100 via-teal-200 to-amber-200 text-emerald-600'
-                    : activeToast.type === 'error'
-                    ? 'bg-gradient-to-tr from-rose-100 via-pink-200 to-amber-200 text-rose-600 animate-bounce'
-                    : 'bg-gradient-to-tr from-purple-100 via-pink-200 to-amber-200 text-purple-600'
-                }`}
+                className="animate-bounce"
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '24px',
+                  background: 'linear-gradient(135deg, #fef08a, #fbcfe8, #bae6fd)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  border: '2px solid #ffffff',
+                  boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                }}
               >
-                {/* Estrella personaje de Ensueño (Intercambiable por PNG) */}
-                <Star className="w-9 h-9 sm:w-11 sm:h-11 fill-amber-400 text-amber-500 transform hover:scale-110 transition-transform" />
-              </div>
-
-              {/* Status Badge Over Star */}
-              <div className="absolute -bottom-1 -right-1 bg-white p-1 rounded-full shadow-md border border-slate-100">
-                {activeToast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-                {activeToast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600" />}
-                {activeToast.type === 'info' && <Sparkles className="w-5 h-5 text-purple-600" />}
+                <Star className="w-10 h-10 fill-amber-400 text-amber-500" />
               </div>
             </div>
 
-            {/* Alert Header Badge */}
-            <div>
+            {/* Header Badge */}
+            <div style={{ marginBottom: '12px' }}>
               <span
-                className={`inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border shadow-2xs ${
-                  activeToast.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : activeToast.type === 'error'
-                    ? 'bg-rose-50 text-rose-800 border-rose-200'
-                    : 'bg-purple-50 text-purple-800 border-purple-200'
-                }`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '4px 14px',
+                  borderRadius: '9999px',
+                  backgroundColor: activeToast.type === 'error' ? '#fff1f2' : activeToast.type === 'success' ? '#ecfdf5' : '#f3e8ff',
+                  color: activeToast.type === 'error' ? '#9f1239' : activeToast.type === 'success' ? '#065f46' : '#6b21a8',
+                  border: activeToast.type === 'error' ? '1px solid #fecdd3' : activeToast.type === 'success' ? '1px solid #a7f3d0' : '1px solid #e9d5ff',
+                }}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 {activeToast.type === 'error' ? 'Alerta de Cuidado Ensueño ⚠️' : 'Notificación Ensueño ✨'}
               </span>
             </div>
 
-            {/* Alert Message Text */}
-            <p className="text-xs sm:text-sm font-extrabold text-slate-800 leading-relaxed px-2">
+            {/* Message Body */}
+            <p
+              style={{
+                fontSize: '14px',
+                fontWeight: 800,
+                color: '#1e293b',
+                lineHeight: 1.5,
+                margin: '0 0 20px 0',
+                padding: '0 8px',
+              }}
+            >
               {activeToast.message}
             </p>
 
-            {/* SweetAlert Style Action Button */}
-            <div className="pt-2">
-              <button
-                onClick={() => removeToast(activeToast.id)}
-                className={`w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all transform active:scale-95 shadow-md cursor-pointer ${
-                  activeToast.type === 'success'
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-emerald-200'
-                    : activeToast.type === 'error'
-                    ? 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white shadow-rose-200'
-                    : 'btn-ensueno-primary'
-                }`}
-              >
-                Entendido ✨
-              </button>
-            </div>
+            {/* SweetAlert Big Action Button */}
+            <button
+              onClick={() => removeToast(activeToast.id)}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                borderRadius: '16px',
+                fontSize: '12px',
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                color: '#ffffff',
+                background: activeToast.type === 'error'
+                  ? 'linear-gradient(135deg, #f43f5e, #e11d48)'
+                  : activeToast.type === 'success'
+                  ? 'linear-gradient(135deg, #10b981, #059669)'
+                  : 'linear-gradient(135deg, #f472b6, #c084fc)',
+                border: 'none',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.2)',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease',
+              }}
+            >
+              ENTENDIDO ✨
+            </button>
           </div>
         </div>,
-        document.body
+        portalContainer
       )}
     </ToastContext.Provider>
   );

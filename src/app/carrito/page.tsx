@@ -392,7 +392,7 @@ function CartContent() {
               >
                 <div className="flex items-center space-x-4 w-full sm:w-auto">
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100">
-                    <Image src={item.product.image} alt={item.product.name} fill className="object-cover" />
+                    <Image src={item.product.image} alt={item.product.name} fill sizes="80px" className="object-cover" />
                   </div>
                   <div>
                     <h3 className="font-bold text-base text-slate-800 line-clamp-1">{item.product.name}</h3>

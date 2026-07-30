@@ -518,6 +518,7 @@ export default function ProfilePage() {
                 >
                   <option value="CC">Cédula de Ciudadanía (CC)</option>
                   <option value="CE">Cédula de Extranjería (CE)</option>
+                  <option value="PPT">Permiso por Protección Temporal (PPT)</option>
                   <option value="NIT">NIT (Empresa)</option>
                   <option value="PASAPORTE">Pasaporte</option>
                   <option value="TI">Tarjeta de Identidad (TI)</option>

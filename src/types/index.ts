@@ -15,7 +15,10 @@ export interface Product {
   benefits: string[];
   ingredients: string[];
   safetyInfo: string;
+  pediatricGuarantee?: string;
+  additionalImages?: string[];
   inStock: boolean;
+  isFeatured?: boolean;
 }
 
 export interface CartItem {
@@ -74,4 +77,26 @@ export interface Tip {
   summary: string;
   content: string[];
   tags: string[];
+}
+
+export interface Promotion {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  code?: string | null;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  badge?: string | null;
+  badgeColor?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  savingText?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  targetBabyStage?: string | null;
+  isActive: boolean;
+  sortOrder?: number | null;
+  productId?: string | null;
 }

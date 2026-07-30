@@ -573,6 +573,7 @@ export default function UniversalAuthModal() {
                         >
                           <option value="CC">Cédula de Ciudadanía (C.C.)</option>
                           <option value="CE">Cédula de Extranjería (C.E.)</option>
+                          <option value="PPT">Permiso por Protección Temporal (P.P.T.)</option>
                           <option value="NIT">NIT / Empresa</option>
                           <option value="PASAPORTE">Pasaporte</option>
                           <option value="TI">Tarjeta de Identidad (T.I.)</option>

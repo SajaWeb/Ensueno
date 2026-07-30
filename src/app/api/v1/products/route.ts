@@ -15,18 +15,55 @@ export async function GET(req: Request) {
   }
 }
 
-export async function PUT(req: Request) {
+export async function POST(req: Request) {
   try {
-    const { id, image, additionalImages } = await req.json();
+    const body = await req.json();
 
-    if (!id || !image) {
-      return NextResponse.json({ success: false, error: 'Se requiere id de producto y la nueva URL de la imagen' }, { status: 400 });
+    if (!body.name || body.price === undefined || !body.image) {
+      return NextResponse.json(
+        { success: false, error: 'Campos requeridos: nombre, precio e imagen principal.' },
+        { status: 400 }
+      );
     }
 
-    const updated = await productRepository.updateProductImage(id, image, additionalImages);
-    return NextResponse.json({ success: true, message: 'URL de imagen actualizada con éxito', data: updated });
+    const created = await productRepository.createProduct(body);
+    return NextResponse.json({ success: true, message: 'Producto creado exitosamente', data: created });
+  } catch (err: any) {
+    console.error('Error en POST /api/v1/products:', err);
+    return NextResponse.json({ success: false, error: 'Error al crear producto' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, ...data } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Se requiere id de producto' }, { status: 400 });
+    }
+
+    const updated = await productRepository.updateProduct(id, data);
+    return NextResponse.json({ success: true, message: 'Producto actualizado con éxito', data: updated });
   } catch (err: any) {
     console.error('Error en PUT /api/v1/products:', err);
-    return NextResponse.json({ success: false, error: 'Error al actualizar imagen de producto' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Error al actualizar producto' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Se requiere id de producto' }, { status: 400 });
+    }
+
+    await productRepository.deleteProduct(id);
+    return NextResponse.json({ success: true, message: 'Producto eliminado con éxito' });
+  } catch (err: any) {
+    console.error('Error en DELETE /api/v1/products:', err);
+    return NextResponse.json({ success: false, error: 'Error al eliminar producto' }, { status: 500 });
   }
 }

@@ -27,6 +27,31 @@ export const apiService = {
     return res.json();
   },
 
+  async createProduct(data: Partial<Product>) {
+    const res = await fetch('/api/v1/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async updateProduct(id: string, data: Partial<Product>) {
+    const res = await fetch('/api/v1/products', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return res.json();
+  },
+
+  async deleteProduct(id: string) {
+    const res = await fetch(`/api/v1/products?id=${id}`, {
+      method: 'DELETE',
+    });
+    return res.json();
+  },
+
   async getPromotions(stage?: string, includeAll = false) {
     const params = new URLSearchParams();
     if (stage) params.append('stage', stage);
@@ -45,9 +70,47 @@ export const apiService = {
     return res.json();
   },
 
+  async updatePromotion(id: string, data: any) {
+    const res = await fetch('/api/v1/promotions', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return res.json();
+  },
+
   async deletePromotion(id: string) {
     const res = await fetch(`/api/v1/promotions?id=${id}`, { method: 'DELETE' });
     return res.json();
+  },
+
+  // --- REVIEWS ---
+  reviews: {
+    async getByProductId(productId: string) {
+      const res = await fetch(`/api/v1/reviews?productId=${productId}`, { cache: 'no-store' });
+      const json = await res.json();
+      return json.data || [];
+    },
+    async create(data: { productId: string; rating: number; comment: string }) {
+      const res = await fetch('/api/v1/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    async update(id: string, data: { rating: number; comment: string }) {
+      const res = await fetch('/api/v1/reviews', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...data }),
+      });
+      return res.json();
+    },
+    async delete(id: string) {
+      const res = await fetch(`/api/v1/reviews?id=${id}`, { method: 'DELETE' });
+      return res.json();
+    }
   },
 
   async createOrder(orderPayload: any): Promise<{ order: Order; mercadopago: any }> {

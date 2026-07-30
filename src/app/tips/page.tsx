@@ -106,6 +106,7 @@ export default function TipsPage() {
                     src={tip.image}
                     alt={tip.title}
                     fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <span className="absolute top-3 left-3 bg-secondary text-white font-headline font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
@@ -175,6 +176,7 @@ export default function TipsPage() {
                 src={activeTip.image}
                 alt={activeTip.title}
                 fill
+                sizes="(max-width: 640px) 100vw, 672px"
                 className="object-cover"
               />
             </div>
