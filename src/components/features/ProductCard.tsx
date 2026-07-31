@@ -3,10 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
-import { useUser } from '@/context/UserContext';
 import StarRating from '@/components/ui/StarRating';
 
 const CATEGORY_LABEL: Record<Product['category'], string> = {
@@ -31,8 +29,6 @@ export default function ProductCard({
   sizes?: string;
 }) {
   const { addToCart } = useCart();
-  const { isSaved, toggleSavedItem } = useUser();
-  const saved = isSaved(product.id);
   const hasPromo = Boolean(product.originalPrice && product.originalPrice > product.price);
 
   return (
@@ -54,21 +50,6 @@ export default function ProductCard({
             {product.badge}
           </span>
         )}
-
-        <button
-          type="button"
-          onClick={() => toggleSavedItem(product.id)}
-          aria-pressed={saved}
-          aria-label={saved ? `Quitar ${product.name} de favoritos` : `Guardar ${product.name} en favoritos`}
-          className="absolute top-3 right-3 w-9 h-9 grid place-items-center rounded-full bg-white border border-borde hover:border-secondary transition-colors ens-focus"
-        >
-          <Heart
-            className={`w-4 h-4 transition-colors ${
-              saved ? 'fill-secondary text-secondary' : 'text-tinta-suave'
-            }`}
-            aria-hidden="true"
-          />
-        </button>
       </div>
 
       <div className="flex flex-col flex-1 p-5">
