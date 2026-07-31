@@ -55,6 +55,8 @@ export async function GET() {
         city: user.motherProfile?.city || '',
         address: user.motherProfile?.address || '',
         babyName: user.motherProfile?.babies[0]?.babyName || '',
+        babyBirthDate: user.motherProfile?.babies[0]?.birthDate || null,
+        hasBaby: user.motherProfile?.hasBaby !== false,
         skinCondition: user.motherProfile?.babies[0]?.skinCondition || 'Sensible',
         birthDate: user.motherProfile?.babies[0]?.birthDate || null,
         savedAddresses: user.savedAddresses || [],
@@ -82,7 +84,9 @@ export async function PUT(request: Request) {
       city,
       address,
       babyName,
+      babyBirthDate,
       skinCondition,
+      hasBaby,
       currentPassword,
       newPassword,
     } = body;
@@ -141,13 +145,23 @@ export async function PUT(request: Request) {
           ...(department !== undefined ? { department } : {}),
           ...(city !== undefined ? { city } : {}),
           ...(address !== undefined ? { address } : {}),
+          ...(hasBaby !== undefined ? { hasBaby: Boolean(hasBaby) } : {}),
         },
         include: { babies: true },
       });
     }
 
     // Upsert BabyProfile
-    if (babyName || skinCondition) {
+    if (hasBaby === false) {
+      // Declaró que no tiene bebé: se retiran los perfiles para que no sigan
+      // contando en las cohortes del panel.
+      if (mother.babies.length > 0) {
+        await prisma.babyProfile.deleteMany({ where: { motherId: mother.id } });
+      }
+    } else if (babyName || skinCondition || babyBirthDate) {
+      // "YYYY-MM-DD" desde <input type="date">; null limpia la fecha.
+      const birth =
+        babyBirthDate === null ? null : babyBirthDate ? new Date(babyBirthDate) : undefined;
       const existingBaby = mother.babies[0];
       if (existingBaby) {
         await prisma.babyProfile.update({
@@ -155,6 +169,7 @@ export async function PUT(request: Request) {
           data: {
             ...(babyName ? { babyName } : {}),
             ...(skinCondition ? { skinCondition } : {}),
+            ...(birth !== undefined ? { birthDate: birth } : {}),
           },
         });
       } else {
@@ -163,6 +178,7 @@ export async function PUT(request: Request) {
             motherId: mother.id,
             babyName: babyName || 'Bebé',
             skinCondition: skinCondition || 'Sensible',
+            birthDate: birth ?? undefined,
           },
         });
       }

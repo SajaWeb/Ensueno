@@ -57,6 +57,9 @@ model MotherProfile {
   department       String?
   address          String?
   marketingConsent Boolean              @default(true)
+  /** false = la mamá indicó que todavía no tiene bebé. Permite distinguirlo
+      de "no llenó el dato", que antes se veían igual. */
+  hasBaby          Boolean              @default(true)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   babies           BabyProfile[]

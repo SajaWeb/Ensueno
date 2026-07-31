@@ -67,6 +67,20 @@ const UI = {
     'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-borde bg-white text-tinta-suave hover:text-secondary hover:border-secondary font-bold text-sm transition-colors ens-focus',
 } as const;
 
+
+/** Edad legible a partir de la fecha de nacimiento. */
+function babyAgeLabel(birthDate?: string | Date | null): string {
+  if (!birthDate) return 'Sin fecha de nacimiento';
+  const d = new Date(birthDate);
+  if (Number.isNaN(d.getTime())) return 'Sin fecha de nacimiento';
+  const months = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+  if (months < 0) return 'En camino';
+  if (months < 1) return 'Recién nacido';
+  if (months < 24) return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+  const years = Math.floor(months / 12);
+  return `${years} ${years === 1 ? 'año' : 'años'}`;
+}
+
 /** Un módulo = una entrada aquí. Menú y cabecera se derivan de esto. */
 const MODULES = {
   orders:   { eyebrow: 'Pedidos',    title: 'Pedidos y pagos',        nav: 'Pedidos',    Icon: ShoppingBag, description: 'Estado de cada pedido, pagos aprobados por MercadoPago y seguimiento de despachos.' },
@@ -1709,6 +1723,18 @@ export default function AdminDashboardPage() {
                   </span>
                   <p className="text-[11px] font-medium text-azul">Niños exploradores e hidratación diaria.</p>
                 </div>
+
+              {/* Los que no tienen fecha: antes se contaban como recién nacidos y
+                  falseaban el reparto. Ahora quedan visibles como dato pendiente. */}
+              {(data.babyCohorts?.summary?.sinFecha || 0) > 0 && (
+                <div className="p-5 rounded-2xl bg-amarillo border border-borde space-y-1">
+                  <h3 className="font-extrabold text-tinta text-sm">Sin fecha registrada</h3>
+                  <span className="text-3xl font-black text-tinta block">
+                    {data.babyCohorts?.summary?.sinFecha || 0}
+                  </span>
+                  <p className="text-[11px] font-medium text-tinta-suave">Pídeles la fecha para clasificarlos.</p>
+                </div>
+              )}
               </div>
             </div>
 
@@ -1761,6 +1787,8 @@ export default function AdminDashboardPage() {
                         const baby = babies[0];
                         const babyName = baby?.babyName || 'Bebé';
                         const skin = baby?.skinCondition || 'Normal';
+                        const hasBaby = (customer.hasBaby ?? prof?.hasBaby) !== false && babies.length > 0;
+                        const babyAge = babyAgeLabel(baby?.birthDate);
                         const approvedOrders = (customer.orders || []).filter(
                           (o: any) =>
                             o.paymentStatus === 'approved' ||
@@ -1790,12 +1818,23 @@ export default function AdminDashboardPage() {
                             </td>
 
                             <td className="py-4 px-4 align-top">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cian text-secondary border border-borde">
-                                <Baby className="w-3.5 h-3.5" /> {babyName}
-                              </span>
-                              <span className="text-[11px] font-medium text-tinta-suave block mt-1">
-                                Piel: <strong className="text-azul">{skin}</strong>
-                              </span>
+                              {hasBaby ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cian text-secondary border border-borde">
+                                    <Baby className="w-3.5 h-3.5" /> {babyName}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-tinta-suave block mt-1">
+                                    {babyAge}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-tinta-suave block">
+                                    Piel: <strong className="text-azul">{skin}</strong>
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cian text-tinta-suave border border-borde">
+                                  Sin bebé registrado
+                                </span>
+                              )}
                             </td>
 
                             <td className="py-4 px-4 align-top">

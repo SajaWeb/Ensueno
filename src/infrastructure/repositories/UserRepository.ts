@@ -53,6 +53,7 @@ export class UserRepository {
     babyBirthDate?: Date;
     expectedDueDate?: Date;
     skinCondition?: string;
+    hasBaby?: boolean;
     role?: 'ADMIN' | 'CUSTOMER';
     verificationCode?: string;
     verificationExpires?: Date;
@@ -73,6 +74,7 @@ export class UserRepository {
             docType: data.docType || 'CC',
             docNumber: data.docNumber,
             phone: data.phone,
+            hasBaby: data.hasBaby !== false,
             babies: data.babyName
               ? {
                   create: [

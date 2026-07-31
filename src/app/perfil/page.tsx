@@ -70,6 +70,8 @@ export default function ProfilePage() {
   const [editAddress, setEditAddress] = useState('');
   const [editBabyName, setEditBabyName] = useState('');
   const [editSkinCondition, setEditSkinCondition] = useState('Sensible');
+  const [editBabyBirthDate, setEditBabyBirthDate] = useState('');
+  const [editHasBaby, setEditHasBaby] = useState(true);
 
   // Password Change State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -187,6 +189,10 @@ export default function ProfilePage() {
     setEditAddress(user.profile?.address || '');
     setEditBabyName(user.profile?.babies?.[0]?.babyName || '');
     setEditSkinCondition(user.profile?.babies?.[0]?.skinCondition || 'Sensible');
+    setEditHasBaby(user.profile?.hasBaby !== false);
+    // El <input type="date"> necesita "YYYY-MM-DD".
+    const bd = user.profile?.babies?.[0]?.birthDate;
+    setEditBabyBirthDate(bd ? String(bd).slice(0, 10) : '');
 
     if (user.profile?.department) {
       const deptIdx = COLOMBIA_LOCATION_DATA.findIndex(
@@ -272,8 +278,10 @@ export default function ProfilePage() {
         department: currentDeptName,
         city: editCity,
         address: editAddress,
-        babyName: editBabyName,
-        skinCondition: editSkinCondition,
+        hasBaby: editHasBaby,
+        babyName: editHasBaby ? editBabyName : '',
+        babyBirthDate: editHasBaby && editBabyBirthDate ? editBabyBirthDate : null,
+        skinCondition: editHasBaby ? editSkinCondition : undefined,
       });
 
       if (res.success) {
@@ -558,31 +566,60 @@ export default function ProfilePage() {
                 <Baby className="w-4 h-4 text-azul" /> Información del Bebé
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Nombre del Bebé</label>
-                  <input
-                    type="text"
-                    value={editBabyName}
-                    onChange={(e) => setEditBabyName(e.target.value)}
-                    placeholder="Ej: Sofía"
-                    className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
-                  />
-                </div>
+              <label className="flex items-start gap-2.5 p-3 rounded-2xl border border-borde bg-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!editHasBaby}
+                  onChange={(e) => setEditHasBaby(!e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded accent-azul shrink-0"
+                />
+                <span className="text-xs text-tinta leading-snug">
+                  <strong className="block font-bold">Todavía no tengo bebé</strong>
+                  <span className="text-tinta-suave">Puedes añadir sus datos cuando quieras.</span>
+                </span>
+              </label>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Condición de la Piel</label>
-                  <select
-                    value={editSkinCondition}
-                    onChange={(e) => setEditSkinCondition(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-cian"
-                  >
-                    <option value="Normal">Normal</option>
-                    <option value="Sensible">Sensible</option>
-                    <option value="Muy Sensible / Atópica">Muy Sensible / Atópica</option>
-                  </select>
+              {editHasBaby && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="baby-name" className="block text-xs font-bold uppercase text-tinta-suave mb-1">Nombre del bebé</label>
+                    <input
+                      id="baby-name"
+                      type="text"
+                      value={editBabyName}
+                      onChange={(e) => setEditBabyName(e.target.value)}
+                      placeholder="Ej: Sofía"
+                      className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="baby-birth" className="block text-xs font-bold uppercase text-tinta-suave mb-1">Fecha de nacimiento</label>
+                    <input
+                      id="baby-birth"
+                      type="date"
+                      value={editBabyBirthDate}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setEditBabyBirthDate(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label htmlFor="baby-skin" className="block text-xs font-bold uppercase text-tinta-suave mb-1">Condición de la piel</label>
+                    <select
+                      id="baby-skin"
+                      value={editSkinCondition}
+                      onChange={(e) => setEditSkinCondition(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-cian"
+                    >
+                      <option value="Normal">Normal</option>
+                      <option value="Sensible">Sensible</option>
+                      <option value="Muy Sensible / Atópica">Muy Sensible / Atópica</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <button
