@@ -11,6 +11,7 @@ import { Product } from '@/types';
 import { apiService } from '@/services/api';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
+import { useToast } from '@/context/ToastContext';
 import ProductGallery, { toMedia, Media } from '@/components/features/ProductGallery';
 import StarRating from '@/components/ui/StarRating';
 
@@ -51,6 +52,7 @@ export default function ProductDetailPage() {
 
   const { addToCart, freeShippingThreshold } = useCart();
   const { currentUser: user } = useUser();
+  const { showToast } = useToast();
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
@@ -98,20 +100,28 @@ export default function ProductDetailPage() {
     if (!product || !user) return;
     setSubmittingReview(true);
     try {
-      if (editingReviewId) {
-        await apiService.reviews.update(editingReviewId, reviewForm);
-      } else {
-        await apiService.reviews.create({
-          productId: product.id,
-          rating: reviewForm.rating,
-          comment: reviewForm.comment,
-        });
+      const res = editingReviewId
+        ? await apiService.reviews.update(editingReviewId, reviewForm)
+        : await apiService.reviews.create({
+            productId: product.id,
+            rating: reviewForm.rating,
+            comment: reviewForm.comment,
+          });
+
+      // `apiService` no lanza en 4xx/5xx: devuelve { success: false }. Antes se
+      // limpiaba el formulario igual y la reseña desaparecía sin explicación.
+      if (!res?.success) {
+        showToast(res?.error || 'No pudimos guardar tu reseña. Inténtalo de nuevo.', 'error');
+        return;
       }
+
+      showToast(editingReviewId ? 'Reseña actualizada' : '¡Gracias por tu reseña!', 'success');
       setReviewForm({ rating: 5, comment: '' });
       setEditingReviewId(null);
       await loadReviews(product.id);
     } catch (err) {
       console.error('Error submitting review', err);
+      showToast('No pudimos guardar tu reseña. Inténtalo de nuevo.', 'error');
     } finally {
       setSubmittingReview(false);
     }
@@ -126,10 +136,16 @@ export default function ProductDetailPage() {
   const handleDeleteReview = async (reviewId: string) => {
     if (!confirm('¿Seguro que quieres eliminar esta reseña?')) return;
     try {
-      await apiService.reviews.delete(reviewId);
+      const res = await apiService.reviews.delete(reviewId);
+      if (!res?.success) {
+        showToast(res?.error || 'No pudimos eliminar la reseña.', 'error');
+        return;
+      }
+      showToast('Reseña eliminada', 'success');
       if (product) await loadReviews(product.id);
     } catch (err) {
       console.error('Error deleting review', err);
+      showToast('No pudimos eliminar la reseña.', 'error');
     }
   };
 
@@ -171,6 +187,10 @@ export default function ProductDetailPage() {
   const showFragrances = product.fragrances.length > 1;
   const showSizes = product.sizes.length > 1;
   const hasIngredients = product.ingredients.length > 0;
+
+  // Un combo no es una fila de Product: su id ("combo-*") viola la clave
+  // foránea de Review, así que la reseña jamás se guardaría. Mejor no ofrecerla.
+  const allowsReviews = !product.id.startsWith('combo-') && product.category !== 'kits';
 
   const avgRating =
     reviews.length > 0
@@ -417,6 +437,7 @@ export default function ProductDetailPage() {
       </section>
 
       {/* ================= Reseñas ================= */}
+      {allowsReviews && (
       <section className="ens-band ens-band--cian">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16 space-y-8">
           <div>
@@ -644,6 +665,7 @@ export default function ProductDetailPage() {
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

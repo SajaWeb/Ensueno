@@ -46,6 +46,13 @@ export default function ProfilePage() {
   const [userData, setUserData] = useState<any>(null);
   const [userOrders, setUserOrders] = useState<any[]>([]);
 
+  // Filtros y paginación del historial de pedidos
+  const ORDERS_PER_PAGE = 5;
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('todos');
+  const [orderSort, setOrderSort] = useState<'recientes' | 'antiguos' | 'mayor' | 'menor'>('recientes');
+  const [orderPage, setOrderPage] = useState(1);
+
   // Saved Addresses State
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [newAddrTitle, setNewAddrTitle] = useState('Hogar');
@@ -57,8 +64,6 @@ export default function ProfilePage() {
 
   // Profile Edit Form State
   const [editFullName, setEditFullName] = useState('');
-  const [editDocType, setEditDocType] = useState('CC');
-  const [editDocNumber, setEditDocNumber] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editDeptIndex, setEditDeptIndex] = useState(0);
   const [editCity, setEditCity] = useState(COLOMBIA_LOCATION_DATA[0].cities[0]);
@@ -263,8 +268,6 @@ export default function ProfilePage() {
     try {
       const res = await apiService.updateUserProfile({
         fullName: editFullName,
-        docType: editDocType,
-        docNumber: editDocNumber,
         phone: editPhone,
         department: currentDeptName,
         city: editCity,
@@ -318,6 +321,49 @@ export default function ProfilePage() {
       setIsChangingPassword(false);
     }
   };
+
+  /** Estados que puede tener un pedido, con su etiqueta para el cliente. */
+  const ORDER_STATUS = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'orden_generada', label: 'Sin pagar' },
+    { value: 'confirmado', label: 'Pagado' },
+    { value: 'empacada', label: 'Empacado' },
+    { value: 'en_camino', label: 'En camino' },
+    { value: 'entregada', label: 'Entregado' },
+    { value: 'anulada', label: 'Anulado' },
+  ];
+
+  // Se busca por lo que la clienta recuerda: número de pedido, producto o ciudad.
+  const filteredOrders = userOrders
+    .filter((o) => (orderStatusFilter === 'todos' ? true : o.status === orderStatusFilter))
+    .filter((o) => {
+      const q = orderSearch.trim().toLowerCase();
+      if (!q) return true;
+      const haystack = [
+        o.orderNumber,
+        o.shippingAddress,
+        o.city,
+        ...(o.items || []).map((i: any) => i.productName),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    })
+    .sort((a, b) => {
+      if (orderSort === 'mayor') return (b.total || 0) - (a.total || 0);
+      if (orderSort === 'menor') return (a.total || 0) - (b.total || 0);
+      const da = new Date(a.createdAt || a.date || 0).getTime();
+      const db = new Date(b.createdAt || b.date || 0).getTime();
+      return orderSort === 'antiguos' ? da - db : db - da;
+    });
+
+  const orderPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+  const currentOrderPage = Math.min(orderPage, orderPages);
+  const pagedOrders = filteredOrders.slice(
+    (currentOrderPage - 1) * ORDERS_PER_PAGE,
+    currentOrderPage * ORDERS_PER_PAGE
+  );
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -504,58 +550,6 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold uppercase text-tinta-suave">Tipo de Documento</label>
-                  {userData?.profile?.docNumber && (
-                    <span className="text-[10px] font-bold text-tinta-suave bg-cian px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-tinta-suave" /> Facturación
-                    </span>
-                  )}
-                </div>
-                <select
-                  value={editDocType}
-                  disabled={!!userData?.profile?.docNumber}
-                  onChange={(e) => setEditDocType(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold text-tinta ${
-                    userData?.profile?.docNumber
-                      ? 'bg-cian border-borde cursor-not-allowed opacity-75'
-                      : 'bg-cian border-borde focus:ring-2 focus:ring-celeste'
-                  }`}
-                >
-                  <option value="CC">Cédula de Ciudadanía (CC)</option>
-                  <option value="CE">Cédula de Extranjería (CE)</option>
-                  <option value="PPT">Permiso por Protección Temporal (PPT)</option>
-                  <option value="NIT">NIT (Empresa)</option>
-                  <option value="PASAPORTE">Pasaporte</option>
-                  <option value="TI">Tarjeta de Identidad (TI)</option>
-                </select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold uppercase text-tinta-suave">
-                    Número de Documento (Factura)
-                  </label>
-                  {userData?.profile?.docNumber && (
-                    <span className="text-[10px] font-bold text-tinta bg-amarillo border border-borde px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-tertiary" /> No Modificable
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="text"
-                  value={editDocNumber}
-                  disabled={!!userData?.profile?.docNumber}
-                  onChange={(e) => setEditDocNumber(e.target.value)}
-                  placeholder="Ej: 1020304050"
-                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold ${
-                    userData?.profile?.docNumber
-                      ? 'bg-cian border-borde text-tinta-suave cursor-not-allowed font-mono'
-                      : 'bg-cian border-borde focus:ring-2 focus:ring-celeste'
-                  }`}
-                />
-              </div>
             </div>
 
             {/* Datos Bebé */}
@@ -785,9 +779,60 @@ export default function ProfilePage() {
       {/* Tab 2: Mis Pedidos */}
       {activeTab === 'pedidos' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-borde pb-3">
-            <h2 className="font-extrabold text-xl text-tinta">Historial de Pedidos Especifico de tu Cuenta</h2>
-            <span className="text-xs text-tinta-suave">{userOrders.length} orden(es) registrada(s)</span>
+          <div className="border-b border-borde pb-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="font-display text-xl text-tinta">Mis pedidos</h2>
+              <span className="text-sm text-tinta-suave">
+                {filteredOrders.length === userOrders.length
+                  ? `${userOrders.length} ${userOrders.length === 1 ? 'pedido' : 'pedidos'}`
+                  : `${filteredOrders.length} de ${userOrders.length}`}
+              </span>
+            </div>
+
+            {userOrders.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3">
+                <div className="relative">
+                  <label htmlFor="buscar-pedido" className="sr-only">Buscar pedido</label>
+                  <input
+                    id="buscar-pedido"
+                    type="search"
+                    value={orderSearch}
+                    onChange={(e) => { setOrderSearch(e.target.value); setOrderPage(1); }}
+                    placeholder="Buscar por número, producto o ciudad"
+                    className="w-full h-11 px-4 rounded-full border border-borde bg-white text-sm text-tinta placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="estado-pedido" className="sr-only">Filtrar por estado</label>
+                  <select
+                    id="estado-pedido"
+                    value={orderStatusFilter}
+                    onChange={(e) => { setOrderStatusFilter(e.target.value); setOrderPage(1); }}
+                    className="h-11 px-4 rounded-full border border-borde bg-white text-sm font-bold text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  >
+                    {ORDER_STATUS.map((st) => (
+                      <option key={st.value} value={st.value}>{st.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="orden-pedido" className="sr-only">Ordenar</label>
+                  <select
+                    id="orden-pedido"
+                    value={orderSort}
+                    onChange={(e) => { setOrderSort(e.target.value as typeof orderSort); setOrderPage(1); }}
+                    className="h-11 px-4 rounded-full border border-borde bg-white text-sm font-bold text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  >
+                    <option value="recientes">Más recientes</option>
+                    <option value="antiguos">Más antiguos</option>
+                    <option value="mayor">Mayor valor</option>
+                    <option value="menor">Menor valor</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           {userOrders.length === 0 ? (
@@ -808,7 +853,7 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {userOrders.map((order) => (
+              {pagedOrders.map((order) => (
                 <div key={order.id} className="bg-white rounded-3xl p-6 border border-borde shadow-sm space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-borde pb-3 gap-2">
                     <div>
@@ -898,6 +943,44 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))}
+
+              {filteredOrders.length === 0 && (
+                <div className="bg-white rounded-2xl p-10 text-center border border-borde">
+                  <p className="font-bold text-tinta">Ningún pedido coincide</p>
+                  <p className="mt-1 text-sm text-tinta-suave">Prueba con otro texto o cambia el estado.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setOrderSearch(''); setOrderStatusFilter('todos'); setOrderPage(1); }}
+                    className="ens-btn ens-btn--linea mt-5 !h-10 !text-xs"
+                  >
+                    Quitar filtros
+                  </button>
+                </div>
+              )}
+
+              {orderPages > 1 && (
+                <nav className="flex items-center justify-between gap-4 pt-2" aria-label="Paginación de pedidos">
+                  <button
+                    type="button"
+                    onClick={() => setOrderPage((n) => Math.max(1, n - 1))}
+                    disabled={currentOrderPage === 1}
+                    className="ens-btn ens-btn--linea !h-10 !text-xs disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm font-bold text-tinta-suave" aria-live="polite">
+                    Página {currentOrderPage} de {orderPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setOrderPage((n) => Math.min(orderPages, n + 1))}
+                    disabled={currentOrderPage === orderPages}
+                    className="ens-btn ens-btn--linea !h-10 !text-xs disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </nav>
+              )}
             </div>
           )}
         </div>

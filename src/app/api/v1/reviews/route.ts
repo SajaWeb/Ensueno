@@ -85,9 +85,17 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: review });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating review:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    // P2003: el productId no existe en la tabla Product. Pasa con los combos
+    // ("combo-*"), que se sintetizan y no tienen fila propia.
+    if (error?.code === 'P2003') {
+      return NextResponse.json(
+        { success: false, error: 'Este producto no admite reseñas.' },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ success: false, error: 'No pudimos guardar la reseña.' }, { status: 500 });
   }
 }
 
