@@ -6,10 +6,14 @@ import { usePathname } from 'next/navigation';
 /**
  * Botón flotante de WhatsApp para resolver dudas antes de comprar.
  *
- * El número se puede sobreescribir con NEXT_PUBLIC_WHATSAPP_NUMBER sin tocar
- * código; si no está definido usa el de atención de Ensueño.
+ * El número vive en NEXT_PUBLIC_WHATSAPP_NUMBER, así no queda escrito en el
+ * repositorio ni en su historial, y cada entorno puede apuntar al suyo.
+ *
+ * Ojo: `NEXT_PUBLIC_*` se incrusta en el bundle del navegador en tiempo de
+ * compilación. No es un secreto y no puede serlo — el enlace `wa.me` tiene que
+ * llevar el número visible para que el botón funcione.
  */
-const RAW_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+57 305 221 5008';
+const RAW_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '';
 const NUMBER = RAW_NUMBER.replace(/\D/g, '');
 
 // Mensaje precargado: le dice a quien atiende de dónde viene la persona, para
@@ -20,8 +24,9 @@ const MESSAGE =
 export default function WhatsAppButton() {
   const pathname = usePathname();
 
-  // Fuera del panel: ahí no hay clientas a las que atender.
-  if (pathname?.startsWith('/admin')) return null;
+  // Sin número configurado no se monta: mejor eso que un enlace que lleve a una
+  // conversación vacía. Fuera del panel, además: ahí no hay clientas.
+  if (!NUMBER || pathname?.startsWith('/admin')) return null;
 
   const href = `https://wa.me/${NUMBER}?text=${encodeURIComponent(MESSAGE)}`;
 
