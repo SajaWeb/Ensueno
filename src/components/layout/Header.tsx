@@ -1,29 +1,89 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, User, Sparkles, Menu, X, LogOut, ChevronDown, Heart } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 
+const LOGO_URL = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
+
+/** Los tres SKU reales, para el mega-menú. */
+const PRODUCT_LINKS = [
+  {
+    href: '/productos/panitos-humedos',
+    label: 'Pañitos Húmedos',
+    blurb: 'Algodón orgánico y manzanilla',
+  },
+  {
+    href: '/productos/colonia-ensueno',
+    label: 'Colonia',
+    blurb: 'Sin alcohol, flor de azahar',
+  },
+  {
+    href: '/productos/crema-corporal-ensueno',
+    label: 'Crema Corporal',
+    blurb: 'Avena coloidal y karité',
+  },
+];
+
 export default function Header() {
   const pathname = usePathname();
-  const { cartCount, toastMessage, dismissToast } = useCart();
+  const { cartCount } = useCart();
   const { currentUser, openAuthModal, logout } = useUser();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [megaOpen, setMegaOpen] = useState(false);
+
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const productsNavRef = useRef<HTMLDivElement>(null);
+  // El panel se renderiza fuera de productsNavRef (va anclado al <header> a
+  // ancho completo), así que necesita su propia ref: si no, el manejador de
+  // clic-fuera lo cerraba en `mousedown` y el enlace nunca llegaba a navegar.
+  const megaPanelRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar los desplegables al hacer clic fuera o al pulsar Escape.
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setUserDropdownOpen(false);
+      }
+      const inTrigger = productsNavRef.current?.contains(target);
+      const inPanel = megaPanelRef.current?.contains(target);
+      if (!inTrigger && !inPanel) {
+        setMegaOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setUserDropdownOpen(false);
+        setMegaOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
+  // Cerrar todo al navegar.
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setUserDropdownOpen(false);
+    setMegaOpen(false);
+  }, [pathname]);
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
-    { href: '/#productos', label: 'Productos' },
     { href: '/tips', label: 'Tips de Sueño' },
     { href: '/perfil', label: 'Mi Perfil' },
   ];
-
-  const logoUrl = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
 
   const handleLogout = async () => {
     await logout();
@@ -32,182 +92,224 @@ export default function Header() {
   };
 
   const getUserFirstName = () => {
-    if (currentUser?.profile?.fullName) {
-      return currentUser.profile.fullName.split(' ')[0];
-    }
-    if (currentUser?.email) {
-      return currentUser.email.split('@')[0];
-    }
+    if (currentUser?.profile?.fullName) return currentUser.profile.fullName.split(' ')[0];
+    if (currentUser?.email) return currentUser.email.split('@')[0];
     return 'Mamá';
   };
 
+  const linkClass = (href: string) =>
+    `px-4 py-2 rounded-full text-sm font-bold transition-colors ens-focus ${
+      pathname === href ? 'bg-celeste text-tinta' : 'text-tinta-suave hover:text-azul'
+    }`;
+
   return (
-    <>
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="fixed top-4 right-4 z-50 animate-bounce-slow flex items-center space-x-3 bg-primary text-white px-5 py-3 rounded-full shadow-lg border border-primary-container/30">
-          <Sparkles className="w-5 h-5 text-secondary-container" />
-          <span className="text-sm font-medium">{toastMessage}</span>
-          <button onClick={dismissToast} className="ml-2 hover:opacity-80">
-            <X className="w-4 h-4" />
-          </button>
+    <header className="relative z-40 bg-white border-b border-borde">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
+          <Link href="/" className="flex items-center shrink-0 ens-focus" aria-label="Ensueño, inicio">
+            <Image
+              src={LOGO_URL}
+              alt="Ensueño"
+              width={180}
+              height={60}
+              priority
+              className="h-11 sm:h-14 w-auto object-contain"
+            />
+          </Link>
+
+          {/* Navegación de escritorio */}
+          <nav className="hidden md:flex items-center gap-1" aria-label="Principal">
+            <Link href="/" className={linkClass('/')}>
+              Inicio
+            </Link>
+
+            {/* Productos: mega-menú */}
+            <div ref={productsNavRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setMegaOpen((v) => !v)}
+                aria-expanded={megaOpen}
+                aria-controls="mega-productos"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-tinta-suave hover:text-azul transition-colors ens-focus"
+              >
+                Productos
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${megaOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+
+            <Link href="/tips" className={linkClass('/tips')}>
+              Tips de Sueño
+            </Link>
+            <Link
+              href="/perfil"
+              onClick={(e) => {
+                if (!currentUser) {
+                  e.preventDefault();
+                  openAuthModal('login');
+                }
+              }}
+              className={linkClass('/perfil')}
+            >
+              Mi Perfil
+            </Link>
+          </nav>
+
+          {/* Acciones */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {currentUser ? (
+              <div ref={userMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserDropdownOpen((v) => !v)}
+                  aria-expanded={userDropdownOpen}
+                  className="flex items-center gap-2 px-3 sm:px-4 h-10 rounded-full border-2 border-borde text-tinta font-bold text-xs hover:border-azul transition-colors ens-focus"
+                >
+                  <User className="w-4 h-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Hola, {getUserFirstName()}</span>
+                  <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-borde shadow-lg py-2 z-50 animate-scale-in">
+                    <Link
+                      href="/perfil"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-tinta hover:bg-cian transition-colors"
+                    >
+                      <User className="w-4 h-4 text-azul" aria-hidden="true" /> Mi perfil
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-secondary hover:bg-cian transition-colors text-left border-t border-borde mt-1 cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" aria-hidden="true" /> Cerrar sesión
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openAuthModal('login')}
+                className="hidden sm:inline-flex ens-btn ens-btn--linea h-10 text-xs px-5"
+              >
+                Ingresar
+              </button>
+            )}
+
+            {/* Carrito. El contador va posicionado en absoluto sobre el botón. */}
+            <Link
+              href="/carrito"
+              className="relative ens-btn ens-btn--azul h-10 px-4 sm:px-5 text-xs"
+              aria-label={
+                cartCount > 0
+                  ? `Carrito, ${cartCount} ${cartCount === 1 ? 'producto' : 'productos'}`
+                  : 'Carrito, vacío'
+              }
+            >
+              <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Carrito</span>
+              {cartCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-1.5 -right-1.5 min-w-[1.25rem] h-5 px-1 grid place-items-center rounded-full bg-secondary text-white text-[11px] font-bold leading-none ring-2 ring-white"
+                >
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-expanded={mobileMenuOpen}
+              aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+              className="md:hidden p-2 -mr-2 text-tinta ens-focus"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/*
+        Panel del mega-menú anclado al <header> a ancho completo, NO dentro del
+        contenedor max-w-7xl: `body { overflow-x: hidden }` recortaría el panel.
+      */}
+      {megaOpen && (
+        <div
+          ref={megaPanelRef}
+          id="mega-productos"
+          className="hidden md:block absolute left-0 right-0 top-full bg-white border-y border-borde shadow-lg animate-fade-in"
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <p className="ens-eyebrow text-tinta-suave mb-5">Catálogo Ensueño</p>
+            <ul className="grid grid-cols-3 gap-4">
+              {PRODUCT_LINKS.map((p) => (
+                <li key={p.href}>
+                  <Link
+                    href={p.href}
+                    className="block p-4 rounded-2xl border border-borde hover:border-azul hover:bg-cian transition-colors ens-focus"
+                  >
+                    <span className="block font-display text-lg text-tinta">{p.label}</span>
+                    <span className="block mt-1 text-sm text-tinta-suave">{p.blurb}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
-      <header className="bg-white/80 backdrop-blur-md border-b border-surface-container-high/60 transition-all relative z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Standalone Logo Image Only */}
-            <Link href="/" className="flex items-center group">
-              <Image
-                src={logoUrl}
-                alt="Ensueño Logo"
-                width={180}
-                height={60}
-                priority
-                className="h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
-              />
-            </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1 bg-white/80 p-1.5 rounded-full border border-surface-container-high/80 shadow-sm backdrop-blur-sm">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                const isProfileLink = link.href === '/perfil';
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={(e) => {
-                      if (isProfileLink && !currentUser) {
-                        e.preventDefault();
-                        openAuthModal('login');
-                      }
-                    }}
-                    className={`px-6 py-2.5 rounded-full text-sm font-headline font-bold transition-all ${
-                      isActive
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-low'
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Actions (Cart & User Profile Button) */}
-            <div className="flex items-center space-x-3">
-              {currentUser ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white px-4 py-2 rounded-full font-headline font-extrabold text-xs shadow-md shadow-pink-200/50 transition-all hover:scale-105 border border-white/40 cursor-pointer"
-                  >
-                    <Heart className="w-4 h-4 text-pink-100 fill-pink-200 animate-pulse" />
-                    <span>¡Hola, {getUserFirstName()}! 💕</span>
-                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
-                  </button>
-
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-50 animate-scale-in text-xs font-semibold">
-                      <Link
-                        href="/perfil"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
-                      >
-                        <User className="w-4 h-4 text-purple-600" /> Mi Perfil & Datos
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-rose-600 hover:bg-rose-50 transition-colors text-left font-bold border-t border-slate-100 mt-1 cursor-pointer"
-                      >
-                        <LogOut className="w-4 h-4" /> Cerrar Sesión
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => openAuthModal('login')}
-                  className="btn-ensueno-primary h-11 px-5 text-xs font-extrabold uppercase tracking-wider hidden sm:inline-flex"
-                  title="Mi Cuenta & Iniciar Sesión"
-                >
-                  <User className="w-4 h-4 text-amber-200 animate-pulse" />
-                  <span>Ingresar / Mi Cuenta</span>
-                </button>
-              )}
-
-              <Link
-                href="/carrito"
-                className="btn-ensueno-sky h-11 px-5 text-xs font-extrabold uppercase tracking-wider relative"
-              >
-                <ShoppingBag className="w-4 h-4 text-sky-700" />
-                <span className="hidden sm:inline">Carrito</span>
-                {cartCount > 0 && (
-                  <span className="flex items-center justify-center w-5 h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full animate-pulse-subtle ml-0.5">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-
-              {/* Mobile menu trigger */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-on-surface-variant hover:text-primary"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white/95 border-b border-surface-container-high px-4 pt-2 pb-6 space-y-2 backdrop-blur-md">
-            {navLinks.map((link) => (
+      {/* Navegación móvil */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-t border-borde px-4 pt-3 pb-6 space-y-1">
+          {[{ href: '/', label: 'Inicio' }, ...PRODUCT_LINKS.map((p) => ({ href: p.href, label: p.label })), ...navLinks.slice(1)].map(
+            (link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={(e) => {
-                  setMobileMenuOpen(false);
                   if (link.href === '/perfil' && !currentUser) {
                     e.preventDefault();
+                    setMobileMenuOpen(false);
                     openAuthModal('login');
                   }
                 }}
-                className={`block px-4 py-3 rounded-xl font-headline font-medium text-base ${
+                className={`block px-4 py-3 rounded-xl text-base font-bold transition-colors ${
                   pathname === link.href
-                    ? 'bg-primary-container/50 text-primary font-bold'
-                    : 'text-on-surface-variant hover:bg-surface-container-low'
+                    ? 'bg-celeste text-tinta'
+                    : 'text-tinta-suave hover:bg-cian'
                 }`}
               >
                 {link.label}
               </Link>
-            ))}
-            {currentUser ? (
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-50 text-rose-600 font-bold text-sm"
-              >
-                <LogOut className="w-4 h-4" /> Cerrar Sesión ({getUserFirstName()})
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openAuthModal('login');
-                }}
-                className="w-full text-center px-4 py-3 rounded-xl bg-purple-600 text-white font-bold text-sm cursor-pointer"
-              >
-                Ingresar / Registrarse
-              </button>
-            )}
-          </div>
-        )}
-      </header>
-    </>
+            )
+          )}
+
+          {currentUser ? (
+            <button
+              onClick={handleLogout}
+              className="w-full ens-btn ens-btn--linea mt-3"
+            >
+              <LogOut className="w-4 h-4" aria-hidden="true" /> Cerrar sesión
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                openAuthModal('login');
+              }}
+              className="w-full ens-btn ens-btn--azul mt-3"
+            >
+              Ingresar
+            </button>
+          )}
+        </div>
+      )}
+    </header>
   );
 }

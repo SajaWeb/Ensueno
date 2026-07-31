@@ -77,6 +77,10 @@ export interface Tip {
   summary: string;
   content: string[];
   tags: string[];
+  /** Link de YouTube para incrustar en el artículo. */
+  videoUrl?: string | null;
+  isPublished?: boolean;
+  sortOrder?: number;
 }
 
 export interface Promotion {

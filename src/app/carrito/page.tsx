@@ -288,400 +288,455 @@ function CartContent() {
       setIsSubmitting(false);
     }
   };
-
   if (items.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-6">
-        <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-tr from-pink-100 via-purple-100 to-sky-100 flex items-center justify-center text-4xl shadow-sm border border-pink-200/60 text-purple-600">
-          🛒
+      <div className="ens-band ens-band--cian page-entry-anim">
+        <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+          <div className="w-20 h-20 mx-auto grid place-items-center rounded-3xl bg-celeste border border-borde">
+            <ShoppingBag className="w-9 h-9 text-azul" aria-hidden="true" />
+          </div>
+          <h1 className="mt-6 font-display text-tinta text-[clamp(1.75rem,4vw,2.5rem)] leading-tight">
+            Tu carrito está vacío
+          </h1>
+          <p className="mt-3 text-lg text-tinta-suave">
+            Empieza por los tres esenciales para el cuidado diario de tu bebé.
+          </p>
+          <Link href="/#productos" className="ens-btn ens-btn--azul mt-8">
+            Ver productos
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
+          </Link>
         </div>
-        <h2 className="font-extrabold text-3xl text-slate-800">Tu carrito de Ensueño está vacío</h2>
-        <p className="text-slate-500 text-sm max-w-md mx-auto">
-          Explora nuestros productos de cosmética pediátrica hipoalergénica y brinda el descanso perfecto a tu bebé.
-        </p>
-        <Link
-          href="/"
-          className="inline-flex items-center space-x-2 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:via-purple-500 hover:to-sky-500 text-white font-extrabold text-sm px-8 py-4 rounded-full shadow-md shadow-pink-200 transition-all border border-white/40 transform hover:scale-105"
-        >
-          <span>Ver Productos</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Title */}
-      <div className="flex items-center justify-between border-b border-pink-100 pb-4">
-        <div>
-          <h1 className="font-extrabold text-3xl text-slate-800">Mi Carrito de Compras</h1>
-          <p className="text-xs text-slate-500">{productCount} productos listos para el cuidado de tu bebé</p>
-        </div>
-        <button
-          onClick={() => {
-            clearCart();
-            showToast('Carrito vaciado', 'info');
-          }}
-          className="text-xs font-bold text-pink-700 hover:text-rose-700 bg-pink-50 hover:bg-pink-100 px-3.5 py-2 rounded-full border border-pink-200/70 transition-all flex items-center space-x-1.5 shadow-2xs"
-        >
-          <Trash2 className="w-3.5 h-3.5 text-pink-600" />
-          <span>Vaciar Carrito</span>
-        </button>
-      </div>
-
-      {/* User Login Banner / Status */}
-      {currentUser ? (
-        <div className="bg-gradient-to-r from-pink-100/70 via-purple-100/70 to-sky-100/70 rounded-2xl p-4 border border-purple-200/60 flex items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center text-base shadow-xs">
-              {currentUser.profile?.fullName ? currentUser.profile.fullName.charAt(0) : 'M'}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm text-slate-800">
-                  ¡Sesión activa como {currentUser.profile?.fullName || currentUser.email}! 💖
-                </span>
-                <span className="bg-purple-200 text-purple-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase">
-                  Mamá Verificada
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 mt-0.5">
-                Tus datos de dirección están sincronizados para compras más ágiles.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 bg-amber-100 text-amber-900 px-3 py-1.5 rounded-full border border-amber-300/80 text-xs font-extrabold shadow-xs">
-            <Star className="w-4 h-4 text-amber-500 fill-amber-400 animate-spin-slow" />
-            <span>Puntos acumulados: {currentUser.loyaltyPoints || 0} pts</span>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-gradient-to-r from-amber-50 via-pink-50 to-purple-50 rounded-2xl p-4 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-extrabold text-sm text-slate-800 block">
-                ¡Inicia sesión o regístrate para finalizar tu compra! ✨
-              </span>
-              <span className="text-xs text-slate-600">
-                Al crear tu usuario se guardarán tus direcciones de envío y acumularás <strong>Puntos Ensueño</strong> por cada compra.
-              </span>
-            </div>
+    <div className="ens-band ens-band--cian page-entry-anim">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* ---------- Encabezado ---------- */}
+        <div className="flex flex-wrap items-end justify-between gap-4 pb-6 border-b border-borde">
+          <div>
+            <p className="ens-eyebrow text-azul">Carrito</p>
+            <h1 className="mt-2 font-display text-tinta text-[clamp(1.75rem,4vw,2.75rem)] leading-tight">
+              Tu pedido
+            </h1>
+            <p className="mt-1 text-tinta-suave">
+              {productCount} {productCount === 1 ? 'producto' : 'productos'}
+            </p>
           </div>
           <button
-            onClick={() => openAuthModal('login')}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
+            type="button"
+            onClick={() => {
+              clearCart();
+              showToast('Carrito vaciado', 'info');
+            }}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-full border border-borde text-sm font-bold text-tinta-suave hover:text-secondary hover:border-secondary transition-colors ens-focus"
           >
-            Iniciar Sesión / Registrarme
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
+            Vaciar carrito
           </button>
         </div>
-      )}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Left Items List */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="space-y-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl p-4 sm:p-5 border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm hover:border-pink-200 transition-colors"
+        {/* ---------- Estado de sesión ---------- */}
+        {currentUser ? (
+          <div className="mt-6 bg-white border border-borde rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="w-10 h-10 grid place-items-center rounded-full bg-azul text-white font-bold"
               >
-                <div className="flex items-center space-x-4 w-full sm:w-auto">
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100">
-                    <Image src={item.product.image} alt={item.product.name} fill sizes="80px" className="object-cover" />
+                {(currentUser.profile?.fullName || currentUser.email || 'M').charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <p className="font-bold text-tinta">
+                  {currentUser.profile?.fullName || currentUser.email}
+                </p>
+                <p className="text-sm text-tinta-suave">Tus direcciones están guardadas</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-amarillo text-tinta text-sm font-bold">
+              <Star className="w-4 h-4 fill-current" aria-hidden="true" />
+              {currentUser.loyaltyPoints || 0} puntos
+            </span>
+          </div>
+        ) : (
+          <div className="mt-6 bg-white border border-borde rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="w-10 h-10 grid place-items-center rounded-full bg-celeste text-azul"
+              >
+                <User className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-bold text-tinta">Inicia sesión para terminar tu compra</p>
+                <p className="text-sm text-tinta-suave">
+                  Guardamos tus direcciones y acumulas puntos por cada pedido.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => openAuthModal('login')}
+              className="ens-btn ens-btn--azul h-10 text-xs"
+            >
+              Iniciar sesión
+            </button>
+          </div>
+        )}
+
+        {/* ---------- Contenido ---------- */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Líneas del pedido */}
+            <ul className="space-y-4">
+              {items.map((item) => (
+                <li
+                  key={item.id}
+                  className="bg-white border border-borde rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                >
+                  <Link
+                    href={`/productos/${item.product.id}`}
+                    className="relative w-20 h-20 shrink-0 rounded-2xl overflow-hidden bg-celeste ens-focus"
+                  >
+                    <Image
+                      src={item.product.image}
+                      alt=""
+                      fill
+                      sizes="80px"
+                      className="object-contain p-1.5"
+                    />
+                  </Link>
+
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-display text-lg leading-snug text-tinta">
+                      <Link
+                        href={`/productos/${item.product.id}`}
+                        className="hover:text-azul transition-colors ens-focus"
+                      >
+                        {item.product.name}
+                      </Link>
+                    </h2>
+                    <p className="mt-0.5 text-sm text-tinta-suave">
+                      {item.selectedFragrance} · {item.selectedSize}
+                    </p>
+                    <p className="mt-0.5 text-sm text-tinta-suave">
+                      {formatPrice(item.product.price)} por unidad
+                    </p>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-base text-slate-800 line-clamp-1">{item.product.name}</h3>
-                    <div className="flex items-center space-x-2 text-xs text-slate-500 mt-0.5">
-                      <span>Aroma: <strong>{item.selectedFragrance}</strong></span>
-                      <span>•</span>
-                      <span>Talla: <strong>{item.selectedSize}</strong></span>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 pt-3 sm:pt-0 border-t sm:border-t-0 border-borde">
+                    <div className="flex items-center gap-1 bg-cian border border-borde rounded-full p-1">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        aria-label={`Quitar una unidad de ${item.product.name}`}
+                        className="w-8 h-8 grid place-items-center rounded-full bg-white text-tinta hover:bg-celeste transition-colors ens-focus"
+                      >
+                        <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+                      </button>
+                      <span className="w-8 text-center font-bold text-sm tabular-nums">
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        aria-label={`Añadir una unidad de ${item.product.name}`}
+                        className="w-8 h-8 grid place-items-center rounded-full bg-white text-tinta hover:bg-celeste transition-colors ens-focus"
+                      >
+                        <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                      </button>
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between sm:justify-end space-x-6 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  <div className="flex items-center space-x-2 bg-purple-50/60 rounded-full p-1 border border-purple-100">
-                    <button
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="w-7 h-7 rounded-full bg-white text-purple-700 hover:bg-pink-100 flex items-center justify-center font-bold transition-colors border border-purple-200/60 shadow-2xs"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-6 text-center font-bold text-xs text-slate-800">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="w-7 h-7 rounded-full bg-white text-purple-700 hover:bg-sky-100 flex items-center justify-center font-bold transition-colors border border-purple-200/60 shadow-2xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="font-extrabold text-base text-purple-700 block">
+                    <span className="font-display text-xl text-azul tabular-nums">
                       {formatPrice(item.product.price * item.quantity)}
                     </span>
-                  </div>
 
-                  <button onClick={() => removeFromCart(item.id)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Selector de Direcciones Guardadas o Formulario Nueva Dirección */}
-          {currentUser && savedAddresses.length > 0 ? (
-            <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-purple-50 pb-3">
-                <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-purple-600" /> Direcciones Guardadas de Envío ({savedAddresses.length})
-                </h3>
-                <span className="text-xs text-purple-600 font-bold bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
-                  ⭐ Predeterminada Seleccionada
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {savedAddresses.map((addr) => {
-                  const isSelected = selectedAddressId === addr.id;
-                  return (
-                    <div
-                      key={addr.id}
-                      onClick={() => applySavedAddress(addr)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all relative flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-purple-50/90 border-purple-400 shadow-sm ring-2 ring-purple-300'
-                          : 'bg-slate-50/60 border-slate-200 hover:bg-purple-50/30'
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => removeFromCart(item.id)}
+                      aria-label={`Quitar ${item.product.name} del carrito`}
+                      className="w-9 h-9 grid place-items-center rounded-full text-tinta-suave hover:text-secondary hover:bg-cian transition-colors ens-focus"
                     >
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-purple-600" /> {addr.title || 'Hogar'}
-                            {addr.isDefault && (
-                              <span className="text-[9px] bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-bold">
-                                Predeterminada
+                      <Trash2 className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* Direcciones guardadas */}
+            {currentUser && savedAddresses.length > 0 && (
+              <div className="bg-white border border-borde rounded-2xl p-6">
+                <h2 className="flex items-center gap-2 font-display text-xl text-tinta pb-4 border-b border-borde">
+                  <Building2 className="w-5 h-5 text-azul" aria-hidden="true" />
+                  Direcciones guardadas
+                </h2>
+
+                <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {savedAddresses.map((addr) => {
+                    const isSelected = selectedAddressId === addr.id;
+                    return (
+                      <li key={addr.id}>
+                        <div
+                          className={`relative h-full p-4 rounded-2xl border-2 transition-colors ${
+                            isSelected ? 'border-azul bg-cian' : 'border-borde hover:border-celeste'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => applySavedAddress(addr)}
+                            aria-pressed={isSelected}
+                            className="text-left w-full ens-focus"
+                          >
+                            <span className="flex items-center gap-1.5 font-bold text-tinta">
+                              <MapPin className="w-4 h-4 text-azul" aria-hidden="true" />
+                              {addr.title || 'Hogar'}
+                              {addr.isDefault && (
+                                <span className="text-[10px] bg-celeste text-tinta px-2 py-0.5 rounded-full">
+                                  Predeterminada
+                                </span>
+                              )}
+                            </span>
+                            <span className="block mt-1.5 text-sm text-tinta line-clamp-1">
+                              {addr.address}
+                            </span>
+                            <span className="block text-sm text-tinta-suave">
+                              {addr.city}, {addr.department}
+                            </span>
+                            {isSelected && (
+                              <span className="block mt-2 text-xs font-bold text-azul">
+                                Seleccionada para este pedido
                               </span>
                             )}
-                          </span>
+                          </button>
+
                           <button
+                            type="button"
                             onClick={(e) => handleDeleteSavedAddress(addr.id, e)}
-                            className="text-slate-400 hover:text-rose-600 p-1"
-                            title="Eliminar dirección"
+                            aria-label={`Eliminar dirección ${addr.title || 'Hogar'}`}
+                            className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-full text-tinta-suave hover:text-secondary transition-colors ens-focus"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </div>
-                        <p className="text-xs font-semibold text-slate-700 line-clamp-1">{addr.address}</p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {addr.city}, {addr.department}
-                        </p>
-                      </div>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-                      {isSelected && (
-                        <div className="mt-2 text-[10px] font-black text-purple-700 uppercase flex items-center gap-1">
-                          ✓ Seleccionada para este pedido
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="pt-2">
                 <button
                   type="button"
                   onClick={() => setShowNewAddressForm(!showNewAddressForm)}
-                  className="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-4 py-2.5 rounded-xl cursor-pointer transition-all shadow-2xs"
+                  className="ens-btn ens-btn--linea h-10 text-xs mt-4"
                 >
-                  <Plus className="w-4 h-4 text-purple-600" />
-                  <span>{showNewAddressForm ? 'Ocultar Formulario de Nueva Dirección' : '+ Añadir Nueva Dirección'}</span>
+                  <Plus className="w-4 h-4" aria-hidden="true" />
+                  {showNewAddressForm ? 'Ocultar formulario' : 'Añadir otra dirección'}
+                </button>
+              </div>
+            )}
+
+            {/* Nueva dirección */}
+            {(showNewAddressForm || !currentUser || savedAddresses.length === 0) && (
+              <div className="bg-white border border-borde rounded-2xl p-6 animate-fade-in">
+                <div className="flex items-center justify-between pb-4 border-b border-borde">
+                  <h2 className="flex items-center gap-2 font-display text-xl text-tinta">
+                    <MapPin className="w-5 h-5 text-azul" aria-hidden="true" />
+                    Dirección de envío
+                  </h2>
+                  {savedAddresses.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNewAddressForm(false)}
+                      aria-label="Cerrar formulario"
+                      className="w-9 h-9 grid place-items-center rounded-full text-tinta-suave hover:text-tinta hover:bg-cian transition-colors ens-focus"
+                    >
+                      <X className="w-5 h-5" aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="departamento" className="ens-eyebrow text-tinta-suave block mb-2">
+                      Departamento
+                    </label>
+                    <select
+                      id="departamento"
+                      value={selectedDeptIndex}
+                      onChange={(e) => {
+                        const idx = parseInt(e.target.value);
+                        setSelectedDeptIndex(idx);
+                        setSelectedCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
+                        setSelectedAddressId(null);
+                      }}
+                      className="w-full h-12 px-4 rounded-2xl border border-borde bg-cian text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                    >
+                      {COLOMBIA_LOCATION_DATA.map((d, index) => (
+                        <option key={d.name} value={index}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="ciudad" className="ens-eyebrow text-tinta-suave block mb-2">
+                      Municipio o ciudad
+                    </label>
+                    <select
+                      id="ciudad"
+                      value={selectedCity}
+                      onChange={(e) => {
+                        setSelectedCity(e.target.value);
+                        setSelectedAddressId(null);
+                      }}
+                      className="w-full h-12 px-4 rounded-2xl border border-borde bg-cian text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                    >
+                      {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label htmlFor="direccion" className="ens-eyebrow text-tinta-suave block mb-2">
+                      Dirección exacta
+                    </label>
+                    <input
+                      id="direccion"
+                      type="text"
+                      required
+                      value={address}
+                      onChange={(e) => {
+                        setAddress(e.target.value);
+                        setSelectedAddressId(null);
+                      }}
+                      placeholder="Calle, carrera, apartamento, barrio"
+                      className="w-full h-12 px-4 rounded-2xl border border-borde bg-cian text-tinta placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ---------- Resumen ---------- */}
+          <aside className="bg-white border border-borde rounded-2xl p-6 lg:sticky lg:top-32">
+            <h2 className="font-display text-xl text-tinta pb-4 border-b border-borde">
+              Resumen
+            </h2>
+
+            <p className="mt-4 flex items-start gap-2.5 bg-amarillo rounded-2xl p-3.5 text-sm text-tinta">
+              <Sparkles className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+              <span>
+                Ganas <strong>{loyaltyPointsEarned} puntos</strong> con este pedido.
+              </span>
+            </p>
+
+            <div className="mt-5">
+              <label htmlFor="cupon" className="ens-eyebrow text-tinta-suave block mb-2">
+                Cupón de descuento
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="cupon"
+                  type="text"
+                  value={inputCoupon}
+                  onChange={(e) => setInputCoupon(e.target.value)}
+                  placeholder="SUEÑO10"
+                  className="min-w-0 flex-1 h-11 px-4 rounded-full border border-borde bg-cian text-tinta uppercase placeholder:normal-case placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyCoupon(inputCoupon)}
+                  className="ens-btn ens-btn--azul h-11 px-5 text-xs shrink-0"
+                >
+                  Aplicar
                 </button>
               </div>
             </div>
-          ) : null}
 
-          {/* Formulario de Nueva Dirección (se muestra si no tiene direcciones guardadas o presiona Añadir Nueva Dirección) */}
-          {(showNewAddressForm || !currentUser || savedAddresses.length === 0) && (
-            <div className="bg-white rounded-2xl p-6 border border-purple-100 shadow-sm space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between border-b border-purple-50 pb-3">
-                <h3 className="font-bold text-base text-slate-800 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-purple-600" /> Ingresar Dirección de Envío en Colombia
-                </h3>
-                {savedAddresses.length > 0 && (
-                  <button
-                    onClick={() => setShowNewAddressForm(false)}
-                    className="text-slate-400 hover:text-slate-600 p-1"
-                    title="Cerrar formulario"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                )}
+            <dl className="mt-5 py-5 border-y border-borde space-y-3 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-tinta-suave">Subtotal</dt>
+                <dd className="font-bold text-tinta tabular-nums">{formatPrice(subtotal)}</dd>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">1. Departamento</label>
-                  <select
-                    value={selectedDeptIndex}
-                    onChange={(e) => {
-                      const idx = parseInt(e.target.value);
-                      setSelectedDeptIndex(idx);
-                      setSelectedCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
-                      setSelectedAddressId(null);
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                  >
-                    {COLOMBIA_LOCATION_DATA.map((d, index) => (
-                      <option key={d.name} value={index}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-secondary font-bold">Descuento {couponCode}</dt>
+                  <dd className="text-secondary font-bold tabular-nums">-{formatPrice(discount)}</dd>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">2. Municipio / Ciudad</label>
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => {
-                      setSelectedCity(e.target.value);
-                      setSelectedAddressId(null);
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                  >
-                    {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
+              {shippingDiscount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-azul font-bold">Descuento por cantidad</dt>
+                  <dd className="text-azul font-bold tabular-nums">-{formatPrice(shippingDiscount)}</dd>
                 </div>
+              )}
 
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Dirección Exacta de Entrega</label>
-                  <input
-                    type="text"
-                    required
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value);
-                      setSelectedAddressId(null);
-                    }}
-                    placeholder="Calle, Carrera, Apto / Casa, Barrio"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
-                  />
-                </div>
+              <div className="flex justify-between items-center">
+                <dt className="text-tinta-suave">Envío a {selectedCity}</dt>
+                <dd>
+                  {isFreeShipping ? (
+                    <span className="inline-block bg-celeste text-tinta text-xs font-bold px-2.5 py-1 rounded-full">
+                      Gratis
+                    </span>
+                  ) : (
+                    <span className="font-bold text-tinta tabular-nums">{formatPrice(shippingCost)}</span>
+                  )}
+                </dd>
               </div>
-            </div>
-          )}
-        </div>
 
-        {/* Right Summary Card */}
-        <div className="bg-gradient-to-br from-pink-50/50 via-purple-50/30 to-sky-50/50 rounded-3xl p-6 border border-pink-100 shadow-sm space-y-6">
-          <h2 className="font-bold text-xl text-slate-800 border-b border-pink-200/60 pb-3">Resumen de Compra</h2>
-
-          {/* Loyalty Points Earned Badge */}
-          <div className="bg-amber-100/80 border border-amber-300/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs">
-            <Sparkles className="w-5 h-5 text-amber-600 shrink-0 animate-bounce" />
-            <div className="text-xs text-amber-950">
-              <span className="font-extrabold block text-amber-900">
-                ¡Acumularás +{loyaltyPointsEarned} Puntos Ensueño! 🌟
-              </span>
-              <span>Canjeables por productos y descuentos exclusivos en tu perfil.</span>
-            </div>
-          </div>
-
-          {/* Coupon Code Input */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">¿Tienes un Cupón?</label>
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                value={inputCoupon}
-                onChange={(e) => setInputCoupon(e.target.value)}
-                placeholder="Ej: SUEÑO10"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-pink-200/80 uppercase font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
-              />
-              <button
-                onClick={() => handleApplyCoupon(inputCoupon)}
-                className="bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-xs transition-all border border-white/50 active:scale-95 shrink-0"
-              >
-                Aplicar
-              </button>
-            </div>
-          </div>
-
-          {/* Price Breakdown */}
-          <div className="space-y-3 text-xs border-t border-b border-pink-200/60 py-4">
-            <div className="flex justify-between text-slate-600">
-              <span>Subtotal Productos</span>
-              <span className="font-semibold text-slate-800">{formatPrice(subtotal)}</span>
-            </div>
-
-            {discount > 0 && (
-              <div className="flex justify-between text-pink-700 font-semibold bg-pink-100/60 px-2 py-1 rounded-lg border border-pink-200/60">
-                <span>Descuento Cupón</span>
-                <span>-{formatPrice(discount)}</span>
+              <div className="flex items-center gap-2 text-xs text-tinta-suave">
+                <Truck className="w-4 h-4 shrink-0" aria-hidden="true" />
+                Llega en {deliveryEstimate}
               </div>
-            )}
+            </dl>
 
-            {shippingDiscount > 0 && (
-              <div className="flex justify-between text-emerald-700 font-semibold bg-emerald-100/60 px-2 py-1 rounded-lg border border-emerald-200/60">
-                <span>Descuento Envío por Cantidad</span>
-                <span>-{formatPrice(shippingDiscount)}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between text-slate-600 items-center">
-              <span>Envío ({selectedCity})</span>
-              <span>
-                {isFreeShipping ? (
-                  <strong className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 uppercase font-extrabold text-[11px]">¡GRATIS!</strong>
-                ) : (
-                  <strong className="text-slate-800">{formatPrice(shippingCost)}</strong>
-                )}
+            <div className="mt-5 flex items-baseline justify-between">
+              <span className="font-bold text-tinta">Total</span>
+              <span className="font-display text-3xl text-azul tabular-nums">
+                {formatPrice(finalTotal)}
               </span>
             </div>
 
-            <div className="text-[11px] text-slate-400 italic">Tiempo estimado: {deliveryEstimate}</div>
+            <button
+              type="button"
+              onClick={handleCheckoutClick}
+              disabled={isSubmitting}
+              className="ens-btn ens-btn--azul w-full mt-6"
+            >
+              {isSubmitting ? 'Generando pago…' : 'Pagar con MercadoPago'}
+              {!isSubmitting && <ArrowRight className="w-4 h-4" aria-hidden="true" />}
+            </button>
 
-            <div className="flex justify-between items-baseline pt-2 border-t border-pink-200/60 text-base font-extrabold text-slate-800">
-              <span>Total a Pagar</span>
-              <span className="text-2xl text-purple-700 font-extrabold">{formatPrice(finalTotal)}</span>
-            </div>
-          </div>
-
-          {/* Checkout CTA */}
-          <button
-            onClick={handleCheckoutClick}
-            disabled={isSubmitting}
-            className="btn-ensueno-primary w-full h-13 text-sm font-extrabold uppercase tracking-wider disabled:opacity-50"
-          >
-            <span>{isSubmitting ? 'Generando Pago...' : 'Pagar con MercadoPago'}</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-500 font-medium text-center bg-white/60 py-2 rounded-xl border border-pink-100">
-            <ShieldCheck className="w-4 h-4 text-purple-600" />
-            <span>Pago seguro con MercadoPago · Encriptación SSL</span>
-          </div>
+            <p className="mt-4 flex items-center justify-center gap-2 text-xs text-tinta-suave">
+              <ShieldCheck className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+              Pago seguro con cifrado SSL
+            </p>
+          </aside>
         </div>
       </div>
-
     </div>
   );
 }
 
 export default function CartPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-slate-500">Cargando carrito...</div>}>
+    <Suspense
+      fallback={
+        <div className="ens-band ens-band--cian">
+          <p className="max-w-7xl mx-auto px-4 py-24 text-center text-tinta-suave animate-pulse">
+            Cargando carrito…
+          </p>
+        </div>
+      }
+    >
       <CartContent />
     </Suspense>
   );

@@ -249,23 +249,24 @@ export default function UniversalAuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-      <div className="bg-white/95 backdrop-blur-xl border border-purple-100 max-w-md w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-5 relative my-6 transition-all duration-300">
+    <div className="fixed inset-0 z-[95] bg-tinta/70 overflow-y-auto animate-fade-in">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-6">
+      <div className="bg-white border border-borde max-w-md w-full rounded-[24px] p-6 sm:p-8 text-tinta space-y-5 relative animate-scale-in">
         {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+        <div className="flex items-center justify-between border-b border-borde pb-3.5">
           <button
             onClick={closeAuthModal}
-            className="inline-flex items-center gap-1 text-xs font-extrabold text-slate-500 hover:text-purple-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-extrabold text-tinta-suave hover:text-azul transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Cerrar
           </button>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-pink-100 to-purple-100 text-purple-800 px-3 py-1 rounded-full border border-purple-200 shadow-2xs">
-              Ensueño Baby ✨
+            <span className="ens-eyebrow text-azul">
+              Ensueño
             </span>
             <button
               onClick={closeAuthModal}
-              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+              className="text-tinta-suave hover:text-tinta-suave p-1.5 rounded-full hover:bg-cian transition-colors"
               title="Cerrar ventana"
             >
               <X className="w-5 h-5" />
@@ -277,11 +278,11 @@ export default function UniversalAuthModal() {
         {isVerifyingStep ? (
           <div className="space-y-6 animate-fade-in">
             <div className="text-center space-y-2">
-              <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-2xs border border-purple-200">
-                <ShieldCheck className="w-7 h-7 text-purple-600" />
+              <div className="w-14 h-14 bg-cian text-azul rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-borde">
+                <ShieldCheck className="w-7 h-7 text-azul" />
               </div>
-              <h2 className="text-xl font-black text-slate-800">Verifica tu Correo Electrónico</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-xl font-black text-tinta">Verifica tu Correo Electrónico</h2>
+              <p className="text-xs text-tinta-suave">
                 Ingresa el código de 6 dígitos enviado por Resend a <strong className="font-mono">{email}</strong>:
               </p>
             </div>
@@ -290,14 +291,14 @@ export default function UniversalAuthModal() {
               <div
                 className={`p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
                   verifyMessage.type === 'success'
-                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    ? 'bg-celeste text-azul border border-borde'
+                    : 'bg-cian text-secondary border border-secondary'
                 }`}
               >
                 {verifyMessage.type === 'success' ? (
-                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-azul shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-secondary shrink-0" />
                 )}
                 <span>{verifyMessage.text}</span>
               </div>
@@ -312,7 +313,7 @@ export default function UniversalAuthModal() {
                   value={verificationCodeInput}
                   onChange={(e) => setVerificationCodeInput(e.target.value)}
                   placeholder="Ej: 482915"
-                  className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-800 font-mono text-center tracking-widest text-xl font-black focus:outline-none focus:ring-2 focus:ring-purple-400 bg-purple-50/50"
+                  className="w-full px-4 py-3 rounded-xl border border-borde text-tinta font-mono text-center tracking-widest text-xl font-black focus:outline-none focus:ring-2 focus:ring-celeste bg-cian"
                   autoFocus
                 />
               </div>
@@ -328,7 +329,7 @@ export default function UniversalAuthModal() {
               <button
                 type="button"
                 onClick={handleResendCode}
-                className="w-full text-slate-500 hover:text-purple-700 text-xs font-bold text-center block pt-1 cursor-pointer"
+                className="w-full text-tinta-suave hover:text-azul text-xs font-bold text-center block pt-1 cursor-pointer"
               >
                 ¿No recibiste el código? Reenviar correo
               </button>
@@ -337,7 +338,7 @@ export default function UniversalAuthModal() {
         ) : (
           <>
             {/* Mode Switcher Tabs */}
-            <div className="flex bg-slate-100 p-1 rounded-2xl">
+            <div className="flex bg-cian p-1 rounded-2xl">
               <button
                 type="button"
                 onClick={() => {
@@ -346,8 +347,8 @@ export default function UniversalAuthModal() {
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-extrabold transition-all ${
                   authModalMode === 'login'
-                    ? 'bg-white text-purple-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
+                    ? 'bg-white text-azul shadow-sm'
+                    : 'text-tinta-suave hover:text-tinta'
                 }`}
               >
                 Iniciar Sesión
@@ -360,8 +361,8 @@ export default function UniversalAuthModal() {
                 }}
                 className={`flex-1 py-2 rounded-xl text-xs font-extrabold transition-all ${
                   authModalMode === 'register'
-                    ? 'bg-white text-purple-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
+                    ? 'bg-white text-azul shadow-sm'
+                    : 'text-tinta-suave hover:text-tinta'
                 }`}
               >
                 Crear Mi Cuenta
@@ -369,8 +370,8 @@ export default function UniversalAuthModal() {
             </div>
 
             {errorMsg && (
-              <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs p-3 rounded-xl font-semibold flex items-center gap-2 animate-shake">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <div className="bg-cian border border-secondary text-secondary text-xs p-3 rounded-xl font-semibold flex items-center gap-2 animate-shake">
+                <AlertCircle className="w-4 h-4 text-secondary shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
@@ -379,7 +380,7 @@ export default function UniversalAuthModal() {
               /* LOGIN FORM */
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1.5">
+                  <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1.5">
                     Correo Electrónico
                   </label>
                   <div className="relative">
@@ -389,19 +390,19 @@ export default function UniversalAuthModal() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="tu@correo.com"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                     />
-                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Mail className="w-4 h-4 text-tinta-suave absolute left-3.5 top-3" />
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-[11px] font-extrabold uppercase text-slate-600">Contraseña</label>
+                    <label className="block text-[11px] font-extrabold uppercase text-tinta-suave">Contraseña</label>
                     <Link
                       href="/recuperar-password"
                       onClick={closeAuthModal}
-                      className="text-[11px] font-bold text-purple-600 hover:underline"
+                      className="text-[11px] font-bold text-azul hover:underline"
                     >
                       ¿Olvidaste tu clave?
                     </Link>
@@ -413,18 +414,18 @@ export default function UniversalAuthModal() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                     />
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Lock className="w-4 h-4 text-tinta-suave absolute left-3.5 top-3" />
                     <button
                       type="button"
                       onMouseEnter={() => setShowLoginPassword(true)}
                       onMouseLeave={() => setShowLoginPassword(false)}
                       onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-3.5 top-2.5 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                      className="absolute right-3.5 top-2.5 text-tinta-suave hover:text-azul transition-colors p-0.5"
                       title="Mantén sobre el icono o haz clic para ver contraseña"
                     >
-                      {showLoginPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                      {showLoginPassword ? <EyeOff className="w-4 h-4 text-azul" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -441,26 +442,26 @@ export default function UniversalAuthModal() {
               /* INTERACTIVE MULTI-STEP REGISTER WIZARD */
               <div className="space-y-4">
                 {/* Step Indicator Header with Progress Bar */}
-                <div className="space-y-2 bg-gradient-to-r from-pink-50/70 via-purple-50/50 to-sky-50/70 p-3 rounded-2xl border border-purple-100">
-                  <div className="flex items-center justify-between text-[11px] font-black uppercase text-purple-800">
+                <div className="space-y-2 bg-celeste p-3 rounded-2xl border border-borde">
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase text-azul">
                     <span className="flex items-center gap-1.5">
-                      {regStep === 1 && <User className="w-3.5 h-3.5 text-purple-600" />}
-                      {regStep === 2 && <FileText className="w-3.5 h-3.5 text-pink-600" />}
-                      {regStep === 3 && <Baby className="w-3.5 h-3.5 text-sky-600" />}
-                      {regStep === 4 && <Sparkles className="w-3.5 h-3.5 text-amber-500" />}
+                      {regStep === 1 && <User className="w-3.5 h-3.5 text-azul" />}
+                      {regStep === 2 && <FileText className="w-3.5 h-3.5 text-secondary" />}
+                      {regStep === 3 && <Baby className="w-3.5 h-3.5 text-azul" />}
+                      {regStep === 4 && <Sparkles className="w-3.5 h-3.5 text-tertiary" />}
                       Paso {regStep} de 4:{' '}
                       {regStep === 1 && 'Tus Datos Personales 🌸'}
                       {regStep === 2 && 'Facturación Electrónica 📄'}
                       {regStep === 3 && 'Perfil de tu Bebé 🍼'}
                       {regStep === 4 && 'Seguridad & Términos 🔒'}
                     </span>
-                    <span className="text-purple-600 font-mono text-[10px]">{regStep * 25}%</span>
+                    <span className="text-azul font-mono text-[10px]">{regStep * 25}%</span>
                   </div>
 
                   {/* Progress Line */}
-                  <div className="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-borde h-1.5 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 transition-all duration-300 rounded-full"
+                      className="h-full bg-celeste transition-all duration-300 rounded-full"
                       style={{ width: `${regStep * 25}%` }}
                     />
                   </div>
@@ -476,10 +477,10 @@ export default function UniversalAuthModal() {
                         }}
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black transition-all ${
                           step === regStep
-                            ? 'bg-purple-600 text-white ring-2 ring-purple-300 scale-110 shadow-xs'
+                            ? 'bg-azul text-white ring-2 ring-celeste scale-110 shadow-sm'
                             : step < regStep
-                            ? 'bg-purple-200 text-purple-800 cursor-pointer'
-                            : 'bg-slate-200 text-slate-400'
+                            ? 'bg-celeste text-azul cursor-pointer'
+                            : 'bg-borde text-tinta-suave'
                         }`}
                       >
                         {step < regStep ? '✓' : step}
@@ -494,7 +495,7 @@ export default function UniversalAuthModal() {
                   {regStep === 1 && (
                     <div className="space-y-3 animate-fade-in">
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Tu Nombre Completo *
                         </label>
                         <input
@@ -504,12 +505,12 @@ export default function UniversalAuthModal() {
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="Ej: María Alejandra Morales"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Correo Electrónico *
                         </label>
                         <input
@@ -518,19 +519,19 @@ export default function UniversalAuthModal() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="tu@correo.com"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           WhatsApp (Celular) *
                         </label>
                         <div className="flex gap-1.5">
                           <select
                             value={phoneCountryCode}
                             onChange={(e) => setPhoneCountryCode(e.target.value)}
-                            className="px-2 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-slate-100 focus:ring-2 focus:ring-purple-400 shrink-0 cursor-pointer"
+                            className="px-2 py-2.5 rounded-xl border border-borde text-xs font-bold text-tinta bg-cian focus:ring-2 focus:ring-celeste shrink-0 cursor-pointer"
                           >
                             {COUNTRY_DIAL_CODES.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -544,7 +545,7 @@ export default function UniversalAuthModal() {
                             value={phone}
                             onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                             placeholder="300 123 4567"
-                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 font-mono bg-slate-50/50"
+                            className="w-full px-3 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste font-mono bg-cian"
                           />
                         </div>
                       </div>
@@ -554,22 +555,22 @@ export default function UniversalAuthModal() {
                   {/* STEP 2: Facturación Electrónica */}
                   {regStep === 2 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      <div className="bg-pink-50/60 border border-pink-200/80 rounded-2xl p-3.5 flex items-start gap-2.5">
-                        <FileText className="w-5 h-5 text-pink-600 shrink-0 mt-0.5" />
-                        <div className="text-xs text-pink-900 leading-snug">
+                      <div className="bg-cian border border-borde rounded-2xl p-3.5 flex items-start gap-2.5">
+                        <FileText className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
+                        <div className="text-xs text-tinta leading-snug">
                           <strong className="block font-bold mb-0.5">Datos para Facturación Electrónica 🧾</strong>
                           Ingresa tu documento legal para generar tus facturas de compra. Por normatividad legal, este dato no se podrá modificar posteriormente.
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Tipo de Documento *
                         </label>
                         <select
                           value={docType}
                           onChange={(e) => setDocType(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-white"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-white"
                         >
                           <option value="CC">Cédula de Ciudadanía (C.C.)</option>
                           <option value="CE">Cédula de Extranjería (C.E.)</option>
@@ -581,7 +582,7 @@ export default function UniversalAuthModal() {
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Número de Documento *
                         </label>
                         <div className="relative">
@@ -592,9 +593,9 @@ export default function UniversalAuthModal() {
                             value={docNumber}
                             onChange={(e) => setDocNumber(e.target.value)}
                             placeholder="Ej: 1020304050"
-                            className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 font-mono"
+                            className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste font-mono"
                           />
-                          <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                          <FileText className="w-4 h-4 text-tinta-suave absolute left-3.5 top-3" />
                         </div>
                       </div>
                     </div>
@@ -603,16 +604,16 @@ export default function UniversalAuthModal() {
                   {/* STEP 3: Personalización para tu Bebé */}
                   {regStep === 3 && (
                     <div className="space-y-3.5 animate-fade-in">
-                      <div className="bg-sky-50/70 border border-sky-200/80 rounded-2xl p-3.5 flex items-start gap-2.5">
-                        <Baby className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
-                        <div className="text-xs text-sky-900 leading-snug">
+                      <div className="bg-celeste border border-borde rounded-2xl p-3.5 flex items-start gap-2.5">
+                        <Baby className="w-5 h-5 text-azul shrink-0 mt-0.5" />
+                        <div className="text-xs text-azul leading-snug">
                           <strong className="block font-bold mb-0.5">Personalización Ensueño Baby 🍼</strong>
                           Cuéntanos el nombre de tu bebé y el tipo de piel para sugerirte la rutina de baño e hidratación perfecta.
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Nombre de tu Bebé *
                         </label>
                         <input
@@ -622,18 +623,18 @@ export default function UniversalAuthModal() {
                           value={babyName}
                           onChange={(e) => setBabyName(e.target.value)}
                           placeholder="Ej: Sofía"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-slate-50/50"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Condición o Tipo de Piel *
                         </label>
                         <select
                           value={skinCondition}
                           onChange={(e) => setSkinCondition(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400 bg-white"
+                          className="w-full px-3 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-white"
                         >
                           <option value="Sensible">Sensible</option>
                           <option value="Atópica">Muy Sensible / Atópica</option>
@@ -647,7 +648,7 @@ export default function UniversalAuthModal() {
                   {regStep === 4 && (
                     <div className="space-y-3 animate-fade-in">
                       <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-slate-600 mb-1">
+                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
                           Crea tu Contraseña *
                         </label>
                         <div className="relative">
@@ -658,31 +659,31 @@ export default function UniversalAuthModal() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Mínimo 6 caracteres"
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:ring-2 focus:ring-purple-400"
+                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste"
                           />
-                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                          <Lock className="w-4 h-4 text-tinta-suave absolute left-3.5 top-3" />
                           <button
                             type="button"
                             onMouseEnter={() => setShowPassword(true)}
                             onMouseLeave={() => setShowPassword(false)}
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3.5 top-2.5 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                            className="absolute right-3.5 top-2.5 text-tinta-suave hover:text-azul transition-colors p-0.5"
                             title="Mantén sobre el icono o haz clic para ver contraseña"
                           >
-                            {showPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                            {showPassword ? <EyeOff className="w-4 h-4 text-azul" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="block text-[11px] font-extrabold uppercase text-slate-600">
+                          <label className="block text-[11px] font-extrabold uppercase text-tinta-suave">
                             Confirmar Contraseña *
                           </label>
                           {confirmPassword && (
                             <span
                               className={`text-[10px] font-bold ${
-                                password === confirmPassword ? 'text-emerald-600' : 'text-rose-600'
+                                password === confirmPassword ? 'text-azul' : 'text-secondary'
                               }`}
                             >
                               {password === confirmPassword ? '✓ Coinciden' : '✗ No coinciden'}
@@ -696,22 +697,22 @@ export default function UniversalAuthModal() {
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder="Repite tu contraseña"
-                            className={`w-full pl-10 pr-10 py-2.5 rounded-xl border text-xs font-semibold focus:ring-2 focus:ring-purple-400 ${
+                            className={`w-full pl-10 pr-10 py-2.5 rounded-xl border text-xs font-semibold focus:ring-2 focus:ring-celeste ${
                               confirmPassword && password !== confirmPassword
-                                ? 'border-rose-300 bg-rose-50/50'
-                                : 'border-slate-200'
+                                ? 'border-secondary bg-cian'
+                                : 'border-borde'
                             }`}
                           />
-                          <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                          <Lock className="w-4 h-4 text-tinta-suave absolute left-3.5 top-3" />
                           <button
                             type="button"
                             onMouseEnter={() => setShowConfirmPassword(true)}
                             onMouseLeave={() => setShowConfirmPassword(false)}
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3.5 top-2.5 text-slate-400 hover:text-purple-600 transition-colors p-0.5"
+                            className="absolute right-3.5 top-2.5 text-tinta-suave hover:text-azul transition-colors p-0.5"
                             title="Mantén sobre el icono o haz clic para ver contraseña"
                           >
-                            {showConfirmPassword ? <EyeOff className="w-4 h-4 text-purple-600" /> : <Eye className="w-4 h-4" />}
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4 text-azul" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
@@ -723,14 +724,14 @@ export default function UniversalAuthModal() {
                           required
                           checked={acceptDataPolicy}
                           onChange={(e) => setAcceptDataPolicy(e.target.checked)}
-                          className="mt-0.5 w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer shrink-0"
+                          className="mt-0.5 w-4 h-4 text-azul rounded border-borde focus:ring-celeste cursor-pointer shrink-0"
                         />
-                        <label htmlFor="modalAcceptDataPolicy" className="text-[10px] text-slate-600 leading-tight select-none">
+                        <label htmlFor="modalAcceptDataPolicy" className="text-[10px] text-tinta-suave leading-tight select-none">
                           Acepto la{' '}
                           <Link
                             href="/politica-tratamiento-datos"
                             target="_blank"
-                            className="text-purple-600 font-bold underline hover:text-purple-800"
+                            className="text-azul font-bold underline hover:text-azul"
                           >
                             Política de Tratamiento de Datos Personales
                           </Link>{' '}
@@ -742,12 +743,12 @@ export default function UniversalAuthModal() {
                 </div>
 
                 {/* SLIDE WIZARD CONTROLS (Anterior / Siguiente / Crear Cuenta) */}
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center gap-2 pt-2 border-t border-borde">
                   {regStep > 1 && (
                     <button
                       type="button"
                       onClick={handlePrevStep}
-                      className="px-4 py-3 rounded-2xl border border-slate-200 text-slate-600 font-extrabold text-xs hover:bg-slate-50 transition-all inline-flex items-center gap-1 shrink-0"
+                      className="px-4 py-3 rounded-2xl border border-borde text-tinta-suave font-extrabold text-xs hover:bg-cian transition-all inline-flex items-center gap-1 shrink-0"
                     >
                       <ArrowLeft className="w-4 h-4" /> Anterior
                     </button>
@@ -778,6 +779,7 @@ export default function UniversalAuthModal() {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

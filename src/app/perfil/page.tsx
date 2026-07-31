@@ -330,20 +330,23 @@ export default function ProfilePage() {
   // Si el cliente no ha iniciado sesión, mostrar tarjeta de invitación con botón al modal universal
   if (!isLoggedIn) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-sky-50 py-16 px-4 flex items-center justify-center">
-        <div className="max-w-md w-full bg-white/90 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-purple-100 text-center space-y-6">
-          <div className="w-16 h-16 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-md border border-white">
-            <Baby className="w-8 h-8 text-purple-700" />
+      <main className="ens-band ens-band--cian min-h-[60vh] flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-[24px] p-8 border border-borde text-center">
+          <div className="w-16 h-16 bg-celeste rounded-2xl grid place-items-center mx-auto">
+            <Baby className="w-8 h-8 text-azul" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">¡Bienvenida a Ensueño Baby! 💖</h1>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Inicia sesión o crea tu cuenta para ver tus datos, consultar el historial de tus compras y acumular Puntos Ensueño.
+          <h1 className="mt-5 font-display text-2xl leading-tight text-tinta">
+            Tu cuenta Ensueño
+          </h1>
+          <p className="mt-3 text-tinta-suave leading-relaxed">
+            Inicia sesión para ver tus datos, el historial de pedidos y tus puntos.
           </p>
           <button
+            type="button"
             onClick={() => openAuthModal('login')}
-            className="btn-ensueno-primary w-full h-12 text-xs font-extrabold uppercase tracking-wider"
+            className="ens-btn ens-btn--azul w-full mt-6"
           >
-            Iniciar Sesión / Registrarme
+            Iniciar sesión
           </button>
         </div>
       </main>
@@ -357,69 +360,73 @@ export default function ProfilePage() {
   const points = userData?.loyaltyPoints || 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Verification Banner if unverified */}
+    <div className="ens-band ens-band--cian page-entry-anim">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+      {/* Verificación de correo pendiente */}
       {userData && userData.emailVerified === false && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="w-8 h-8 text-amber-600 shrink-0" />
+        <div className="bg-amarillo border border-borde rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="w-6 h-6 text-tinta shrink-0 mt-0.5" aria-hidden="true" />
             <div>
-              <h3 className="font-extrabold text-sm text-amber-900">Confirma tu Correo Electrónico</h3>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Hemos enviado un código de confirmación de 6 dígitos a <strong className="font-mono font-bold">{userData.email}</strong>.
+              <h2 className="font-display text-lg text-tinta">Confirma tu correo</h2>
+              <p className="text-sm text-tinta-suave mt-0.5">
+                Enviamos un código de 6 dígitos a <strong className="text-tinta">{userData.email}</strong>.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setShowVerifyModal(true)}
-            className="btn-ensueno-amber h-11 px-6 text-xs font-extrabold uppercase tracking-wider shrink-0"
+            className="ens-btn ens-btn--azul h-11 text-xs shrink-0"
           >
-            Ingresar Código (6 Dígitos)
+            Ingresar código
           </button>
         </div>
       )}
 
-      {/* Profile Header Hero Card */}
-      <div className="bg-gradient-to-r from-pink-100/70 via-purple-100/60 to-sky-100/70 rounded-3xl p-6 sm:p-8 border border-pink-200/60 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-        <div className="flex items-center space-x-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-pink-400 to-purple-500 text-white font-extrabold text-2xl sm:text-3xl flex items-center justify-center shadow-md border-2 border-white flex-shrink-0">
+      {/* Cabecera */}
+      <div className="bg-white border border-borde rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <span
+            aria-hidden="true"
+            className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 grid place-items-center rounded-full bg-azul text-white font-display text-3xl"
+          >
             {motherName.charAt(0).toUpperCase()}
-          </div>
+          </span>
           <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="font-extrabold text-2xl sm:text-3xl text-slate-800">{motherName}</h1>
-              <span className="bg-purple-200 text-purple-800 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase">
-                MAMÁ ENSUEÑO
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Bebé: <strong className="text-purple-700 font-extrabold">{babyName}</strong> • Piel:{' '}
-              <strong className="text-pink-700 font-extrabold">{skinCondition}</strong>
+            <p className="ens-eyebrow text-azul">Mi cuenta</p>
+            <h1 className="mt-1 font-display text-tinta text-[clamp(1.5rem,3vw,2.25rem)] leading-tight">
+              {motherName}
+            </h1>
+            <p className="mt-1 text-sm text-tinta-suave">
+              Bebé <strong className="text-tinta">{babyName}</strong> · Piel{' '}
+              <strong className="text-tinta">{skinCondition}</strong>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-amber-100 text-amber-900 px-4 py-2 rounded-2xl border border-amber-300/80 text-xs font-extrabold shadow-xs">
-            <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-            <span>Puntos: {points} pts</span>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="inline-flex items-center gap-2 h-11 px-4 rounded-full bg-amarillo text-tinta text-sm font-bold">
+            <Star className="w-4 h-4 fill-current" aria-hidden="true" />
+            {points} puntos
+          </span>
 
           <button
+            type="button"
             onClick={handleLogout}
-            className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs px-4 py-2 rounded-2xl transition-all flex items-center gap-1.5 shadow-2xs"
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-full border border-borde bg-white text-tinta-suave text-sm font-bold hover:text-secondary hover:border-secondary transition-colors ens-focus"
           >
-            <LogOut className="w-3.5 h-3.5" /> Cerrar Sesión
+            <LogOut className="w-4 h-4" aria-hidden="true" /> Cerrar sesión
           </button>
         </div>
       </div>
 
       {/* Tabs Bar */}
-      <div className="flex items-center space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex items-center space-x-2 border-b border-borde pb-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab('perfil')}
           className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-bold text-xs transition-all ${
-            activeTab === 'perfil' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+            activeTab === 'perfil' ? 'bg-azul text-white shadow-md' : 'bg-white text-tinta-suave border border-borde hover:bg-cian'
           }`}
         >
           <Baby className="w-4 h-4" />
@@ -429,7 +436,7 @@ export default function ProfilePage() {
         <button
           onClick={() => setActiveTab('direcciones')}
           className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-bold text-xs transition-all ${
-            activeTab === 'direcciones' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+            activeTab === 'direcciones' ? 'bg-azul text-white shadow-md' : 'bg-white text-tinta-suave border border-borde hover:bg-cian'
           }`}
         >
           <MapPin className="w-4 h-4" />
@@ -439,7 +446,7 @@ export default function ProfilePage() {
         <button
           onClick={() => setActiveTab('pedidos')}
           className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-bold text-xs transition-all ${
-            activeTab === 'pedidos' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+            activeTab === 'pedidos' ? 'bg-azul text-white shadow-md' : 'bg-white text-tinta-suave border border-borde hover:bg-cian'
           }`}
         >
           <Package className="w-4 h-4" />
@@ -449,7 +456,7 @@ export default function ProfilePage() {
         <button
           onClick={() => setActiveTab('preferencias')}
           className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-bold text-xs transition-all ${
-            activeTab === 'preferencias' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+            activeTab === 'preferencias' ? 'bg-azul text-white shadow-md' : 'bg-white text-tinta-suave border border-borde hover:bg-cian'
           }`}
         >
           <Settings className="w-4 h-4" />
@@ -459,14 +466,14 @@ export default function ProfilePage() {
 
       {/* Tab 1: Perfil & Datos de Envío */}
       {activeTab === 'perfil' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 max-w-3xl space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-borde max-w-3xl space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-borde pb-3">
             <div>
-              <h2 className="font-extrabold text-xl text-slate-800">Tus Datos Personales</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Información general de tu cuenta de usuario.</p>
+              <h2 className="font-extrabold text-xl text-tinta">Tus Datos Personales</h2>
+              <p className="text-xs text-tinta-suave mt-0.5">Información general de tu cuenta de usuario.</p>
             </div>
             {savedSuccess && (
-              <span className="text-xs font-bold text-emerald-600 flex items-center space-x-1 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+              <span className="text-xs font-bold text-azul flex items-center space-x-1 bg-celeste px-3 py-1 rounded-full border border-borde">
                 <Check className="w-4 h-4" />
                 <span>¡Cambios guardados!</span>
               </span>
@@ -476,33 +483,33 @@ export default function ProfilePage() {
           <form onSubmit={handleSaveProfile} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre Completo</label>
+                <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Nombre Completo</label>
                 <input
                   type="text"
                   required
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Teléfono / WhatsApp</label>
+                <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Teléfono / WhatsApp</label>
                 <input
                   type="tel"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   placeholder="+57 300 123 4567"
-                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                  className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold uppercase text-slate-600">Tipo de Documento</label>
+                  <label className="block text-xs font-bold uppercase text-tinta-suave">Tipo de Documento</label>
                   {userData?.profile?.docNumber && (
-                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-slate-400" /> Facturación
+                    <span className="text-[10px] font-bold text-tinta-suave bg-cian px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-tinta-suave" /> Facturación
                     </span>
                   )}
                 </div>
@@ -510,10 +517,10 @@ export default function ProfilePage() {
                   value={editDocType}
                   disabled={!!userData?.profile?.docNumber}
                   onChange={(e) => setEditDocType(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold text-slate-800 ${
+                  className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold text-tinta ${
                     userData?.profile?.docNumber
-                      ? 'bg-slate-100/80 border-slate-200 cursor-not-allowed opacity-75'
-                      : 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-purple-400'
+                      ? 'bg-cian border-borde cursor-not-allowed opacity-75'
+                      : 'bg-cian border-borde focus:ring-2 focus:ring-celeste'
                   }`}
                 >
                   <option value="CC">Cédula de Ciudadanía (CC)</option>
@@ -527,12 +534,12 @@ export default function ProfilePage() {
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold uppercase text-slate-600">
+                  <label className="block text-xs font-bold uppercase text-tinta-suave">
                     Número de Documento (Factura)
                   </label>
                   {userData?.profile?.docNumber && (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Lock className="w-3 h-3 text-amber-600" /> No Modificable
+                    <span className="text-[10px] font-bold text-tinta bg-amarillo border border-borde px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-tertiary" /> No Modificable
                     </span>
                   )}
                 </div>
@@ -544,37 +551,37 @@ export default function ProfilePage() {
                   placeholder="Ej: 1020304050"
                   className={`w-full px-4 py-2.5 rounded-xl text-xs border font-semibold ${
                     userData?.profile?.docNumber
-                      ? 'bg-slate-100/80 border-slate-200 text-slate-600 cursor-not-allowed font-mono'
-                      : 'bg-slate-50 border-slate-200 focus:ring-2 focus:ring-purple-400'
+                      ? 'bg-cian border-borde text-tinta-suave cursor-not-allowed font-mono'
+                      : 'bg-cian border-borde focus:ring-2 focus:ring-celeste'
                   }`}
                 />
               </div>
             </div>
 
             {/* Datos Bebé */}
-            <div className="border-t border-slate-100 pt-4 space-y-4">
-              <h3 className="font-bold text-sm text-purple-700 flex items-center gap-1.5 uppercase tracking-wide">
-                <Baby className="w-4 h-4 text-purple-600" /> Información del Bebé
+            <div className="border-t border-borde pt-4 space-y-4">
+              <h3 className="font-bold text-sm text-azul flex items-center gap-1.5 uppercase tracking-wide">
+                <Baby className="w-4 h-4 text-azul" /> Información del Bebé
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nombre del Bebé</label>
+                  <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Nombre del Bebé</label>
                   <input
                     type="text"
                     value={editBabyName}
                     onChange={(e) => setEditBabyName(e.target.value)}
                     placeholder="Ej: Sofía"
-                    className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                    className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Condición de la Piel</label>
+                  <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Condición de la Piel</label>
                   <select
                     value={editSkinCondition}
                     onChange={(e) => setEditSkinCondition(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-cian"
                   >
                     <option value="Normal">Normal</option>
                     <option value="Sensible">Sensible</option>
@@ -586,7 +593,7 @@ export default function ProfilePage() {
 
             <button
               type="submit"
-              className="inline-flex items-center space-x-2 bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold text-xs px-8 py-3.5 rounded-full shadow-md transition-all border border-white/40 cursor-pointer"
+              className="inline-flex items-center space-x-2 bg-azul hover:bg-azul-hondo text-white font-bold text-xs px-8 py-3.5 rounded-full transition-colors cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>Guardar Todos los Cambios</span>
@@ -597,13 +604,13 @@ export default function ProfilePage() {
 
       {/* Tab 2: Mis Direcciones de Envío */}
       {activeTab === 'direcciones' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 max-w-3xl space-y-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-borde max-w-3xl space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-borde pb-4 gap-3">
             <div>
-              <h2 className="font-extrabold text-xl text-slate-800 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-purple-600" /> Mis Direcciones de Envío ({savedAddresses.length})
+              <h2 className="font-extrabold text-xl text-tinta flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-azul" /> Mis Direcciones de Envío ({savedAddresses.length})
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs text-tinta-suave mt-0.5">
                 Administra tus ubicaciones guardadas y establece tu dirección predeterminada para el checkout.
               </p>
             </div>
@@ -617,26 +624,26 @@ export default function ProfilePage() {
 
           {/* Formulario Nueva Dirección en Perfil */}
           {isAddingAddress && (
-            <form onSubmit={handleCreateAddress} className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-5 space-y-4 animate-fade-in">
-              <h3 className="font-bold text-sm text-purple-900 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-purple-600" /> Nueva Dirección de Envío
+            <form onSubmit={handleCreateAddress} className="bg-cian/70 border border-borde/80 rounded-2xl p-5 space-y-4 animate-fade-in">
+              <h3 className="font-bold text-sm text-azul flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-azul" /> Nueva Dirección de Envío
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre o Etiqueta (Ej: Hogar, Oficina)</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">Nombre o Etiqueta (Ej: Hogar, Oficina)</label>
                   <input
                     type="text"
                     required
                     value={newAddrTitle}
                     onChange={(e) => setNewAddrTitle(e.target.value)}
                     placeholder="Ej: Casa Mamá, Trabajo"
-                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-purple-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-borde focus:ring-2 focus:ring-celeste font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Departamento</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">Departamento</label>
                   <select
                     value={newAddrDeptIdx}
                     onChange={(e) => {
@@ -644,7 +651,7 @@ export default function ProfilePage() {
                       setNewAddrDeptIdx(idx);
                       setNewAddrCity(COLOMBIA_LOCATION_DATA[idx].cities[0]);
                     }}
-                    className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   >
                     {COLOMBIA_LOCATION_DATA.map((d, index) => (
                       <option key={d.name} value={index}>
@@ -655,11 +662,11 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Municipio / Ciudad</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">Municipio / Ciudad</label>
                   <select
                     value={newAddrCity}
                     onChange={(e) => setNewAddrCity(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-purple-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   >
                     {COLOMBIA_LOCATION_DATA[newAddrDeptIdx].cities.map((city) => (
                       <option key={city} value={city}>
@@ -670,14 +677,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Dirección Exacta</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">Dirección Exacta</label>
                   <input
                     type="text"
                     required
                     value={newAddrLine}
                     onChange={(e) => setNewAddrLine(e.target.value)}
                     placeholder="Calle, Carrera, Apto, Barrio"
-                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-purple-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                    className="w-full px-3.5 py-2 rounded-xl text-xs bg-white border border-borde focus:ring-2 focus:ring-celeste font-semibold"
                   />
                 </div>
               </div>
@@ -688,9 +695,9 @@ export default function ProfilePage() {
                   id="profileAddrIsDefault"
                   checked={newAddrIsDefault}
                   onChange={(e) => setNewAddrIsDefault(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded border-slate-300 focus:ring-purple-500 cursor-pointer"
+                  className="w-4 h-4 text-azul rounded border-borde focus:ring-celeste cursor-pointer"
                 />
-                <label htmlFor="profileAddrIsDefault" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
+                <label htmlFor="profileAddrIsDefault" className="text-xs font-bold text-tinta-suave cursor-pointer select-none">
                   Establecer como mi dirección predeterminada de envío ⭐
                 </label>
               </div>
@@ -699,13 +706,13 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setIsAddingAddress(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/60"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-tinta-suave hover:bg-cian"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="btn-ensueno-primary text-xs font-extrabold px-6 py-2 rounded-xl shadow-xs"
+                  className="btn-ensueno-primary text-xs font-extrabold px-6 py-2 rounded-xl shadow-sm"
                 >
                   Guardar Dirección
                 </button>
@@ -715,10 +722,10 @@ export default function ProfilePage() {
 
           {/* Listado de Direcciones Guardadas */}
           {savedAddresses.length === 0 ? (
-            <div className="text-center py-10 space-y-3 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <MapPin className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-xs font-bold text-slate-600">Aún no tienes direcciones guardadas en tu cuenta.</p>
-              <p className="text-[11px] text-slate-400">Añade tu primera dirección para agilizar tus compras en el carrito.</p>
+            <div className="text-center py-10 space-y-3 bg-cian rounded-2xl border border-dashed border-borde">
+              <MapPin className="w-10 h-10 text-borde mx-auto" />
+              <p className="text-xs font-bold text-tinta-suave">Aún no tienes direcciones guardadas en tu cuenta.</p>
+              <p className="text-[11px] text-tinta-suave">Añade tu primera dirección para agilizar tus compras en el carrito.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -727,43 +734,43 @@ export default function ProfilePage() {
                   key={addr.id}
                   className={`p-4 rounded-2xl border transition-all space-y-2 relative ${
                     addr.isDefault
-                      ? 'bg-purple-50/70 border-purple-300 shadow-xs ring-2 ring-purple-200'
-                      : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/60'
+                      ? 'bg-cian/70 border-borde shadow-sm ring-2 ring-celeste'
+                      : 'bg-cian border-borde hover:bg-cian'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-purple-600" /> {addr.title || 'Hogar'}
+                    <span className="font-extrabold text-xs text-tinta flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-azul" /> {addr.title || 'Hogar'}
                       {addr.isDefault && (
-                        <span className="text-[9px] font-black uppercase bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full border border-pink-200">
+                        <span className="text-[9px] font-black uppercase bg-cian text-secondary px-2 py-0.5 rounded-full border border-borde">
                           ⭐ Predeterminada
                         </span>
                       )}
                     </span>
                     <button
                       onClick={() => handleDeleteAddress(addr.id)}
-                      className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                      className="text-tinta-suave hover:text-secondary p-1 transition-colors"
                       title="Eliminar dirección"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="text-xs text-slate-700 space-y-0.5">
-                    <p className="font-bold text-slate-800">{addr.address}</p>
-                    <p className="text-slate-500 font-semibold">{addr.city}, {addr.department}</p>
+                  <div className="text-xs text-tinta-suave space-y-0.5">
+                    <p className="font-bold text-tinta">{addr.address}</p>
+                    <p className="text-tinta-suave font-semibold">{addr.city}, {addr.department}</p>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-between border-t border-slate-200/60">
+                  <div className="pt-2 flex items-center justify-between border-t border-borde">
                     {!addr.isDefault ? (
                       <button
                         onClick={() => handleSetDefaultAddress(addr)}
-                        className="text-[11px] font-bold text-purple-700 hover:text-purple-900 hover:underline inline-flex items-center gap-1"
+                        className="text-[11px] font-bold text-azul hover:text-azul hover:underline inline-flex items-center gap-1"
                       >
                         ⭐ Marcar como predeterminada
                       </button>
                     ) : (
-                      <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-azul flex items-center gap-1">
                         ✓ Seleccionada para envíos
                       </span>
                     )}
@@ -778,23 +785,23 @@ export default function ProfilePage() {
       {/* Tab 2: Mis Pedidos */}
       {activeTab === 'pedidos' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-            <h2 className="font-extrabold text-xl text-slate-800">Historial de Pedidos Especifico de tu Cuenta</h2>
-            <span className="text-xs text-slate-500">{userOrders.length} orden(es) registrada(s)</span>
+          <div className="flex items-center justify-between border-b border-borde pb-3">
+            <h2 className="font-extrabold text-xl text-tinta">Historial de Pedidos Especifico de tu Cuenta</h2>
+            <span className="text-xs text-tinta-suave">{userOrders.length} orden(es) registrada(s)</span>
           </div>
 
           {userOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl p-10 text-center space-y-4 border border-purple-100 shadow-sm max-w-xl mx-auto">
-              <div className="w-16 h-16 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto text-2xl">
+            <div className="bg-white rounded-3xl p-10 text-center space-y-4 border border-borde shadow-sm max-w-xl mx-auto">
+              <div className="w-16 h-16 rounded-full bg-cian text-azul flex items-center justify-center mx-auto text-2xl">
                 📦
               </div>
-              <h3 className="font-bold text-slate-800 text-base">Aún no has realizado pedidos</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-bold text-tinta text-base">Aún no has realizado pedidos</h3>
+              <p className="text-xs text-tinta-suave">
                 Tus pedidos confirmados aparecerán aquí con su estado de envío en tiempo real y código de rastreo.
               </p>
               <Link
                 href="/"
-                className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs px-6 py-3 rounded-full shadow-md"
+                className="inline-block bg-azul hover:bg-azul-hondo text-white font-bold text-xs px-6 py-3 rounded-full shadow-md"
               >
                 Explorar Productos
               </Link>
@@ -802,30 +809,30 @@ export default function ProfilePage() {
           ) : (
             <div className="space-y-4">
               {userOrders.map((order) => (
-                <div key={order.id} className="bg-white rounded-3xl p-6 border border-purple-100 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                <div key={order.id} className="bg-white rounded-3xl p-6 border border-borde shadow-sm space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-borde pb-3 gap-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-extrabold text-base text-slate-800">Orden #{order.orderNumber}</span>
+                        <span className="font-extrabold text-base text-tinta">Orden #{order.orderNumber}</span>
                         <span
                           className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
                             order.status === 'confirmado' || order.paymentStatus === 'approved'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold'
+                              ? 'bg-celeste text-azul border-borde font-extrabold'
                               : order.status === 'anulada' || order.paymentStatus === 'rejected' || order.paymentStatus === 'expired'
-                              ? 'bg-rose-100 text-rose-800 border-rose-300 font-extrabold'
+                              ? 'bg-cian text-secondary border-borde font-extrabold'
                               : order.status === 'orden_generada'
-                              ? 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
+                              ? 'bg-amarillo text-tinta border-borde font-extrabold'
                               : order.status === 'empacada'
-                              ? 'bg-purple-100 text-purple-800 border-purple-300'
+                              ? 'bg-cian text-azul border-borde'
                               : order.status === 'en_camino'
-                              ? 'bg-sky-100 text-sky-800 border-sky-300'
+                              ? 'bg-celeste text-azul border-borde'
                               : order.status === 'sin_poder_entregarse'
                               ? 'bg-orange-100 text-orange-800 border-orange-300'
                               : order.status === 'entregada'
                               ? 'bg-teal-100 text-teal-800 border-teal-300'
                               : order.status === 'devolucion'
-                              ? 'bg-rose-100 text-rose-800 border-rose-300'
-                              : 'bg-rose-100 text-rose-800 border-rose-300'
+                              ? 'bg-cian text-secondary border-borde'
+                              : 'bg-cian text-secondary border-borde'
                           }`}
                         >
                           {order.status === 'confirmado' || order.paymentStatus === 'approved'
@@ -847,12 +854,12 @@ export default function ProfilePage() {
                             : '❌ Anulada'}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-400 mt-0.5 block">
+                      <span className="text-xs text-tinta-suave mt-0.5 block">
                         Realizada el {new Date(order.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
                       </span>
                     </div>
                     <div className="text-right flex flex-col items-end">
-                      <span className="font-black text-lg text-purple-700 block">{formatPrice(order.total)}</span>
+                      <span className="font-black text-lg text-azul block">{formatPrice(order.total)}</span>
                       {order.status === 'orden_generada' && (
                         <Link
                           href={`/confirmacion/${order.orderNumber}?status=rejected`}
@@ -862,30 +869,30 @@ export default function ProfilePage() {
                         </Link>
                       )}
                       {order.status !== 'orden_generada' && (
-                        <span className="text-[11px] text-slate-500">Estimado: {order.deliveryEstimate || '2-4 días'}</span>
+                        <span className="text-[11px] text-tinta-suave">Estimado: {order.deliveryEstimate || '2-4 días'}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Items */}
-                  <div className="divide-y divide-slate-100">
+                  <div className="divide-y divide-borde">
                     {order.items?.map((item: any) => (
-                      <div key={item.id} className="py-2 flex items-center justify-between text-xs text-slate-700">
+                      <div key={item.id} className="py-2 flex items-center justify-between text-xs text-tinta-suave">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-800">{item.productName}</span>
-                          <span className="text-slate-400">x{item.quantity}</span>
-                          {item.selectedFragrance && <span className="text-purple-600 text-[11px]">({item.selectedFragrance})</span>}
+                          <span className="font-bold text-tinta">{item.productName}</span>
+                          <span className="text-tinta-suave">x{item.quantity}</span>
+                          {item.selectedFragrance && <span className="text-azul text-[11px]">({item.selectedFragrance})</span>}
                         </div>
-                        <span className="font-bold text-slate-800">{formatPrice(item.subtotal)}</span>
+                        <span className="font-bold text-tinta">{formatPrice(item.subtotal)}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div className="bg-slate-50 p-3 rounded-2xl flex items-center justify-between text-xs text-slate-600">
+                  <div className="bg-cian p-3 rounded-2xl flex items-center justify-between text-xs text-tinta-suave">
                     <span className="flex items-center gap-1 font-semibold">
-                      <MapPin className="w-3.5 h-3.5 text-purple-600" /> Entrega en: {order.shippingAddress}
+                      <MapPin className="w-3.5 h-3.5 text-azul" /> Entrega en: {order.shippingAddress}
                     </span>
-                    <span className="font-bold text-purple-700 font-mono text-[11px]">
+                    <span className="font-bold text-azul font-mono text-[11px]">
                       Estado Pago MP: {order.paymentStatus === 'approved' ? 'Aprobado ✅' : 'Pendiente ⏳'}
                     </span>
                   </div>
@@ -898,54 +905,54 @@ export default function ProfilePage() {
 
       {/* Tab 3: Preferencias & Cambio de Contraseña */}
       {activeTab === 'preferencias' && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 max-w-2xl space-y-6 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="font-extrabold text-xl text-slate-800 flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-purple-600" /> Cambiar Contraseña de tu Cuenta
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-borde max-w-2xl space-y-6 shadow-sm">
+          <div className="flex items-center justify-between border-b border-borde pb-3">
+            <h2 className="font-extrabold text-xl text-tinta flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-azul" /> Cambiar Contraseña de tu Cuenta
             </h2>
           </div>
 
           <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Contraseña Actual</label>
+              <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Contraseña Actual</label>
               <input
                 type="password"
                 required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Nueva Contraseña</label>
+              <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Nueva Contraseña</label>
               <input
                 type="password"
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-slate-600 mb-1">Confirmar Nueva Contraseña</label>
+              <label className="block text-xs font-bold uppercase text-tinta-suave mb-1">Confirmar Nueva Contraseña</label>
               <input
                 type="password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repite la nueva contraseña"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-400 font-semibold"
+                className="w-full px-4 py-2.5 rounded-xl text-xs bg-cian border border-borde focus:ring-2 focus:ring-celeste font-semibold"
               />
             </div>
 
             <button
               type="submit"
               disabled={isChangingPassword}
-              className="w-full bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 hover:from-pink-500 hover:to-sky-500 text-white font-extrabold text-xs py-3.5 rounded-xl shadow-md transition-all border border-white/40 cursor-pointer"
+              className="w-full bg-azul hover:bg-azul-hondo text-white font-bold text-xs py-3.5 rounded-xl transition-colors cursor-pointer"
             >
               {isChangingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
             </button>
@@ -955,16 +962,16 @@ export default function ProfilePage() {
 
       {/* Modal de Confirmación de Correo (Código 6 Dígitos) */}
       {showVerifyModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-purple-100 max-w-md w-full rounded-3xl p-6 text-slate-800 shadow-2xl space-y-6 relative">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-tinta/70 flex items-center justify-center p-4">
+          <div className="bg-white border border-borde max-w-md w-full rounded-3xl p-6 text-tinta shadow-2xl space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-borde pb-3">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-purple-600" />
-                <h3 className="font-bold text-lg text-slate-800">Confirmación de Correo</h3>
+                <ShieldCheck className="w-5 h-5 text-azul" />
+                <h3 className="font-bold text-lg text-tinta">Confirmación de Correo</h3>
               </div>
               <button
                 onClick={() => setShowVerifyModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-tinta-suave hover:text-tinta-suave p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -973,7 +980,7 @@ export default function ProfilePage() {
             {verifyMessage && (
               <div
                 className={`p-3.5 rounded-xl text-xs font-semibold ${
-                  verifyMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                  verifyMessage.type === 'success' ? 'bg-celeste text-azul border border-borde' : 'bg-cian text-secondary border border-borde'
                 }`}
               >
                 {verifyMessage.text}
@@ -981,7 +988,7 @@ export default function ProfilePage() {
             )}
 
             <form onSubmit={handleVerifyCode} className="space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-tinta-suave">
                 Ingresa el código de 6 dígitos enviado por Resend a tu correo electrónico:
               </p>
 
@@ -993,7 +1000,7 @@ export default function ProfilePage() {
                   value={verificationCodeInput}
                   onChange={(e) => setVerificationCodeInput(e.target.value)}
                   placeholder="Ej: 482915"
-                  className="w-full px-4 py-3 rounded-xl border border-purple-200 text-slate-800 font-mono text-center tracking-widest text-xl font-black focus:outline-none focus:ring-2 focus:ring-purple-400 bg-purple-50/50"
+                  className="w-full px-4 py-3 rounded-xl border border-borde text-tinta font-mono text-center tracking-widest text-xl font-black focus:outline-none focus:ring-2 focus:ring-celeste bg-cian/50"
                   autoFocus
                 />
               </div>
@@ -1001,7 +1008,7 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={isVerifyingCode}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-3 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
+                className="w-full bg-azul hover:bg-azul-hondo text-white font-extrabold py-3 rounded-xl shadow-md transition-all text-xs uppercase tracking-wider disabled:opacity-50 cursor-pointer"
               >
                 {isVerifyingCode ? 'Verificando...' : 'Confirmar Código'}
               </button>
@@ -1009,7 +1016,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleResendVerificationCode}
-                className="w-full text-slate-500 hover:text-purple-700 text-xs font-bold text-center block pt-1 cursor-pointer"
+                className="w-full text-tinta-suave hover:text-azul text-xs font-bold text-center block pt-1 cursor-pointer"
               >
                 ¿No recibiste el código? Reenviar correo
               </button>
@@ -1017,6 +1024,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -1,16 +1,28 @@
 import type { Metadata } from 'next';
-import { Open_Sans } from 'next/font/google';
+import { DynaPuff, Nunito } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { UserProvider } from '@/context/UserContext';
 import AppLayoutWrapper from '@/components/layout/AppLayoutWrapper';
 import { ToastProvider } from '@/context/ToastContext';
-import ParticleBackground from '@/components/layout/ParticleBackground';
 import MetaPixel from '@/components/analytics/MetaPixel';
 
-const openSans = Open_Sans({
+// Marca. Variable 400–700 en un solo archivo; el subset `latin` (U+0000-00FF)
+// cubre ñ á é í ó ú ü ¡ ¿. Se expone como variable CSS, no como className, para
+// que DynaPuff no caiga sobre todo el cuerpo de texto.
+const dynapuff = DynaPuff({
   subsets: ['latin'],
   display: 'swap',
+  variable: '--font-display',
+  fallback: ['Nunito', 'Segoe UI', 'sans-serif'],
+});
+
+// Cuerpo y UI. Variable 200–1000 en un archivo.
+const nunito = Nunito({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-body',
+  fallback: ['Segoe UI', 'system-ui', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
@@ -26,12 +38,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="light">
-      <body className={`${openSans.className} min-h-screen flex flex-col bg-surface text-on-surface antialiased relative`}>
+      <body className={`${dynapuff.variable} ${nunito.variable} min-h-screen flex flex-col bg-surface text-on-surface antialiased relative`}>
         <ToastProvider>
           <CartProvider>
             <UserProvider>
               <MetaPixel />
-              <ParticleBackground />
               <AppLayoutWrapper>{children}</AppLayoutWrapper>
             </UserProvider>
           </CartProvider>

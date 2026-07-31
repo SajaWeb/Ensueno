@@ -3,107 +3,106 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, ShoppingBag, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { Product } from '@/types';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
+import StarRating from '@/components/ui/StarRating';
 
-export default function ProductCard({ product }: { product: Product }) {
+const CATEGORY_LABEL: Record<Product['category'], string> = {
+  sueno: 'Sueño',
+  piel: 'Piel',
+  higiene: 'Higiene',
+  kits: 'Combo',
+};
+
+export const formatPrice = (price: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(price);
+
+export default function ProductCard({
+  product,
+  sizes = '(max-width: 640px) 82vw, (max-width: 1024px) 46vw, 33vw',
+}: {
+  product: Product;
+  sizes?: string;
+}) {
   const { addToCart } = useCart();
   const { isSaved, toggleSavedItem } = useUser();
   const saved = isSaved(product.id);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  const hasPromo = Boolean(product.originalPrice && product.originalPrice > product.price);
 
   return (
-    <div className="group bg-white rounded-2xl p-4 soft-glow-card flex flex-col justify-between relative overflow-hidden transition-all">
-      {/* Favorite Button */}
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          toggleSavedItem(product.id);
-        }}
-        className="absolute top-6 right-6 z-10 p-2.5 rounded-full bg-white/80 backdrop-blur-sm shadow-sm hover:scale-110 transition-transform"
-        aria-label="Guardar en favoritos"
-      >
-        <Heart
-          className={`w-5 h-5 transition-colors ${
-            saved ? 'fill-secondary text-secondary' : 'text-outline hover:text-secondary'
-          }`}
-        />
-      </button>
-
-      <div>
-        {/* Product Image Container */}
-        <Link href={`/productos/${product.id}`} className="block relative w-full h-56 rounded-xl overflow-hidden mb-4 bg-surface-container-low">
+    <article className="ens-card group h-full">
+      {/* Pozo de imagen: el empaque sobre color plano, no recortado. */}
+      <div className="ens-card__media">
+        <Link href={`/productos/${product.id}`} className="block absolute inset-0 ens-focus">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes={sizes}
+            className="object-contain p-5 transition-transform duration-500 group-hover:scale-[1.04]"
           />
-          {product.badge && (
-            <div className="absolute top-3 left-3 bg-secondary text-white text-[11px] font-headline font-bold px-3 py-1 rounded-full shadow-sm">
-              {product.badge}
-            </div>
-          )}
         </Link>
 
-        {/* Rating */}
-        <div className="flex items-center space-x-1 mb-1.5">
-          <div className="flex text-tertiary">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={`w-3.5 h-3.5 ${
-                  i < Math.floor(product.rating) ? 'fill-tertiary text-tertiary' : 'text-surface-container-high'
-                }`}
-              />
-            ))}
-          </div>
-          <span className="text-xs font-bold text-on-surface ml-1">{product.rating}</span>
-          <span className="text-xs text-outline">({product.reviewsCount})</span>
-        </div>
+        {product.badge && (
+          <span className="absolute top-3 left-3 bg-secondary text-white text-[11px] font-bold px-3 py-1 rounded-full">
+            {product.badge}
+          </span>
+        )}
 
-        {/* Product Info */}
-        <Link href={`/productos/${product.id}`} className="block group-hover:text-primary transition-colors">
-          <h3 className="font-headline font-bold text-lg text-on-surface line-clamp-1">
-            {product.name}
-          </h3>
-          <p className="text-xs text-on-surface-variant line-clamp-2 mt-1 mb-3">
-            {product.subtitle}
-          </p>
-        </Link>
+        <button
+          type="button"
+          onClick={() => toggleSavedItem(product.id)}
+          aria-pressed={saved}
+          aria-label={saved ? `Quitar ${product.name} de favoritos` : `Guardar ${product.name} en favoritos`}
+          className="absolute top-3 right-3 w-9 h-9 grid place-items-center rounded-full bg-white border border-borde hover:border-secondary transition-colors ens-focus"
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${
+              saved ? 'fill-secondary text-secondary' : 'text-tinta-suave'
+            }`}
+            aria-hidden="true"
+          />
+        </button>
       </div>
 
-      {/* Price & Action */}
-      <div className="pt-3 border-t border-surface-container-high flex items-center justify-between">
-        <div>
-          <span className="font-headline font-extrabold text-xl text-primary">
-            {formatPrice(product.price)}
-          </span>
-          {product.originalPrice && (
-            <span className="text-xs text-outline line-through block -mt-1">
-              {formatPrice(product.originalPrice)}
+      <div className="flex flex-col flex-1 p-5">
+        <p className="ens-eyebrow text-tinta-suave">{CATEGORY_LABEL[product.category]}</p>
+
+        <h3 className="mt-1.5 font-display text-xl leading-snug text-tinta">
+          <Link href={`/productos/${product.id}`} className="hover:text-azul transition-colors">
+            {product.name}
+          </Link>
+        </h3>
+
+        <p className="mt-1.5 text-sm text-tinta-suave line-clamp-2">{product.subtitle}</p>
+
+        <StarRating rating={product.rating} count={product.reviewsCount} className="mt-3" />
+
+        {/* mt-auto empuja el par precio+botón al fondo, para que las tarjetas
+            del slider queden alineadas aunque los subtítulos midan distinto. */}
+        <div className="mt-auto pt-4 flex items-baseline gap-2">
+          <span className="font-display text-2xl text-azul">{formatPrice(product.price)}</span>
+          {hasPromo && (
+            <span className="text-sm text-tinta-suave line-through">
+              {formatPrice(product.originalPrice!)}
             </span>
           )}
         </div>
 
         <button
+          type="button"
           onClick={() => addToCart(product)}
-          className="flex items-center space-x-2 bg-primary text-white hover:bg-primary-container hover:text-primary font-headline font-bold text-xs px-4 py-2.5 rounded-full transition-all squishy-button shadow-soft-glow"
+          className="ens-btn ens-btn--azul w-full mt-4"
         >
-          <ShoppingBag className="w-4 h-4" />
-          <span>Agregar</span>
+          Agregar al carrito
         </button>
       </div>
-    </div>
+    </article>
   );
 }

@@ -1,10 +1,25 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { Search, BookOpen, Clock, User, X, Sparkles, Tag, ArrowRight } from 'lucide-react';
+import { Search, Clock, User, X, ArrowRight } from 'lucide-react';
 import { Tip } from '@/types';
 import { apiService } from '@/services/api';
+
+/** Acepta cualquier forma de link de YouTube y devuelve la URL de incrustado. */
+function youtubeEmbed(url?: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/i);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
+const CATEGORIES = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'sueno', label: 'Sueño' },
+  { id: 'piel', label: 'Piel' },
+  { id: 'higiene', label: 'Higiene' },
+];
 
 export default function TipsPage() {
   const [tips, setTips] = useState<Tip[]>([]);
@@ -12,6 +27,7 @@ export default function TipsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeTip, setActiveTip] = useState<Tip | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     async function loadTips() {
@@ -28,177 +44,265 @@ export default function TipsPage() {
     loadTips();
   }, [selectedCategory, searchQuery]);
 
-  const categories = [
-    { id: 'todos', label: 'Todos los Tips', icon: '✨' },
-    { id: 'sueno', label: 'Sueño Infantil', icon: '🌙' },
-    { id: 'piel', label: 'Piel Delicada', icon: '🌸' },
-    { id: 'higiene', label: 'Higiene & Cuidados', icon: '🛁' },
-  ];
+  // Bloquear el scroll de fondo y cerrar con Escape mientras se lee un tip.
+  useEffect(() => {
+    if (!activeTip) return;
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveTip(null);
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [activeTip]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-primary-container/40 via-white to-secondary-container/30 rounded-3xl p-8 sm:p-12 text-center space-y-4 border border-surface-container-high relative overflow-hidden">
-        <span className="bg-secondary text-white font-headline font-bold text-xs px-4 py-1.5 rounded-full inline-block">
-          GUÍAS Y CONSEJOS PEDIÁTRICOS
-        </span>
-        <h1 className="font-headline font-extrabold text-3xl sm:text-5xl text-on-surface tracking-tight">
-          Tips de Ensueño ☁️
-        </h1>
-        <p className="font-body text-sm sm:text-base text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
-          Consejos prácticos para guiar las rutinas de sueño, baño e hidratación de tu bebé, respaldados por dermatólogos y pediatras.
-        </p>
+    <div className="page-entry-anim">
+      {/* ================= Encabezado ================= */}
+      <section className="ens-band ens-band--celeste">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
+          <p className="ens-eyebrow text-azul">Guías pediátricas</p>
 
-        {/* Search Bar */}
-        <div className="max-w-md mx-auto pt-2">
-          <div className="relative flex items-center">
-            <Search className="w-5 h-5 text-outline absolute left-4 pointer-events-none" />
+          <h1 className="mt-3 font-display text-tinta leading-tight text-[clamp(2rem,5vw,3.5rem)]">
+            Tips de sueño y cuidado
+          </h1>
+
+          <p className="mt-5 text-lg text-tinta-suave leading-relaxed">
+            Rutinas de sueño, baño e hidratación, explicadas por dermatólogos y pediatras.
+          </p>
+
+          <div className="mt-8 relative max-w-md mx-auto">
+            <label htmlFor="buscar-tips" className="sr-only">
+              Buscar tips
+            </label>
+            <Search
+              className="w-5 h-5 text-tinta-suave absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              aria-hidden="true"
+            />
             <input
-              type="text"
+              id="buscar-tips"
+              type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar por palabra clave (ej: masaje, llanto, baño)..."
-              className="w-full pl-12 pr-4 py-3.5 rounded-full text-xs sm:text-sm bg-white border border-surface-container-high shadow-sm focus:outline-none focus:border-primary"
+              placeholder="Buscar: masaje, llanto, baño…"
+              className="w-full h-12 pl-12 pr-4 rounded-full bg-white border border-borde text-tinta placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
             />
           </div>
         </div>
-      </div>
 
-      {/* Category Filter Chips */}
-      <div className="flex items-center justify-center flex-wrap gap-2 sm:gap-3">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`flex items-center space-x-2 px-5 py-2.5 rounded-full font-headline font-semibold text-xs sm:text-sm transition-all squishy-button ${
-              selectedCategory === cat.id
-                ? 'bg-primary text-white shadow-soft-glow'
-                : 'bg-white text-on-surface-variant hover:bg-surface-container border border-surface-container-high'
-            }`}
-          >
-            <span>{cat.icon}</span>
-            <span>{cat.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Articles Grid */}
-      {loading ? (
-        <div className="text-center py-12 text-on-surface-variant font-headline">
-          Cargando tips de sueño... ☁️
+        <div className="ens-nubes text-white -mb-px" aria-hidden="true">
+          <svg viewBox="0 0 1200 60" preserveAspectRatio="none" focusable="false">
+            <path
+              fill="currentColor"
+              d="M0 60V38c40 0 40-24 80-24s40 24 80 24 40-28 80-28 40 28 80 28 40-22 80-22 40 22 80 22 40-26 80-26 40 26 80 26 40-24 80-24 40 24 80 24 40-28 80-28 40 28 80 28 40-20 80-20 40 20 80 20 40-26 80-26v48Z"
+            />
+          </svg>
         </div>
-      ) : tips.length === 0 ? (
-        <div className="text-center py-12 text-on-surface-variant space-y-2">
-          <p className="font-headline font-bold">No se encontraron artículos</p>
-          <p className="text-xs">Intenta con otra palabra clave o selecciona otra categoría.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {tips.map((tip) => (
-            <div
-              key={tip.id}
-              onClick={() => setActiveTip(tip)}
-              className="group bg-white rounded-3xl overflow-hidden soft-glow-card border border-surface-container-high flex flex-col justify-between cursor-pointer transition-all hover:-translate-y-1"
-            >
-              <div className="space-y-4">
-                <div className="relative w-full h-48 bg-surface-container-low overflow-hidden">
-                  <Image
-                    src={tip.image}
-                    alt={tip.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <span className="absolute top-3 left-3 bg-secondary text-white font-headline font-bold text-[11px] px-3 py-1 rounded-full shadow-sm">
-                    {tip.categoryLabel}
-                  </span>
-                </div>
+      </section>
 
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center space-x-3 text-[11px] text-outline font-medium">
-                    <span className="flex items-center space-x-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{tip.readTime}</span>
-                    </span>
-                    <span>•</span>
-                    <span>{tip.date}</span>
-                  </div>
-
-                  <h3 className="font-headline font-bold text-xl text-on-surface group-hover:text-primary transition-colors line-clamp-2">
-                    {tip.title}
-                  </h3>
-
-                  <p className="text-xs text-on-surface-variant line-clamp-3 leading-relaxed">
-                    {tip.summary}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 pt-0 flex items-center justify-between border-t border-surface-container-high/50 text-xs font-headline font-bold text-primary">
-                <span>Leer Guía Completa</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Article Detail Reader Modal */}
-      {activeTip && (
-        <div className="fixed inset-0 z-50 bg-on-surface/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 soft-glow-card relative space-y-6">
-            <button
-              onClick={() => setActiveTip(null)}
-              className="absolute top-6 right-6 p-2 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-3">
-              <span className="bg-secondary-container text-secondary text-xs font-headline font-bold px-3 py-1 rounded-full">
-                {activeTip.categoryLabel}
-              </span>
-              <h2 className="font-headline font-extrabold text-2xl sm:text-3xl text-on-surface">
-                {activeTip.title}
-              </h2>
-              <div className="flex items-center space-x-3 text-xs text-on-surface-variant font-medium">
-                <span className="flex items-center space-x-1 text-primary font-bold">
-                  <User className="w-4 h-4" />
-                  <span>{activeTip.author}</span>
-                </span>
-                <span>•</span>
-                <span>{activeTip.authorRole}</span>
-              </div>
-            </div>
-
-            <div className="relative w-full h-56 rounded-2xl overflow-hidden">
-              <Image
-                src={activeTip.image}
-                alt={activeTip.title}
-                fill
-                sizes="(max-width: 640px) 100vw, 672px"
-                className="object-cover"
-              />
-            </div>
-
-            <div className="space-y-4 text-sm text-on-surface-variant leading-relaxed">
-              {activeTip.content.map((paragraph, index) => (
-                <p key={index} className="bg-surface-container-low p-4 rounded-2xl border border-surface-container-high">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-
-            <div className="pt-4 border-t flex justify-end">
+      {/* ================= Listado ================= */}
+      <section className="ens-band ens-band--blanco">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="flex flex-wrap gap-2 mb-10">
+            {CATEGORIES.map((cat) => (
               <button
-                onClick={() => setActiveTip(null)}
-                className="bg-primary text-white font-headline font-bold text-xs px-6 py-3 rounded-full squishy-button"
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                aria-pressed={selectedCategory === cat.id}
+                className={`px-5 h-11 rounded-full text-sm font-bold transition-colors ens-focus ${
+                  selectedCategory === cat.id
+                    ? 'bg-azul text-white'
+                    : 'bg-white text-tinta border border-borde hover:border-azul'
+                }`}
               >
-                Cerrar Artículo
+                {cat.label}
               </button>
-            </div>
+            ))}
           </div>
+
+          {loading ? (
+            <p className="py-16 text-center text-tinta-suave animate-pulse">Cargando tips…</p>
+          ) : tips.length === 0 ? (
+            <div className="py-16 text-center">
+              <p className="font-display text-2xl text-tinta">No encontramos nada</p>
+              <p className="mt-2 text-tinta-suave">
+                Prueba con otra palabra o cambia de categoría.
+              </p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              {tips.map((tip) => (
+                <li key={tip.id}>
+                  {/*
+                    La tarjeta entera es el disparador. Es un <button> real para
+                    que funcione con teclado: antes era un <div> con onClick.
+                  */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTip(tip)}
+                    className="ens-card group h-full w-full text-left ens-focus"
+                  >
+                    {/*
+                      `contain` y no `cover`: las fotos de los tips vienen en
+                      orientaciones mezcladas y las verticales se recortaban por
+                      arriba y por abajo. El fondo celeste hace de marco.
+                    */}
+                    <div className="relative aspect-[4/3] bg-celeste overflow-hidden">
+                      <Image
+                        src={tip.image}
+                        alt=""
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <span className="absolute top-3 left-3 bg-white border border-borde text-tinta text-[11px] font-bold px-3 py-1 rounded-full">
+                        {tip.categoryLabel}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col flex-1 p-5">
+                      <p className="flex items-center gap-2 text-xs text-tinta-suave">
+                        <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                        {tip.readTime}
+                        <span aria-hidden="true">·</span>
+                        {tip.date}
+                      </p>
+
+                      <h2 className="mt-2 font-display text-xl leading-snug text-tinta line-clamp-2 group-hover:text-azul transition-colors">
+                        {tip.title}
+                      </h2>
+
+                      <p className="mt-2 text-sm text-tinta-suave line-clamp-3">{tip.summary}</p>
+
+                      <span className="mt-auto pt-4 flex items-center gap-1.5 text-sm font-bold text-azul">
+                        Leer la guía
+                        <ArrowRight
+                          className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+      </section>
+
+      {/* ================= Lector ================= */}
+      {activeTip && typeof document !== 'undefined' && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tip-titulo"
+          /*
+            El scroll vive en ESTE contenedor, no en el panel. Antes el panel
+            centrado con `items-center` + `max-h` recortaba el principio del
+            artículo cuando era más alto que la ventana: con flex centrado no
+            se puede hacer scroll hacia arriba del área desbordada.
+          */
+          className="fixed inset-0 z-[95] bg-tinta/70 overflow-y-auto animate-fade-in"
+          onClick={() => setActiveTip(null)}
+        >
+          <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-6">
+            <article
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-2xl bg-white rounded-[24px] border border-borde overflow-hidden animate-scale-in"
+            >
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={() => setActiveTip(null)}
+                aria-label="Cerrar artículo"
+                className="absolute top-4 right-4 z-10 w-10 h-10 grid place-items-center rounded-full bg-white border border-borde text-tinta-suave hover:text-tinta transition-colors ens-focus"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+
+              {/* Si el tip tiene video de YouTube manda el video; si no, la foto. */}
+              {youtubeEmbed(activeTip.videoUrl) ? (
+                <div className="relative aspect-video bg-tinta">
+                  <iframe
+                    src={youtubeEmbed(activeTip.videoUrl)!}
+                    title={activeTip.title}
+                    className="absolute inset-0 w-full h-full border-0"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                /* Mismo criterio que la tarjeta: la foto completa, sin recorte. */
+                <div className="relative aspect-[4/3] sm:aspect-[16/10] bg-celeste">
+                  <Image
+                    src={activeTip.image}
+                    alt=""
+                    fill
+                    sizes="(max-width: 672px) 100vw, 672px"
+                    className="object-contain"
+                  />
+                </div>
+              )}
+
+              <div className="p-6 sm:p-8">
+                <p className="ens-eyebrow text-azul">{activeTip.categoryLabel}</p>
+
+                <h2
+                  id="tip-titulo"
+                  className="mt-3 font-display text-tinta leading-tight text-[clamp(1.5rem,3vw,2rem)]"
+                >
+                  {activeTip.title}
+                </h2>
+
+                <div className="mt-4 pb-5 border-b border-borde flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-tinta-suave">
+                  <span className="flex items-center gap-1.5 font-bold text-tinta">
+                    <User className="w-4 h-4 text-azul" aria-hidden="true" />
+                    {activeTip.author}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{activeTip.authorRole}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{activeTip.readTime}</span>
+                </div>
+
+                {/* Texto corrido: antes cada párrafo iba en su propia caja con
+                    borde, lo que rompía la lectura. */}
+                <div className="mt-6 space-y-4 text-tinta-suave leading-relaxed">
+                  {activeTip.content.map((paragraph, i) => (
+                    <p key={i}>{paragraph}</p>
+                  ))}
+                </div>
+
+                {activeTip.tags?.length > 0 && (
+                  <ul className="mt-7 flex flex-wrap gap-2">
+                    {activeTip.tags.map((tag) => (
+                      <li
+                        key={tag}
+                        className="bg-cian border border-borde text-tinta-suave text-xs font-bold px-3 py-1.5 rounded-full"
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTip(null)}
+                  className="ens-btn ens-btn--azul w-full mt-8"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

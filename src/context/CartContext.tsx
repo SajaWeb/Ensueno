@@ -41,10 +41,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     fetch('/api/v1/shipping/config')
       .then((res) => res.json())
       .then((json) => {
-        if (json.success && json.config) {
+        if (json.success && json.data) {
           setShippingConfig({
-            freeShippingThreshold: json.config.freeShippingThreshold || 60000,
-            defaultRate: json.config.defaultRate || 12000,
+            freeShippingThreshold: json.data.freeShippingThreshold || 60000,
+            defaultRate: json.data.defaultRate || 12000,
           });
         }
       })

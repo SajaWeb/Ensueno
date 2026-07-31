@@ -1,45 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #f4f8fd;
-  --foreground: #181c1f;
+  --foreground: #1f2333;
+
+  /* Respaldo. next/font redefine --font-body y --font-display sobre <body>,
+     que gana para todo lo que hay dentro. */
+  --font-body: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+
+  /* Alto del chrome pegajoso. Lo consume scroll-padding-top para que los
+     anclajes no caigan debajo del header.
+     Móvil: solo el header (4rem) — la barra de envío no se muestra.
+     sm+: barra (2.5rem) + header (5rem). */
+  --chrome-h: 4rem;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --chrome-h: 7.5rem;
+  }
 }
 
 body {
   color: var(--foreground);
-  /* Soft, soothing gradient background from Sky Blue to Soft Pink */
-  background: linear-gradient(135deg, #e8f3ff 0%, #fdf0f5 50%, #f4f8fd 100%);
-  background-attachment: fixed;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-body);
   overflow-x: hidden;
   min-height: 100vh;
 }
 
-h1, h2, h3, h4, h5, h6, button, input, select, textarea {
-  font-family: 'Open Sans', sans-serif;
+/* Los controles de formulario no heredan la fuente por defecto. */
+button, input, select, textarea, optgroup {
+  font-family: inherit;
 }
 
-/* Page Entry Keyframes */
+/* Entrada de página.
+ *
+ * Solo opacidad, a propósito: con `translateY` y `forwards` el elemento
+ * conservaba un `transform` para siempre, y un transform convierte al elemento
+ * en bloque contenedor de sus descendientes `position: fixed`. Eso hacía que
+ * cada overlay de la página (visor de imagen, lector de tips, modal móvil) se
+ * midiera contra el contenedor en vez de contra la ventana. */
 @keyframes pageFadeIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .page-entry-anim {
-  animation: pageFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageFadeIn 0.5s ease-out both;
 }
 
-/* Universal Ensueño Button System - Pasteles Rosa, Azul, Amarillo, Blanco (Sin Neón) */
+/* ---------------------------------------------------------------------------
+ * Botones heredados. Re-pintados SOLO en color: `height`, `padding`,
+ * `border-radius` y `font-size` quedan intactos y la declaración `border` sigue
+ * presente (solo cambia de color).
+ *
+ * Motivo: estas reglas están fuera de @layer y después de @tailwind utilities,
+ * así que ganan por orden de fuente a cualquier utilidad de geometría que les
+ * pongan encima. Hoy `h-13 px-8 text-sm` en la home no hace nada. Tocar la
+ * geometría aquí desbloquearía 22 call sites a la vez en 8 archivos.
+ * El sistema nuevo es `.ens-btn`, más abajo, dentro de @layer components.
+ * ------------------------------------------------------------------------- */
 .btn-ensueno-primary {
   display: inline-flex;
   align-items: center;
@@ -53,10 +78,11 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  /* Antes: blanco sobre degradado rosa→morado = 1.87–2.65:1, fallaba AA. */
   color: #ffffff;
-  background: linear-gradient(135deg, #f7a8b8 0%, #f472b6 50%, #c084fc 100%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 4px 14px 0 rgba(244, 114, 182, 0.25);
+  background: #1d5c7c;
+  border: 1px solid #1d5c7c;
+  box-shadow: 0 4px 14px 0 rgba(21, 61, 81, 0.22);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   user-select: none;
@@ -64,8 +90,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 .btn-ensueno-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px 0 rgba(244, 114, 182, 0.35);
-  background: linear-gradient(135deg, #f472b6 0%, #e879f9 50%, #a855f7 100%);
+  box-shadow: 0 6px 18px 0 rgba(21, 61, 81, 0.3);
+  background: #153d51;
+  border-color: #153d51;
 }
 
 .btn-ensueno-primary:active {
@@ -85,10 +112,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #1e293b;
-  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  color: #153d51;
+  background: #ffffff;
+  border: 1px solid #1d5c7c;
+  box-shadow: 0 4px 12px rgba(21, 61, 81, 0.1);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   user-select: none;
@@ -96,8 +123,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 .btn-ensueno-secondary:hover {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
-  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.3);
+  background: #bde4f8;
+  border-color: #153d51;
+  box-shadow: 0 6px 16px rgba(21, 61, 81, 0.16);
 }
 
 .btn-ensueno-secondary:active {
@@ -117,10 +145,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #451a03;
-  background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25);
+  color: #1f2333;
+  background: #f4e5a6;
+  border: 1px solid #dbc981;
+  box-shadow: 0 4px 12px rgba(125, 100, 16, 0.18);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   user-select: none;
@@ -128,8 +156,9 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 .btn-ensueno-amber:hover {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #fde047 0%, #facc15 100%);
-  box-shadow: 0 6px 16px rgba(250, 204, 21, 0.35);
+  background: #ecd97f;
+  border-color: #c4ae62;
+  box-shadow: 0 6px 16px rgba(125, 100, 16, 0.26);
 }
 
 .btn-ensueno-amber:active {
@@ -149,10 +178,10 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #0c4a6e;
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+  color: #153d51;
+  background: #bde4f8;
+  border: 1px solid #9dd3ee;
+  box-shadow: 0 4px 12px rgba(21, 61, 81, 0.12);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   user-select: none;
@@ -160,26 +189,27 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 
 .btn-ensueno-sky:hover {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #bae6fd 0%, #7dd3fc 100%);
-  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.3);
+  background: #a5d9f2;
+  border-color: #7cc3e6;
+  box-shadow: 0 6px 16px rgba(21, 61, 81, 0.2);
 }
 
 .btn-ensueno-sky:active {
   transform: translateY(0) scale(0.98);
 }
 
-/* Soft Glow Cards */
+/* Tarjeta heredada. No fija ninguna geometría, así que pasar a sólido es
+ * seguro y mejora de golpe sus 17 usos (tips, confirmación, ficha de producto). */
 .soft-glow-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 12px 35px -8px rgba(48, 98, 138, 0.09);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(21, 61, 81, 0.07);
+  border: 1px solid #d3d5e5;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .soft-glow-card:hover {
-  box-shadow: 0 22px 45px -10px rgba(48, 98, 138, 0.16);
+  box-shadow: 0 10px 26px -6px rgba(21, 61, 81, 0.16);
+  border-color: #bde4f8;
 }
 
 /* Interactive Tactile Squishy Button */
@@ -190,14 +220,6 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 .squishy-button:active {
   transform: scale(0.94);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.squishy-hover {
-  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.squishy-hover:hover {
-  transform: translateY(-5px) scale(1.02);
 }
 
 /* Reduced Motion Safety */
@@ -213,7 +235,8 @@ h1, h2, h3, h4, h5, h6, button, input, select, textarea {
 /* Custom Scrollbar & Smooth Scroll Offset for Sticky Header */
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 140px;
+  /* Antes 140px fijo, que no correspondía a ningún estado real del chrome. */
+  scroll-padding-top: var(--chrome-h);
 }
 
 ::-webkit-scrollbar {
@@ -221,14 +244,187 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: #e8f3ff;
+  background: #e4f3f7;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #a2d2ff;
+  background: #bde4f8;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #80515e;
+  background: #1d5c7c;
+}
+
+/* ===========================================================================
+ * Sistema Ensueño. Vive en @layer components para que las utilidades de
+ * Tailwind SÍ lo puedan sobreescribir — al revés que los .btn-ensueno-*.
+ * Todo sólido: sin degradados, sin transparencias, sin backdrop-filter.
+ * ========================================================================= */
+@layer components {
+  /* --- Foco visible y consistente en todo el sitio --- */
+  .ens-focus:focus-visible,
+  .ens-btn:focus-visible,
+  .ens-card a:focus-visible {
+    outline: 3px solid #1d5c7c;
+    outline-offset: 2px;
+    border-radius: 9999px;
+  }
+
+  /* Todas las bandas de marca son claras, así que el anillo oscuro sirve en
+     todas. No hace falta invertirlo. */
+
+  /* --- Botones --- */
+  .ens-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding-inline: 1.75rem;
+    border-radius: 9999px;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+    border: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .ens-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .ens-btn:not(:disabled):active {
+    transform: translateY(1px);
+  }
+
+  .ens-btn--azul {
+    background: #1d5c7c;
+    border-color: #1d5c7c;
+    color: #ffffff;
+  }
+
+  .ens-btn--azul:not(:disabled):hover {
+    background: #153d51;
+    border-color: #153d51;
+  }
+
+  /* Secundario sobre bandas de color: blanco sólido con tinta oscura. */
+  .ens-btn--blanco {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #153d51;
+  }
+
+  .ens-btn--blanco:not(:disabled):hover {
+    background: #e4f3f7;
+    border-color: #bde4f8;
+  }
+
+  .ens-btn--linea {
+    background: transparent;
+    border-color: #1d5c7c;
+    color: #1d5c7c;
+  }
+
+  .ens-btn--linea:not(:disabled):hover {
+    background: #bde4f8;
+    border-color: #153d51;
+    color: #153d51;
+  }
+
+  /* --- Tarjeta --- */
+  .ens-card {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #d3d5e5;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  .ens-card:hover {
+    border-color: #bde4f8;
+    box-shadow: 0 10px 26px -6px rgba(21, 61, 81, 0.16);
+    transform: translateY(-3px);
+  }
+
+  /* Pozo de imagen: el empaque va sobre color plano y `contain`, no recortado. */
+  .ens-card__media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: #bde4f8;
+    overflow: hidden;
+  }
+
+  /* --- Bandas de sección, a sangre ---
+     Los seis colores de marca son tintes claros, así que TODAS las bandas
+     llevan tinta oscura encima. El texto blanco queda solo para los botones. */
+  .ens-band {
+    position: relative;
+    color: #1f2333;
+  }
+
+  .ens-band--blanco {
+    background: #ffffff;
+  }
+
+  .ens-band--cian {
+    background: #e4f3f7;
+  }
+
+  .ens-band--celeste {
+    background: #bde4f8;
+  }
+
+  .ens-band--lavanda {
+    background: #d3d5e5;
+  }
+
+  .ens-band--rosa {
+    background: #f6bac7;
+  }
+
+  .ens-band--amarillo {
+    background: #f4e5a6;
+  }
+
+  /* --- Eyebrow: etiqueta de categoría --- */
+  .ens-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Firma: borde de nubes entre bandas. El relleno lo hereda por `color`, así que
+ * se le pone al <div> el color de la banda SIGUIENTE.
+ * ------------------------------------------------------------------------- */
+.ens-nubes {
+  display: block;
+  width: 100%;
+  height: 2rem;
+  line-height: 0;
+}
+
+@media (min-width: 640px) {
+  .ens-nubes {
+    height: 3rem;
+  }
+}
+
+.ens-nubes svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

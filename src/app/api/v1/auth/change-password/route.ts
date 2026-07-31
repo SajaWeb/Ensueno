@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resendService } from '@/infrastructure/services/ResendService';
 import { jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
@@ -40,6 +41,12 @@ export async function POST(req: Request) {
       where: { id: userId },
       data: { passwordHash: newHash },
     });
+
+    // Aviso de seguridad: si el cambio no lo hizo la dueña de la cuenta, este
+    // correo es la única forma de que se entere.
+    resendService
+      .sendPasswordChangedEmail(user.email, user.email.split('@')[0])
+      .catch((e) => console.error('No se pudo enviar el aviso de cambio de clave:', e));
 
     return NextResponse.json({ success: true, message: '¡Contraseña actualizada exitosamente!' });
   } catch (err: any) {
