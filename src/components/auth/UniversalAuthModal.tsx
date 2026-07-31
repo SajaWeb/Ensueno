@@ -57,6 +57,8 @@ export default function UniversalAuthModal() {
   const [phone, setPhone] = useState('');
   const [babyName, setBabyName] = useState('');
   const [skinCondition, setSkinCondition] = useState('Sensible');
+  const [babyBirthDate, setBabyBirthDate] = useState('');
+  const [hasBaby, setHasBaby] = useState(true);
   const [acceptDataPolicy, setAcceptDataPolicy] = useState(false);
 
   // Show password states (supports hover & click toggle)
@@ -132,7 +134,11 @@ export default function UniversalAuthModal() {
     }
 
     if (regStep === 3) {
-      if (!babyName.trim()) {
+      if (hasBaby && !babyBirthDate) {
+        setErrorMsg('Selecciona la fecha de nacimiento de tu bebé.');
+        return false;
+      }
+      if (hasBaby && !babyName.trim()) {
         setErrorMsg('Por favor ingresa el nombre de tu bebé.');
         return false;
       }
@@ -186,8 +192,10 @@ export default function UniversalAuthModal() {
         docType,
         docNumber: docNumber.trim(),
         phone: fullPhone,
-        babyName,
-        skinCondition,
+        hasBaby,
+        babyName: hasBaby ? babyName : '',
+        babyBirthDate: hasBaby && babyBirthDate ? babyBirthDate : undefined,
+        skinCondition: hasBaby ? skinCondition : undefined,
         acceptDataPolicy,
       });
 
@@ -612,35 +620,76 @@ export default function UniversalAuthModal() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
-                          Nombre de tu Bebé *
-                        </label>
+                      {/* Si todavía no tiene bebé, no tiene sentido pedirle
+                          nombre, fecha ni tipo de piel. */}
+                      <label className="flex items-start gap-2.5 p-3 rounded-2xl border border-borde bg-white cursor-pointer">
                         <input
-                          type="text"
-                          required
-                          autoFocus
-                          value={babyName}
-                          onChange={(e) => setBabyName(e.target.value)}
-                          placeholder="Ej: Sofía"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
+                          type="checkbox"
+                          checked={!hasBaby}
+                          onChange={(e) => setHasBaby(!e.target.checked)}
+                          className="w-4 h-4 mt-0.5 rounded accent-azul shrink-0"
                         />
-                      </div>
+                        <span className="text-xs text-tinta leading-snug">
+                          <strong className="block font-bold">Todavía no tengo bebé</strong>
+                          <span className="text-tinta-suave">
+                            Puedes añadir sus datos más adelante desde tu perfil.
+                          </span>
+                        </span>
+                      </label>
 
-                      <div>
-                        <label className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
-                          Condición o Tipo de Piel *
-                        </label>
-                        <select
-                          value={skinCondition}
-                          onChange={(e) => setSkinCondition(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-white"
-                        >
-                          <option value="Sensible">Sensible</option>
-                          <option value="Atópica">Muy Sensible / Atópica</option>
-                          <option value="Normal">Normal</option>
-                        </select>
-                      </div>
+                      {hasBaby && (
+                        <>
+                          <div>
+                            <label htmlFor="reg-baby-name" className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
+                              Nombre de tu Bebé *
+                            </label>
+                            <input
+                              id="reg-baby-name"
+                              type="text"
+                              required
+                              autoFocus
+                              value={babyName}
+                              onChange={(e) => setBabyName(e.target.value)}
+                              placeholder="Ej: Sofía"
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="reg-baby-birth" className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
+                              Fecha de Nacimiento *
+                            </label>
+                            <input
+                              id="reg-baby-birth"
+                              type="date"
+                              required
+                              value={babyBirthDate}
+                              max={new Date().toISOString().slice(0, 10)}
+                              onChange={(e) => setBabyBirthDate(e.target.value)}
+                              className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-cian"
+                            />
+                            <p className="text-[10px] text-tinta-suave mt-1">
+                              Con esto ajustamos las recomendaciones a su etapa.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label htmlFor="reg-baby-skin" className="block text-[11px] font-extrabold uppercase text-tinta-suave mb-1">
+                              Condición o Tipo de Piel *
+                            </label>
+                            <select
+                              id="reg-baby-skin"
+                              value={skinCondition}
+                              onChange={(e) => setSkinCondition(e.target.value)}
+                              className="w-full px-3 py-2.5 rounded-xl border border-borde text-xs font-semibold focus:ring-2 focus:ring-celeste bg-white"
+                            >
+                              <option value="Sensible">Sensible</option>
+                              <option value="Atópica">Muy Sensible / Atópica</option>
+                              <option value="Normal">Normal</option>
+                            </select>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 

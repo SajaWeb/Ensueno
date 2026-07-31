@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { DynaPuff, Nunito } from 'next/font/google';
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
@@ -29,6 +29,16 @@ export const metadata: Metadata = {
   title: 'Ensueño | Cuidado Natural y Sueño Profundo para tu Bebé',
   description:
     'E-Commerce de cosmética hipoalergénica infantil con fórmulas de lavanda, manzanilla y avena para el descanso perfecto de tu bebé.',
+};
+
+/**
+ * `colorScheme: 'light'` acompaña al `color-scheme` de globals.css: le dice al
+ * navegador que el sitio solo tiene versión clara, así que con el sistema en
+ * modo oscuro no repinta los controles nativos ni la barra del navegador.
+ */
+export const viewport: Viewport = {
+  colorScheme: 'light',
+  themeColor: '#bde4f8',
 };
 
 export default function RootLayout({

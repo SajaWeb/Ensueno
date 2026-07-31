@@ -28,6 +28,7 @@ export async function GET(req: Request) {
             city: true,
             department: true,
             address: true,
+            hasBaby: true,
             babies: {
               select: {
                 id: true,

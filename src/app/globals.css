@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 :root {
+  /* La paleta de marca es clara por diseño y no hay variante oscura. Sin esto,
+     con el sistema en modo oscuro el navegador repinta por su cuenta inputs,
+     selects, checkboxes y barras de scroll, y rompe el contraste calculado.
+     `light` fija el renderizado de esos controles pase lo que pase. */
+  color-scheme: light;
+
   --foreground: #1f2333;
 
   /* Respaldo. next/font redefine --font-body y --font-display sobre <body>,

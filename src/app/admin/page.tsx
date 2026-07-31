@@ -51,6 +51,47 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
+
+
+/* Clases compartidas del panel. Antes cada módulo repetía su propia variante
+   de tarjeta, input y botón, y se iban desincronizando. */
+const UI = {
+  card: 'bg-white rounded-2xl p-6 border border-borde',
+  input:
+    'w-full h-11 px-4 rounded-xl border border-borde bg-cian text-sm text-tinta placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow',
+  btnPrimary:
+    'inline-flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-azul hover:bg-azul-hondo text-white font-bold text-sm transition-colors disabled:opacity-50 ens-focus',
+  btnGhost:
+    'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-borde bg-white text-tinta-suave hover:text-tinta hover:bg-cian font-bold text-sm transition-colors ens-focus',
+  btnDanger:
+    'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-borde bg-white text-tinta-suave hover:text-secondary hover:border-secondary font-bold text-sm transition-colors ens-focus',
+} as const;
+
+
+/** Edad legible a partir de la fecha de nacimiento. */
+function babyAgeLabel(birthDate?: string | Date | null): string {
+  if (!birthDate) return 'Sin fecha de nacimiento';
+  const d = new Date(birthDate);
+  if (Number.isNaN(d.getTime())) return 'Sin fecha de nacimiento';
+  const months = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+  if (months < 0) return 'En camino';
+  if (months < 1) return 'Recién nacido';
+  if (months < 24) return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+  const years = Math.floor(months / 12);
+  return `${years} ${years === 1 ? 'año' : 'años'}`;
+}
+
+/** Un módulo = una entrada aquí. Menú y cabecera se derivan de esto. */
+const MODULES = {
+  orders:   { eyebrow: 'Pedidos',    title: 'Pedidos y pagos',        nav: 'Pedidos',    Icon: ShoppingBag, description: 'Estado de cada pedido, pagos aprobados por MercadoPago y seguimiento de despachos.' },
+  crm:      { eyebrow: 'Clientes',   title: 'Mamás y bebés',          nav: 'Clientes',   Icon: Users,       description: 'Directorio de clientas registradas, sus bebés y los recordatorios de recompra.' },
+  shipping: { eyebrow: 'Envíos',     title: 'Tarifas de envío',       nav: 'Envíos',     Icon: Truck,       description: 'Fletes por departamento y municipio, y el umbral de envío gratis.' },
+  products: { eyebrow: 'Catálogo',   title: 'Productos y combos',     nav: 'Catálogo',   Icon: ImageIcon,   description: 'Fichas del catálogo, imágenes y las promociones que salen en la portada.' },
+  tips:     { eyebrow: 'Contenido',  title: 'Tips del blog',          nav: 'Tips',       Icon: BookOpen,    description: 'Guías publicadas en /tips, con imagen o video de YouTube.' },
+} as const;
+
+type ModuleKey = keyof typeof MODULES;
+
 export default function AdminDashboardPage() {
   const { showToast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -58,7 +99,7 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons' | 'tips'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'products' | 'shipping' | 'tips'>('orders');
 
   // ---------------- Módulo de Tips ----------------
   const [tipsList, setTipsList] = useState<Tip[]>([]);
@@ -205,7 +246,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated && (activeTab === 'crm' || activeTab === 'cohorts')) {
+    if (isAuthenticated && activeTab === 'crm') {
       loadRemarketingData();
     }
   }, [activeTab, isAuthenticated]);
@@ -854,6 +895,51 @@ export default function AdminDashboardPage() {
       return valA.localeCompare(valB) * dir;
     });
 
+
+  /** KPIs por módulo. Solo cifras que salen de datos reales. */
+  const moduleKpis = (tab: ModuleKey): Array<{ label: string; value: string | number; Icon: any }> => {
+    if (tab === 'orders') {
+      return [
+        { label: 'Recaudado', value: `$${(orderMetrics.totalRevenue || 0).toLocaleString('es-CO')}`, Icon: ShoppingBag },
+        { label: 'Sin pagar', value: orderMetrics.generatedCount || 0, Icon: Sparkles },
+        { label: 'Pagados', value: orderMetrics.confirmedCount || 0, Icon: CheckCircle2 },
+        { label: 'En camino y entregados', value: (orderMetrics.shippedCount || 0) + (orderMetrics.deliveredCount || 0), Icon: Truck },
+      ];
+    }
+    if (tab === 'crm') {
+      const babies = (data.customers || []).flatMap((c: any) => c.babies || c.motherProfile?.babies || []);
+      const total = data.babyCohorts?.totalBabies || babies.length;
+      const sensitive = babies.filter((b: any) => /sensible|at[oó]pica/i.test(b.skinCondition || '')).length;
+      return [
+        { label: 'Clientas', value: data.customers?.length || 0, Icon: Users },
+        { label: 'Bebés', value: total, Icon: Baby },
+        { label: 'Piel sensible', value: total > 0 ? `${Math.round((sensitive / total) * 100)}%` : '—', Icon: Sparkles },
+        { label: 'Recordatorios', value: data.pendingReminders?.length || 0, Icon: Mail },
+      ];
+    }
+    if (tab === 'products') {
+      return [
+        { label: 'Productos', value: products.length, Icon: ShoppingBag },
+        { label: 'Promociones', value: promotionsList.length, Icon: Tag },
+        { label: 'Promos activas', value: promotionsList.filter((p: any) => p.isActive).length, Icon: CheckCircle2 },
+      ];
+    }
+    if (tab === 'tips') {
+      return [
+        { label: 'Tips', value: tipsList.length, Icon: BookOpen },
+        { label: 'Publicados', value: tipsList.filter((t) => t.isPublished !== false).length, Icon: CheckCircle2 },
+        { label: 'Con video', value: tipsList.filter((t) => Boolean(t.videoUrl)).length, Icon: Video },
+      ];
+    }
+    if (tab === 'shipping') {
+      return [
+        { label: 'Tarifas', value: shippingRates.length, Icon: Truck },
+        { label: 'Envío gratis desde', value: `$${Number(shippingConfig.freeShippingThreshold || 0).toLocaleString('es-CO')}`, Icon: Gift },
+      ];
+    }
+    return [];
+  };
+
   const allFilteredSelected = filteredRates.length > 0 && filteredRates.every((r) => selectedRateIds.has(r.id));
 
   // ---------------- Handlers de Tips ----------------
@@ -1040,14 +1126,14 @@ export default function AdminDashboardPage() {
   }
 
   if (loading || isAuthenticated === null) {
-    return <div className="min-h-screen bg-slate-50 py-20 text-center text-slate-500 text-sm">Cargando Dashboard Admin Ensueño...</div>;
+    return <div className="min-h-screen bg-cian py-20 text-center text-tinta-suave text-sm">Cargando Dashboard Admin Ensueño...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col md:flex-row">
+    <div className="min-h-screen bg-cian text-tinta font-sans flex flex-col md:flex-row">
       {/* Left Sidebar Navigation (Desktop Collapsible & Mobile Drawer) */}
       <aside
-        className={`w-full bg-white/95 border-b md:border-b-0 md:border-r border-purple-100/80 backdrop-blur-md shrink-0 flex flex-col justify-between z-30 shadow-sm md:min-h-screen sticky top-0 md:h-screen transition-all duration-300 ease-in-out ${
+        className={`w-full bg-white/95 border-b md:border-b-0 md:border-r border-borde  shrink-0 flex flex-col justify-between z-30 shadow-sm md:min-h-screen sticky top-0 md:h-screen transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'md:w-20' : 'md:w-64 lg:w-72'
         }`}
       >
@@ -1055,20 +1141,20 @@ export default function AdminDashboardPage() {
           {/* Brand Logo & Mobile/Collapse Toggles */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white shrink-0">
-                <Baby className="w-5 h-5 text-purple-700" />
+              <div className="w-10 h-10 bg-cian text-azul rounded-2xl flex items-center justify-center font-bold shadow-sm border border-white shrink-0">
+                <Baby className="w-5 h-5 text-azul" />
               </div>
               {!isSidebarCollapsed && (
                 <div className="hidden md:block overflow-hidden transition-all duration-300">
-                  <span className="font-extrabold text-base text-slate-800 block leading-tight truncate">
+                  <span className="font-extrabold text-base text-tinta block leading-tight truncate">
                     Panel Admin
                   </span>
-                  <span className="text-[11px] text-purple-600 font-semibold truncate">Ensueño Baby</span>
+                  <span className="text-[11px] text-azul font-semibold truncate">Ensueño Baby</span>
                 </div>
               )}
               <div className="md:hidden">
-                <span className="font-extrabold text-base text-slate-800 block leading-tight">Panel Admin</span>
-                <span className="text-[11px] text-purple-600 font-semibold">Ensueño Baby</span>
+                <span className="font-extrabold text-base text-tinta block leading-tight">Panel Admin</span>
+                <span className="text-[11px] text-azul font-semibold">Ensueño Baby</span>
               </div>
             </div>
 
@@ -1077,7 +1163,7 @@ export default function AdminDashboardPage() {
               <button
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 title={isSidebarCollapsed ? 'Expandir Menú' : 'Colapsar Menú'}
-                className="hidden md:flex p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all shadow-2xs"
+                className="hidden md:flex p-2 rounded-xl bg-cian hover:bg-cian text-azul border border-borde transition-all shadow-sm"
               >
                 {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </button>
@@ -1085,7 +1171,7 @@ export default function AdminDashboardPage() {
               {/* Mobile Toggle */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 text-slate-500 hover:text-slate-800"
+                className="md:hidden p-2 text-tinta-suave hover:text-tinta"
               >
                 {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
               </button>
@@ -1095,213 +1181,67 @@ export default function AdminDashboardPage() {
           {/* Navigation Links */}
           <nav className={`space-y-1.5 ${isMobileMenuOpen ? 'block' : 'hidden md:block'}`}>
             {!isSidebarCollapsed && (
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block px-3 mb-2 transition-all duration-300">
+              <span className="text-[10px] font-extrabold text-tinta-suave uppercase tracking-wider block px-3 mb-2 transition-all duration-300">
                 Módulos de Gestión
               </span>
             )}
 
-            {/* Item 1: Orders */}
-            <button
-              onClick={() => {
-                setActiveTab('orders');
-                setIsMobileMenuOpen(false);
-                loadAdminOrders();
-              }}
-              title="Control de Pedidos y Contabilidad"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'orders'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 relative">
-                <ShoppingBag className="w-4 h-4 shrink-0" />
-                {isSidebarCollapsed && (orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length) > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-emerald-500 text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white shadow-2xs">
-                    {orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length}
+            {/* El menú se genera desde MODULES: antes eran siete bloques
+                duplicados que se desincronizaban entre sí. */}
+            {(Object.keys(MODULES) as ModuleKey[]).map((key) => {
+              const mod = MODULES[key];
+              const isActive = activeTab === key;
+              const count =
+                key === 'products' ? products.length
+                : key === 'tips' ? tipsList.length
+                : key === 'shipping' ? shippingRates.length
+                : key === 'crm' ? (data.customers?.length || 0)
+                : adminOrders.length;
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setActiveTab(key);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  title={mod.title}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`w-full flex items-center ${
+                    isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+                  } py-3 rounded-2xl font-bold text-sm transition-colors ens-focus ${
+                    isActive ? 'bg-azul text-white' : 'text-tinta-suave hover:bg-cian hover:text-tinta'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <mod.Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    {!isSidebarCollapsed && <span className="truncate">{mod.nav}</span>}
                   </span>
-                )}
-                {!isSidebarCollapsed && <span className="truncate">Control de Pedidos</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span
-                  title="Órdenes con Pago Aprobado pendientes por empacar y enviar"
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                  }`}
-                >
-                  {orderMetrics.confirmedCount ?? adminOrders.filter((o) => o.status === 'confirmado').length}
-                </span>
-              )}
-            </button>
-
-            {/* Item 2: CRM */}
-            <button
-              onClick={() => {
-                setActiveTab('crm');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Clientes & Remarketing CRM"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'crm'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Clientes & CRM</span>}
-              </div>
-            </button>
-
-            {/* Item 3: Shipping */}
-            <button
-              onClick={() => {
-                setActiveTab('shipping');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Tarifas de Envío y Municipios"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'shipping'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Truck className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Tarifas de Envío</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    activeTab === 'shipping' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {shippingRates.length}
-                </span>
-              )}
-            </button>
-
-            {/* Item 4: Cohorts */}
-            <button
-              onClick={() => {
-                setActiveTab('cohorts');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Cohortes por Edad del Bebé"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'cohorts'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <BarChart3 className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Cohortes por Edad</span>}
-              </div>
-            </button>
-
-            {/* Item 5: Products */}
-            <button
-              onClick={() => {
-                setActiveTab('products');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Galería y URLs de Productos"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'products'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <ImageIcon className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Imágenes Productos</span>}
-              </div>
-            </button>
-
-            {/* Item 6: Coupons */}
-            <button
-              onClick={() => {
-                setActiveTab('coupons');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Cupones y Descuentos Activos"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'coupons'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Tag className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Cupones Descuento</span>}
-              </div>
-              {!isSidebarCollapsed && (
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    activeTab === 'coupons' ? 'bg-white/20 text-white' : 'bg-pink-100 text-pink-700'
-                  }`}
-                >
-                  {promotionsList.length}
-                </span>
-              )}
-            </button>
-
-            {/* Item 7: Tips */}
-            <button
-              onClick={() => {
-                setActiveTab('tips');
-                setIsMobileMenuOpen(false);
-              }}
-              title="Guías y Tips del Blog"
-              className={`w-full flex items-center ${
-                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
-              } py-3 rounded-2xl font-bold text-xs transition-all ${
-                activeTab === 'tips'
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpen className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">Tips del Blog</span>}
-              </div>
-              {!isSidebarCollapsed && tipsList.length > 0 && (
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    activeTab === 'tips' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-700'
-                  }`}
-                >
-                  {tipsList.length}
-                </span>
-              )}
-            </button>
+                  {!isSidebarCollapsed && count > 0 && (
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full tabular-nums ${
+                        isActive ? 'bg-white/25 text-white' : 'bg-cian text-tinta-suave'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* Sidebar Footer User Info */}
-        <div className={`p-4 m-4 rounded-2xl bg-purple-50/80 border border-purple-100 space-y-3 hidden md:block transition-all duration-300 ${
+        <div className={`p-4 m-4 rounded-2xl bg-cian border border-borde space-y-3 hidden md:block transition-all duration-300 ${
           isSidebarCollapsed ? 'p-2 m-2 text-center' : ''
         }`}>
           <div className="flex items-center gap-2.5 justify-center md:justify-start">
-            <UserCheck className="w-4 h-4 text-purple-600 shrink-0" />
+            <UserCheck className="w-4 h-4 text-azul shrink-0" />
             {!isSidebarCollapsed && (
               <div className="overflow-hidden">
-                <span className="font-extrabold text-slate-800 block text-xs truncate">admin@ensueno.com.co</span>
-                <span className="text-[9px] text-purple-600 font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
+                <span className="font-extrabold text-tinta block text-xs truncate">admin@ensueno.com.co</span>
+                <span className="text-[9px] text-azul font-bold uppercase tracking-wider">ADMIN MAESTRO</span>
               </div>
             )}
           </div>
@@ -1310,17 +1250,17 @@ export default function AdminDashboardPage() {
           <a
             href="/"
             title="Ir al sitio web"
-            className="bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 w-full"
+            className="bg-white hover:bg-cian text-azul border border-borde text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 w-full"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             {!isSidebarCollapsed && <span>Ir al sitio</span>}
           </a>
 
-          <div className={`flex items-center gap-2 pt-1 border-t border-purple-100 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
+          <div className={`flex items-center gap-2 pt-1 border-t border-borde ${isSidebarCollapsed ? 'flex-col' : ''}`}>
             <button
               onClick={() => setShowSettingsModal(true)}
               title="Ajustes de Cuenta"
-              className="flex-1 bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs w-full"
+              className="flex-1 bg-white hover:bg-cian text-azul border border-borde text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm w-full"
             >
               <Settings className="w-3.5 h-3.5" />
               {!isSidebarCollapsed && <span>Ajustes</span>}
@@ -1328,7 +1268,7 @@ export default function AdminDashboardPage() {
             <button
               onClick={handleLogout}
               title="Cerrar Sesión"
-              className="bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-2xs w-full"
+              className="bg-white hover:bg-cian text-secondary border border-secondary text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm w-full"
             >
               <LogOut className="w-3.5 h-3.5" />
               {!isSidebarCollapsed && <span>Salir</span>}
@@ -1339,280 +1279,46 @@ export default function AdminDashboardPage() {
 
       {/* Main Dashboard Area */}
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8 overflow-y-auto">
-        {/* Header Hero Banner (Dinamico segun el modulo activo) */}
-        <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-sky-100 rounded-3xl p-6 sm:p-8 border border-purple-200/60 shadow-sm relative overflow-hidden transition-all duration-300">
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/80 text-purple-700 text-xs font-bold uppercase tracking-wider mb-3 border border-purple-200 shadow-sm">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                {activeTab === 'orders'
-                  ? 'Módulo de Órdenes y Finanzas'
-                  : activeTab === 'crm'
-                  ? 'Gestión de Mamás y Familias'
-                  : activeTab === 'shipping'
-                  ? 'Logística & Despachos Colombia'
-                  : activeTab === 'cohorts'
-                  ? 'Analítica por Etapas de Crecimiento'
-                  : activeTab === 'products'
-                  ? 'Catálogo Multimedia HD'
-                  : 'Estrategia Promocional'}
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-                {activeTab === 'orders'
-                  ? 'Control de Pedidos y Contabilidad'
-                  : activeTab === 'crm'
-                  ? 'CRM & Base de Datos Remarketing'
-                  : activeTab === 'shipping'
-                  ? 'Configuración de Tarifas y Envíos'
-                  : activeTab === 'cohorts'
-                  ? 'Cohortes por Edad del Bebé'
-                  : activeTab === 'products'
-                  ? 'Galería y URLs de Productos'
-                  : 'Cupones y Descuentos Activos'}
+        {/*
+          Cabecera del módulo. Título, descripción y KPIs salen de MODULES, así
+          que añadir un módulo no obliga a tocar tres cadenas ternarias.
+        */}
+        {(() => {
+          const mod = MODULES[activeTab];
+          const kpis = moduleKpis(activeTab);
+          return (
+            <header className="bg-celeste rounded-2xl p-6 sm:p-8 border border-borde">
+              <p className="ens-eyebrow text-azul">{mod.eyebrow}</p>
+              <h1 className="mt-2 font-display text-2xl sm:text-3xl leading-tight text-tinta">
+                {mod.title}
               </h1>
-              <p className="text-slate-600 text-xs sm:text-sm mt-1">
-                {activeTab === 'orders'
-                  ? 'Monitoreo de ingresos recaudados, aprobación de pasarela MercadoPago y trazabilidad logística de despachos.'
-                  : activeTab === 'crm'
-                  ? 'Directorio de usuarias registradas, seguimiento de teléfonos de contacto y perfilado de piel del bebé.'
-                  : activeTab === 'shipping'
-                  ? 'Administración de fletes por departamento, fletes para municipios especiales y reglas de envío gratis.'
-                  : activeTab === 'cohorts'
-                  ? 'Agrupación automática de bebés según su edad para envíos segmentados de productos y fragancias.'
-                  : activeTab === 'products'
-                  ? 'Gestión de imágenes de alta resolución, descripciones sensoriales e información técnica del catálogo.'
-                  : 'Creación y auditoría de códigos de descuento por porcentaje o monto fijo para campañas de conversión.'}
-              </p>
-            </div>
-          </div>
+              <p className="mt-2 text-sm text-tinta-suave max-w-3xl">{mod.description}</p>
 
-          {/* Tarjetas KPI Dinámicas */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-purple-200/50">
-            {activeTab === 'orders' ? (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
-                    <span>Recaudado Confirmado</span>
-                    <ShoppingBag className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                    ${(orderMetrics.totalRevenue || 0).toLocaleString('es-CO')} COP
-                  </p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                    <span>Órdenes Generadas</span>
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{orderMetrics.generatedCount || 0}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Pagos Aprobados</span>
-                    <CheckCircle2 className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{orderMetrics.confirmedCount || 0}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>En Camino / Entregadas</span>
-                    <Truck className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                    {(orderMetrics.shippedCount || 0) + (orderMetrics.deliveredCount || 0)}
-                  </p>
-                </div>
-              </>
-            ) : activeTab === 'crm' ? (
-              (() => {
-                const totalMothersCount = data.customers?.length || 0;
-                const allBabies = (data.customers || []).flatMap((c: any) => c.babies || c.motherProfile?.babies || []);
-                const totalBabiesCount = data.babyCohorts?.totalBabies || allBabies.length;
-                const sensitiveBabies = allBabies.filter((b: any) => {
-                  const cond = (b.skinCondition || '').toLowerCase();
-                  return cond.includes('sensible') || cond.includes('atópica') || cond.includes('atopica');
-                });
-                const sensitivePercentage = totalBabiesCount > 0 ? Math.round((sensitiveBabies.length / totalBabiesCount) * 100) : 0;
-                const pendingRemindersCount = data.pendingReminders?.length || 0;
-
-                return (
-                  <>
-                    <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                      <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                        <span>Total Bebés Registrados</span>
-                        <Baby className="w-4 h-4 text-sky-500" />
-                      </div>
-                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{totalBabiesCount}</p>
+              {kpis.length > 0 && (
+                <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/60">
+                  {kpis.map((k) => (
+                    <div key={k.label} className="bg-white rounded-2xl p-4 border border-borde">
+                      <dt className="flex items-center justify-between text-xs font-bold text-tinta-suave">
+                        <span>{k.label}</span>
+                        <k.Icon className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+                      </dt>
+                      <dd className="mt-2 font-display text-2xl text-tinta tabular-nums">{k.value}</dd>
                     </div>
-                    <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                      <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                        <span>Mamás en Comunidad</span>
-                        <Users className="w-4 h-4 text-pink-500" />
-                      </div>
-                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{totalMothersCount}</p>
-                    </div>
-                    <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                      <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                        <span>Piel Sensible / Atópica</span>
-                        <Sparkles className="w-4 h-4 text-amber-500" />
-                      </div>
-                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{sensitivePercentage}%</p>
-                    </div>
-                    <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                      <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                        <span>Recordatorios Pendientes</span>
-                        <Mail className="w-4 h-4 text-purple-500" />
-                      </div>
-                      <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{pendingRemindersCount}</p>
-                    </div>
-                  </>
-                );
-              })()
-            ) : activeTab === 'shipping' ? (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Umbral Envío Gratis</span>
-                    <Truck className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                    ${shippingConfig.freeShippingThreshold?.toLocaleString('es-CO')} COP
-                  </p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Tarifas Configuradas</span>
-                    <MapPin className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{shippingRates.length}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>Departamentos Colombia</span>
-                    <Building2 className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">32 Coberturas</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
-                    <span>Tiempo Promedio</span>
-                    <Calendar className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">2-4 Días</p>
-                </div>
-              </>
-            ) : activeTab === 'cohorts' ? (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Prenatal / Embarazo</span>
-                    <Sparkles className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.embarazo || 0}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Recién Nacidos (0-3m)</span>
-                    <Baby className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.recienNacido || 0}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                    <span>Lactantes (3-12m)</span>
-                    <Users className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                    {(data.babyCohorts?.summary?.lactanteMenor || 0) + (data.babyCohorts?.summary?.lactanteMayor || 0)}
-                  </p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>Toddler / Mayores (12m+)</span>
-                    <BarChart3 className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{data.babyCohorts?.summary?.toddler || 0}</p>
-                </div>
-              </>
-            ) : activeTab === 'products' ? (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Productos Activos</span>
-                    <ShoppingBag className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Galería Multimedia HD</span>
-                    <ImageIcon className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{products.length} HD</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-sky-200 shadow-sm">
-                  <div className="flex items-center justify-between text-sky-700 text-xs font-bold">
-                    <span>Notas Aromáticas</span>
-                    <Sparkles className="w-4 h-4 text-sky-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">4 Variedades</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
-                    <span>Estado del Catálogo</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-2">100% En Stock</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="bg-white/90 rounded-2xl p-4 border border-pink-200 shadow-sm">
-                  <div className="flex items-center justify-between text-pink-700 text-xs font-bold">
-                    <span>Cupones Creados</span>
-                    <Tag className="w-4 h-4 text-pink-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">{promotionsList.length}</p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                  <div className="flex items-center justify-between text-emerald-700 text-xs font-bold">
-                    <span>Cupones Activos</span>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">
-                    {promotionsList.filter((p: any) => p.isActive).length}
-                  </p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 text-xs font-bold">
-                    <span>Promoción Destacada</span>
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className="text-lg font-black text-amber-700 mt-2 truncate">
-                    {promotionsList[0]?.code || 'N/A'}
-                  </p>
-                </div>
-                <div className="bg-white/90 rounded-2xl p-4 border border-purple-200 shadow-sm">
-                  <div className="flex items-center justify-between text-purple-700 text-xs font-bold">
-                    <span>Descuento Máximo</span>
-                    <Tag className="w-4 h-4 text-purple-500" />
-                  </div>
-                  <p className="text-xl sm:text-2xl font-black text-slate-800 mt-2">25% Off</p>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
+                  ))}
+                </dl>
+              )}
+            </header>
+          );
+        })()}
         {/* Tab 0: Módulo de Verificación de Pedidos y Contabilidad */}
         {activeTab === 'orders' && (
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className={`${UI.card} space-y-6`}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borde pb-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <ShoppingBag className="w-6 h-6 text-purple-600" /> Módulo de Verificación de Pedidos y Contabilidad
+                <h2 className="text-xl font-bold text-tinta flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-azul" /> Módulo de Verificación de Pedidos y Contabilidad
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-tinta-suave mt-1">
                   Control, trazabilidad y cambio de estado de pedidos en tiempo real para la contabilidad del e-commerce.
                 </p>
               </div>
@@ -1620,7 +1326,7 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => loadAdminOrders()}
-                  className="bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs px-3.5 py-2 rounded-xl border border-purple-200 transition-all flex items-center gap-1.5"
+                  className="bg-cian hover:bg-cian text-azul font-bold text-xs px-3.5 py-2 rounded-xl border border-borde transition-all flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Actualizar Datos
                 </button>
@@ -1628,51 +1334,51 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Resumen Contable */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-purple-50/60 rounded-2xl p-4 border border-purple-100">
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Recaudado Confirmado</span>
-                <span className="text-lg font-black text-emerald-700">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-cian rounded-2xl p-4 border border-borde">
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Total Recaudado Confirmado</span>
+                <span className="text-lg font-black text-azul">
                   ${(orderMetrics.totalRevenue || 0).toLocaleString('es-CO')} COP
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Órdenes Generadas</span>
-                <span className="text-lg font-black text-amber-600">{orderMetrics.generatedCount || 0}</span>
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Órdenes Generadas</span>
+                <span className="text-lg font-black text-tertiary">{orderMetrics.generatedCount || 0}</span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Pagos Aprobados</span>
-                <span className="text-lg font-black text-purple-700">{orderMetrics.confirmedCount || 0}</span>
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Pagos Aprobados</span>
+                <span className="text-lg font-black text-azul">{orderMetrics.confirmedCount || 0}</span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Empacadas / En Camino</span>
-                <span className="text-lg font-black text-sky-600">
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Empacadas / En Camino</span>
+                <span className="text-lg font-black text-azul">
                   {(orderMetrics.packedCount || 0) + (orderMetrics.shippedCount || 0)}
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Entregadas</span>
-                <span className="text-lg font-black text-emerald-600">{orderMetrics.deliveredCount || 0}</span>
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Entregadas</span>
+                <span className="text-lg font-black text-azul">{orderMetrics.deliveredCount || 0}</span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Sin Entregar / Devolución</span>
-                <span className="text-lg font-black text-rose-600">
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Sin Entregar / Devolución</span>
+                <span className="text-lg font-black text-secondary">
                   {(orderMetrics.failedDeliveryCount || 0) + (orderMetrics.returnedCount || 0)}
                 </span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Anuladas</span>
-                <span className="text-lg font-black text-slate-500">{orderMetrics.canceledCount || 0}</span>
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Anuladas</span>
+                <span className="text-lg font-black text-tinta-suave">{orderMetrics.canceledCount || 0}</span>
               </div>
 
-              <div className="bg-white p-3 rounded-xl border border-purple-100 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 block">Total Registros</span>
-                <span className="text-lg font-black text-slate-800">{orderMetrics.totalOrders || 0}</span>
+              <div className="bg-white p-3 rounded-xl border border-borde shadow-sm">
+                <span className="text-[10px] font-bold uppercase text-tinta-suave block">Total Registros</span>
+                <span className="text-lg font-black text-tinta">{orderMetrics.totalOrders || 0}</span>
               </div>
             </div>
 
@@ -1693,7 +1399,7 @@ export default function AdminDashboardPage() {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
                     <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                       <div className="flex items-center gap-2">
-                        <Filter className="w-4 h-4 text-slate-400" />
+                        <Filter className="w-4 h-4 text-tinta-suave" />
                         <select
                           value={orderStatusFilter}
                           onChange={(e) => {
@@ -1702,7 +1408,7 @@ export default function AdminDashboardPage() {
                             setOrdersCurrentPage(1);
                             loadAdminOrders(val, orderSearchTerm);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-400"
+                          className="px-3.5 py-2 rounded-xl bg-cian border border-borde text-xs font-semibold text-tinta focus:ring-2 focus:ring-celeste"
                         >
                           <option value="all">Ver Todos los Estados ({adminOrders.length})</option>
                           <option value="orden_generada">1. Orden Generada (Pendiente Pago)</option>
@@ -1718,7 +1424,7 @@ export default function AdminDashboardPage() {
 
                       {/* Selector de Paginación Variable */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-500">Mostrar:</span>
+                        <span className="text-xs font-bold text-tinta-suave">Mostrar:</span>
                         <select
                           value={ordersPerPage}
                           onChange={(e) => {
@@ -1726,7 +1432,7 @@ export default function AdminDashboardPage() {
                             setOrdersPerPage(val);
                             setOrdersCurrentPage(1);
                           }}
-                          className="px-3 py-2 rounded-xl bg-purple-50 border border-purple-200 text-xs font-extrabold text-purple-700 focus:ring-2 focus:ring-purple-400 cursor-pointer shadow-2xs"
+                          className="px-3 py-2 rounded-xl bg-cian border border-borde text-xs font-extrabold text-azul focus:ring-2 focus:ring-celeste cursor-pointer shadow-sm"
                         >
                           <option value={5}>5 reg / pág</option>
                           <option value={10}>10 reg / pág</option>
@@ -1749,9 +1455,9 @@ export default function AdminDashboardPage() {
                           setOrdersCurrentPage(1);
                           loadAdminOrders(orderStatusFilter, val);
                         }}
-                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-cian border border-borde text-xs text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                       />
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <Search className="w-4 h-4 text-tinta-suave absolute left-3 top-2.5" />
                     </div>
                   </div>
 
@@ -1759,7 +1465,7 @@ export default function AdminDashboardPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
+                        <tr className="border-b border-borde text-tinta-suave font-bold uppercase bg-cian">
                           <th className="py-3 px-4">Nº Orden & Fecha</th>
                           <th className="py-3 px-4">Cliente / Contacto</th>
                           <th className="py-3 px-4">Destino & Dirección</th>
@@ -1768,10 +1474,10 @@ export default function AdminDashboardPage() {
                           <th className="py-3 px-4">Estado Contable / Logístico</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-borde">
                         {paginatedOrders.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                            <td colSpan={6} className="py-8 text-center text-tinta-suave italic">
                               No se encontraron pedidos registrados con los filtros seleccionados.
                             </td>
                           </tr>
@@ -1786,25 +1492,25 @@ export default function AdminDashboardPage() {
                             });
 
                             return (
-                              <tr key={ord.id} className="hover:bg-purple-50/40 transition-colors">
+                              <tr key={ord.id} className="hover:bg-cian transition-colors">
                                 <td className="py-4 px-4 align-top">
-                                  <span className="font-extrabold text-purple-700 block font-mono text-sm">
+                                  <span className="font-extrabold text-azul block font-mono text-sm">
                                     #{ord.orderNumber || ord.id.slice(-6)}
                                   </span>
-                                  <span className="text-[11px] text-slate-400 font-medium">{dateStr}</span>
+                                  <span className="text-[11px] text-tinta-suave font-medium">{dateStr}</span>
                                 </td>
 
                                 <td className="py-4 px-4 align-top">
-                                  <span className="font-bold text-slate-800 block">{ord.customerName}</span>
-                                  <span className="text-[11px] text-slate-500 block">{ord.customerEmail}</span>
+                                  <span className="font-bold text-tinta block">{ord.customerName}</span>
+                                  <span className="text-[11px] text-tinta-suave block">{ord.customerEmail}</span>
                                   {ord.customerPhone && (
-                                    <span className="text-[10px] text-slate-400 block mt-0.5">Tel: {ord.customerPhone}</span>
+                                    <span className="text-[10px] text-tinta-suave block mt-0.5">Tel: {ord.customerPhone}</span>
                                   )}
                                 </td>
 
                                 <td className="py-4 px-4 align-top">
-                                  <span className="font-semibold text-slate-800 block line-clamp-2">{ord.shippingAddress}</span>
-                                  <span className="text-[11px] text-slate-500 block">
+                                  <span className="font-semibold text-tinta block line-clamp-2">{ord.shippingAddress}</span>
+                                  <span className="text-[11px] text-tinta-suave block">
                                     {ord.city}, {ord.department}
                                   </span>
                                 </td>
@@ -1812,14 +1518,14 @@ export default function AdminDashboardPage() {
                                 <td className="py-4 px-4 align-top">
                                   <div className="space-y-1">
                                     {ord.items?.map((it: any) => (
-                                      <div key={it.id} className="text-[11px] text-slate-700">
+                                      <div key={it.id} className="text-[11px] text-tinta-suave">
                                         <strong>{it.quantity}x</strong> {it.productName || it.product?.name}{' '}
-                                        <span className="text-slate-400 text-[10px]">
+                                        <span className="text-tinta-suave text-[10px]">
                                           (${it.unitPrice?.toLocaleString('es-CO')})
                                         </span>
                                       </div>
                                     ))}
-                                    <div className="pt-1 border-t border-slate-100 font-extrabold text-sm text-purple-700">
+                                    <div className="pt-1 border-t border-borde font-extrabold text-sm text-azul">
                                       Total: ${ord.total?.toLocaleString('es-CO')} COP
                                     </div>
                                   </div>
@@ -1827,20 +1533,20 @@ export default function AdminDashboardPage() {
 
                                 <td className="py-4 px-4 align-top">
                                   {ord.paymentStatus === 'approved' ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-celeste text-azul border border-borde">
                                       <CheckCircle2 className="w-3 h-3" /> Aprobado MP
                                     </span>
                                   ) : ord.paymentStatus === 'rejected' || ord.paymentStatus === 'cancelled' ? (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-cian text-secondary border border-secondary">
                                       Rechazado MP
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amarillo text-tinta border border-borde">
                                       Pendiente Pago
                                     </span>
                                   )}
                                   {ord.paymentTransactionId && (
-                                    <span className="text-[9px] text-slate-400 block font-mono mt-1">
+                                    <span className="text-[9px] text-tinta-suave block font-mono mt-1">
                                       ID: {ord.paymentTransactionId}
                                     </span>
                                   )}
@@ -1853,20 +1559,20 @@ export default function AdminDashboardPage() {
                                     onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
                                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                                       ord.status === 'orden_generada'
-                                        ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                        ? 'bg-amarillo text-tinta border-borde'
                                         : ord.status === 'confirmado'
-                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                        ? 'bg-celeste text-azul border-borde'
                                         : ord.status === 'empacada'
-                                        ? 'bg-purple-50 text-purple-800 border-purple-300'
+                                        ? 'bg-cian text-azul border-borde'
                                         : ord.status === 'en_camino'
-                                        ? 'bg-sky-50 text-sky-800 border-sky-300'
+                                        ? 'bg-celeste text-azul border-borde'
                                         : ord.status === 'sin_poder_entregarse'
                                         ? 'bg-orange-50 text-orange-800 border-orange-300'
                                         : ord.status === 'entregada'
                                         ? 'bg-teal-50 text-teal-800 border-teal-300'
                                         : ord.status === 'devolucion'
-                                        ? 'bg-rose-50 text-rose-800 border-rose-300'
-                                        : 'bg-slate-100 text-slate-700 border-slate-300'
+                                        ? 'bg-cian text-secondary border-secondary'
+                                        : 'bg-cian text-tinta-suave border-borde'
                                     }`}
                                   >
                                     <option value="orden_generada">1. Orden Generada</option>
@@ -1889,17 +1595,17 @@ export default function AdminDashboardPage() {
 
                   {/* Pie de Página con Controles de Paginación */}
                   {totalOrdersCount > 0 && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-100 text-xs">
-                      <span className="text-slate-500 font-medium">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-borde text-xs">
+                      <span className="text-tinta-suave font-medium">
                         Mostrando{' '}
-                        <strong className="text-slate-800 font-bold">
+                        <strong className="text-tinta font-bold">
                           {totalOrdersCount === 0 ? 0 : startIndex + 1}
                         </strong>{' '}
                         a{' '}
-                        <strong className="text-slate-800 font-bold">
+                        <strong className="text-tinta font-bold">
                           {Math.min(endIndex, totalOrdersCount)}
                         </strong>{' '}
-                        de <strong className="text-purple-700 font-extrabold">{totalOrdersCount}</strong> órdenes
+                        de <strong className="text-azul font-extrabold">{totalOrdersCount}</strong> órdenes
                       </span>
 
                       {ordersPerPage !== 'all' && totalPages > 1 && (
@@ -1907,7 +1613,7 @@ export default function AdminDashboardPage() {
                           <button
                             disabled={safeCurrentPage <= 1}
                             onClick={() => setOrdersCurrentPage((p) => Math.max(1, p - 1))}
-                            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-purple-50 text-slate-700 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            className="px-3 py-1.5 rounded-xl border border-borde bg-white hover:bg-cian text-tinta-suave font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                           >
                             Anterior
                           </button>
@@ -1918,8 +1624,8 @@ export default function AdminDashboardPage() {
                               onClick={() => setOrdersCurrentPage(pageNum)}
                               className={`w-8 h-8 rounded-xl font-extrabold text-xs transition-all shrink-0 ${
                                 safeCurrentPage === pageNum
-                                  ? 'bg-purple-600 text-white shadow-xs'
-                                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-purple-50'
+                                  ? 'bg-azul text-white shadow-sm'
+                                  : 'bg-white text-tinta-suave border border-borde hover:bg-cian'
                               }`}
                             >
                               {pageNum}
@@ -1929,7 +1635,7 @@ export default function AdminDashboardPage() {
                           <button
                             disabled={safeCurrentPage >= totalPages}
                             onClick={() => setOrdersCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-purple-50 text-slate-700 font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            className="px-3 py-1.5 rounded-xl border border-borde bg-white hover:bg-cian text-tinta-suave font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                           >
                             Siguiente
                           </button>
@@ -1945,13 +1651,13 @@ export default function AdminDashboardPage() {
 
         {/* Tab 1: CRM Clientes */}
         {activeTab === 'crm' && (
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+          <div className={`${UI.card} space-y-6`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-purple-600" /> Base de Datos Mamás y Bebés ({data.customers?.length || 0})
+                <h2 className="text-xl font-bold text-tinta flex items-center gap-2">
+                  <Users className="w-6 h-6 text-azul" /> Base de Datos Mamás y Bebés ({data.customers?.length || 0})
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-tinta-suave mt-1">
                   Clientes y perfiles registrados en la base de datos real con puntos acumulados e historial.
                 </p>
               </div>
@@ -1960,7 +1666,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={loadRemarketingData}
                   title="Actualizar datos de clientes"
-                  className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all flex items-center gap-1.5 text-xs font-bold shadow-2xs"
+                  className="p-2 rounded-xl bg-cian hover:bg-cian text-azul border border-borde transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm"
                 >
                   <RefreshCw className="w-4 h-4" />
                   <span className="hidden sm:inline">Actualizar</span>
@@ -1972,17 +1678,70 @@ export default function AdminDashboardPage() {
                     placeholder="Buscar por nombre, email, ciudad o bebé..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs w-64 text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="pl-9 pr-4 py-2 rounded-xl bg-cian border border-borde text-xs w-64 text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-tinta-suave absolute left-3 top-2.5" />
                 </div>
+              </div>
+            </div>
+
+            {/* Distribución por etapa. Antes era una pestaña propia con solo
+                cuatro números; vive mejor junto a la base de clientes. */}
+            <div>
+              <h3 className="text-sm font-bold text-tinta-suave mb-3">
+                Bebés por etapa de crecimiento
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="p-5 rounded-2xl bg-cian border border-borde shadow-sm space-y-1">
+                  <h3 className="font-extrabold text-secondary text-sm">Embarazo / Prenatal</h3>
+                  <span className="text-3xl font-black text-secondary block">
+                    {data.babyCohorts?.summary?.embarazo || 0}
+                  </span>
+                  <p className="text-[11px] font-medium text-secondary">Bebés en camino registrados por las mamás.</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-cian border border-borde shadow-sm space-y-1">
+                  <h3 className="font-extrabold text-azul text-sm">Recién Nacidos (0 - 3m)</h3>
+                  <span className="text-3xl font-black text-azul block">
+                    {data.babyCohorts?.summary?.recienNacido || 0}
+                  </span>
+                  <p className="text-[11px] font-medium text-azul">Etapa de máxima cuidado y piel delicada.</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-amarillo border border-borde shadow-sm space-y-1">
+                  <h3 className="font-extrabold text-tinta text-sm">Lactantes (3 - 12m)</h3>
+                  <span className="text-3xl font-black text-tinta block">
+                    {(data.babyCohorts?.summary?.lactanteMenor || 0) + (data.babyCohorts?.summary?.lactanteMayor || 0)}
+                  </span>
+                  <p className="text-[11px] font-medium text-tinta">Etapa de rutina de baño y sueño dulce.</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-celeste border border-borde shadow-sm space-y-1">
+                  <h3 className="font-extrabold text-azul text-sm">Toddler / Mayores (12m+)</h3>
+                  <span className="text-3xl font-black text-azul block">
+                    {data.babyCohorts?.summary?.toddler || 0}
+                  </span>
+                  <p className="text-[11px] font-medium text-azul">Niños exploradores e hidratación diaria.</p>
+                </div>
+
+              {/* Los que no tienen fecha: antes se contaban como recién nacidos y
+                  falseaban el reparto. Ahora quedan visibles como dato pendiente. */}
+              {(data.babyCohorts?.summary?.sinFecha || 0) > 0 && (
+                <div className="p-5 rounded-2xl bg-amarillo border border-borde space-y-1">
+                  <h3 className="font-extrabold text-tinta text-sm">Sin fecha registrada</h3>
+                  <span className="text-3xl font-black text-tinta block">
+                    {data.babyCohorts?.summary?.sinFecha || 0}
+                  </span>
+                  <p className="text-[11px] font-medium text-tinta-suave">Pídeles la fecha para clasificarlos.</p>
+                </div>
+              )}
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
+                  <tr className="border-b border-borde text-tinta-suave font-bold uppercase bg-cian">
                     <th className="py-3 px-4">Mamá (Cliente)</th>
                     <th className="py-3 px-4">Contacto & Ubicación</th>
                     <th className="py-3 px-4">Bebé & Piel</th>
@@ -1990,10 +1749,10 @@ export default function AdminDashboardPage() {
                     <th className="py-3 px-4 text-right">Acción Remarketing</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-borde">
                   {(!data.customers || data.customers.length === 0) ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400 italic">
+                      <td colSpan={5} className="py-8 text-center text-tinta-suave italic">
                         No se encontraron clientes registrados en la base de datos.
                       </td>
                     </tr>
@@ -2028,6 +1787,8 @@ export default function AdminDashboardPage() {
                         const baby = babies[0];
                         const babyName = baby?.babyName || 'Bebé';
                         const skin = baby?.skinCondition || 'Normal';
+                        const hasBaby = (customer.hasBaby ?? prof?.hasBaby) !== false && babies.length > 0;
+                        const babyAge = babyAgeLabel(baby?.birthDate);
                         const approvedOrders = (customer.orders || []).filter(
                           (o: any) =>
                             o.paymentStatus === 'approved' ||
@@ -2038,41 +1799,52 @@ export default function AdminDashboardPage() {
                         const loyaltyPointsApproved = Math.floor(totalSpentApproved / 1000);
 
                         return (
-                          <tr key={customer.id} className="hover:bg-purple-50/50 transition-colors">
-                            <td className="py-4 px-4 align-top font-bold text-slate-800">
+                          <tr key={customer.id} className="hover:bg-cian transition-colors">
+                            <td className="py-4 px-4 align-top font-bold text-tinta">
                               {motherName}
-                              <div className="text-[11px] font-normal text-slate-400">
+                              <div className="text-[11px] font-normal text-tinta-suave">
                                 Reg: {new Date(customer.createdAt).toLocaleDateString('es-CO')}
                               </div>
                             </td>
 
-                            <td className="py-4 px-4 align-top text-slate-600">
+                            <td className="py-4 px-4 align-top text-tinta-suave">
                               <div className="flex items-center gap-1.5 text-xs font-semibold">
-                                <Mail className="w-3.5 h-3.5 text-purple-600 shrink-0" /> {customer.email}
+                                <Mail className="w-3.5 h-3.5 text-azul shrink-0" /> {customer.email}
                               </div>
                               {phone !== 'Sin teléfono' && (
-                                <div className="text-[11px] text-slate-500 mt-0.5 font-mono">Tel: {phone}</div>
+                                <div className="text-[11px] text-tinta-suave mt-0.5 font-mono">Tel: {phone}</div>
                               )}
-                              <div className="text-[10px] text-slate-400 mt-0.5">{location}</div>
+                              <div className="text-[10px] text-tinta-suave mt-0.5">{location}</div>
                             </td>
 
                             <td className="py-4 px-4 align-top">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 border border-pink-200">
-                                <Baby className="w-3.5 h-3.5" /> {babyName}
-                              </span>
-                              <span className="text-[11px] font-medium text-slate-600 block mt-1">
-                                Piel: <strong className="text-purple-700">{skin}</strong>
-                              </span>
+                              {hasBaby ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cian text-secondary border border-borde">
+                                    <Baby className="w-3.5 h-3.5" /> {babyName}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-tinta-suave block mt-1">
+                                    {babyAge}
+                                  </span>
+                                  <span className="text-[11px] font-medium text-tinta-suave block">
+                                    Piel: <strong className="text-azul">{skin}</strong>
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-cian text-tinta-suave border border-borde">
+                                  Sin bebé registrado
+                                </span>
+                              )}
                             </td>
 
                             <td className="py-4 px-4 align-top">
-                              <span className="font-extrabold text-slate-800 block text-xs">
+                              <span className="font-extrabold text-tinta block text-xs">
                                 {approvedCount} orden(es) aprobadas
                               </span>
-                              <span className="text-[11px] text-emerald-700 font-bold block">
+                              <span className="text-[11px] text-azul font-bold block">
                                 ${totalSpentApproved.toLocaleString('es-CO')} COP
                               </span>
-                              <span className="text-[10px] text-amber-600 font-bold block mt-0.5">
+                              <span className="text-[10px] text-tertiary font-bold block mt-0.5">
                                 ⭐ {loyaltyPointsApproved} pts
                               </span>
                             </td>
@@ -2087,7 +1859,7 @@ export default function AdminDashboardPage() {
                                     'Cremas Corporales Ensueño'
                                   )
                                 }
-                                className="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                                className="inline-flex items-center gap-1.5 bg-azul hover:bg-azul-hondo text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
                               >
                                 <Send className="w-3.5 h-3.5" /> Recordatorio Recompra
                               </button>
@@ -2106,22 +1878,22 @@ export default function AdminDashboardPage() {
         {activeTab === 'shipping' && (
           <div className="space-y-8">
             {/* Asignación por Departamento Completo usando índice numérico */}
-            <div className="bg-gradient-to-r from-sky-100 via-purple-100 to-pink-100 rounded-3xl p-6 text-slate-800 border border-purple-200 shadow-sm space-y-4">
+            <div className="bg-cian rounded-3xl p-6 text-tinta border border-borde shadow-sm space-y-4">
               <div className="flex items-center gap-2">
-                <Building2 className="w-6 h-6 text-purple-700" />
-                <h2 className="text-lg font-extrabold text-slate-800">Asignación Rápida por Departamento Completo</h2>
+                <Building2 className="w-6 h-6 text-azul" />
+                <h2 className="text-lg font-extrabold text-tinta">Asignación Rápida por Departamento Completo</h2>
               </div>
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-tinta-suave">
                 Selecciona un departamento de Colombia e ingresa la tarifa plana para aplicarla con un solo clic a todos sus municipios.
               </p>
 
               <form onSubmit={handleApplyDepartmentFlatRate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Departamento</label>
+                  <label className="block text-[11px] font-bold text-tinta-suave uppercase mb-1">Departamento</label>
                   <select
                     value={deptFlatIndex}
                     onChange={(e) => setDeptFlatIndex(parseInt(e.target.value))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-purple-200 text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-borde text-tinta text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                   >
                     {COLOMBIA_LOCATION_DATA.map((d, index) => (
                       <option key={d.name} value={index}>
@@ -2132,23 +1904,23 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Tarifa Envío (COP)</label>
+                  <label className="block text-[11px] font-bold text-tinta-suave uppercase mb-1">Tarifa Envío (COP)</label>
                   <input
                     type="number"
                     required
                     value={deptFlatRate}
                     onChange={(e) => setDeptFlatRate(e.target.value)}
                     placeholder="Ej: 8000"
-                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-purple-200 text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-borde text-tinta text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Tiempo Estimado</label>
+                  <label className="block text-[11px] font-bold text-tinta-suave uppercase mb-1">Tiempo Estimado</label>
                   <select
                     value={deptFlatDays}
                     onChange={(e) => setDeptFlatDays(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-purple-200 text-slate-800 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white border border-borde text-tinta text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                   >
                     <option value="1-2 días hábiles">1-2 días hábiles</option>
                     <option value="2-3 días hábiles">2-3 días hábiles</option>
@@ -2161,7 +1933,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 uppercase tracking-wide"
+                    className="w-full bg-azul hover:bg-azul-hondo text-white font-extrabold text-xs py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 uppercase tracking-wide"
                   >
                     <Layers className="w-4 h-4" /> Aplicar a Departamento
                   </button>
@@ -2170,13 +1942,13 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Selector por Municipio Específico */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div className={`${UI.card} space-y-6`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-borde pb-4">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-purple-600" /> Tarifas Configuradas por Municipio ({shippingRates.length})
+                  <h2 className="text-xl font-bold text-tinta flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-azul" /> Tarifas Configuradas por Municipio ({shippingRates.length})
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">Guarda o modifica el valor del envío para cualquier municipio de Colombia.</p>
+                  <p className="text-xs text-tinta-suave mt-1">Guarda o modifica el valor del envío para cualquier municipio de Colombia.</p>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
@@ -2185,14 +1957,14 @@ export default function AdminDashboardPage() {
                     <select
                       value={deptFilter}
                       onChange={(e) => { setDeptFilter(e.target.value); setSelectedRateIds(new Set()); }}
-                      className="pl-7 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs w-44 font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-400 appearance-none"
+                      className="pl-7 pr-3 py-1.5 rounded-xl bg-cian border border-borde text-xs w-44 font-semibold text-tinta-suave focus:outline-none focus:ring-2 focus:ring-celeste appearance-none"
                     >
                       <option value="all">Todos los departamentos</option>
                       {uniqueDepartments.map((dept) => (
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
                     </select>
-                    <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5 pointer-events-none" />
+                    <Filter className="w-3.5 h-3.5 text-tinta-suave absolute left-2 top-2.5 pointer-events-none" />
                   </div>
                   {/* Text search */}
                   <div className="relative">
@@ -2201,13 +1973,13 @@ export default function AdminDashboardPage() {
                       placeholder="Buscar ciudad..."
                       value={rateSearchTerm}
                       onChange={(e) => setRateSearchTerm(e.target.value)}
-                      className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs w-40 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="pl-8 pr-3 py-1.5 rounded-xl bg-cian border border-borde text-xs w-40 focus:outline-none focus:ring-2 focus:ring-celeste"
                     />
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                    <Search className="w-3.5 h-3.5 text-tinta-suave absolute left-2.5 top-2.5" />
                   </div>
                   <button
                     onClick={loadProductsAndShipping}
-                    className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600"
+                    className="p-2 rounded-xl border border-borde hover:bg-cian text-tinta-suave"
                     title="Recargar Tarifas"
                   >
                     <RefreshCw className="w-4 h-4" />
@@ -2217,20 +1989,20 @@ export default function AdminDashboardPage() {
 
               {/* Bulk delete bar */}
               {selectedRateIds.size > 0 && (
-                <div className="flex items-center justify-between bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3">
-                  <span className="text-xs font-bold text-rose-700">
+                <div className="flex items-center justify-between bg-cian border border-secondary rounded-2xl px-4 py-3">
+                  <span className="text-xs font-bold text-secondary">
                     {selectedRateIds.size} tarifa{selectedRateIds.size > 1 ? 's' : ''} seleccionada{selectedRateIds.size > 1 ? 's' : ''}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setSelectedRateIds(new Set())}
-                      className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      className="text-xs font-semibold text-tinta-suave hover:text-tinta px-3 py-1.5 rounded-lg border border-borde bg-white"
                     >
                       Deseleccionar
                     </button>
                     <button
                       onClick={handleBulkDelete}
-                      className="text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 px-4 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm"
+                      className="text-xs font-bold text-white bg-secondary hover:bg-secondary/90 px-4 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Eliminar Seleccionadas
                     </button>
@@ -2238,9 +2010,9 @@ export default function AdminDashboardPage() {
                 </div>
               )}
 
-              <form onSubmit={handleAddSingleCityRate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-purple-50/40 p-4 rounded-2xl border border-purple-100">
+              <form onSubmit={handleAddSingleCityRate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-cian p-4 rounded-2xl border border-borde">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">1. Departamento</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">1. Departamento</label>
                   <select
                     value={selectedDeptIndex}
                     onChange={(e) => {
@@ -2248,7 +2020,7 @@ export default function AdminDashboardPage() {
                       setSelectedDeptIndex(idx);
                       setSelectedCityName(COLOMBIA_LOCATION_DATA[idx].cities[0]);
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   >
                     {COLOMBIA_LOCATION_DATA.map((d, index) => (
                       <option key={d.name} value={index}>
@@ -2259,11 +2031,11 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">2. Municipio / Ciudad</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">2. Municipio / Ciudad</label>
                   <select
                     value={selectedCityName}
                     onChange={(e) => setSelectedCityName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   >
                     {COLOMBIA_LOCATION_DATA[selectedDeptIndex].cities.map((city) => (
                       <option key={city} value={city}>
@@ -2274,23 +2046,23 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">3. Costo Envío (COP)</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">3. Costo Envío (COP)</label>
                   <input
                     type="number"
                     required
                     value={singleCityRate}
                     onChange={(e) => setSingleCityRate(e.target.value)}
                     placeholder="Ej: 7000"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">4. Tiempo Estimado</label>
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">4. Tiempo Estimado</label>
                   <select
                     value={singleCityDays}
                     onChange={(e) => setSingleCityDays(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-borde text-xs font-semibold text-tinta bg-white"
                   >
                     <option value="1-2 días hábiles">1-2 días hábiles</option>
                     <option value="2-3 días hábiles">2-3 días hábiles</option>
@@ -2303,7 +2075,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md"
+                    className="w-full bg-azul hover:bg-azul-hondo text-white font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md"
                   >
                     <Plus className="w-4 h-4" /> Guardar
                   </button>
@@ -2314,7 +2086,7 @@ export default function AdminDashboardPage() {
               <div className="overflow-x-auto pt-2">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase bg-slate-50">
+                    <tr className="border-b border-borde text-tinta-suave font-bold uppercase bg-cian">
                       <th className="py-3 px-3 w-10">
                         <button
                           onClick={() => {
@@ -2324,26 +2096,26 @@ export default function AdminDashboardPage() {
                               setSelectedRateIds(new Set(filteredRates.map((r) => r.id)));
                             }
                           }}
-                          className="text-purple-500 hover:text-purple-700 transition-colors"
+                          className="text-azul hover:text-azul transition-colors"
                           title={allFilteredSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
                         >
                           {allFilteredSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                         </button>
                       </th>
                       <th className="py-3 px-4">
-                        <button onClick={() => handleToggleSort('department')} className="flex items-center gap-1 hover:text-purple-700 transition-colors">
+                        <button onClick={() => handleToggleSort('department')} className="flex items-center gap-1 hover:text-azul transition-colors">
                           Departamento
                           {sortColumn === 'department' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
                         </button>
                       </th>
                       <th className="py-3 px-4">
-                        <button onClick={() => handleToggleSort('city')} className="flex items-center gap-1 hover:text-purple-700 transition-colors">
+                        <button onClick={() => handleToggleSort('city')} className="flex items-center gap-1 hover:text-azul transition-colors">
                           Municipio / Ciudad
                           {sortColumn === 'city' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
                         </button>
                       </th>
                       <th className="py-3 px-4">
-                        <button onClick={() => handleToggleSort('cost')} className="flex items-center gap-1 hover:text-purple-700 transition-colors">
+                        <button onClick={() => handleToggleSort('cost')} className="flex items-center gap-1 hover:text-azul transition-colors">
                           Costo de Envío
                           {sortColumn === 'cost' ? (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
                         </button>
@@ -2352,10 +2124,10 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-4 text-right">Acción</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-borde">
                     {filteredRates.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-400 text-xs italic">
+                        <td colSpan={6} className="py-8 text-center text-tinta-suave text-xs italic">
                           No hay tarifas específicas cargadas. Agrega una arriba o haz clic en &quot;Aplicar a Todo el Departamento&quot;.
                         </td>
                       </tr>
@@ -2364,30 +2136,30 @@ export default function AdminDashboardPage() {
                         <tr
                           key={rate.id}
                           className={`transition-colors ${
-                            selectedRateIds.has(rate.id) ? 'bg-purple-50/70' : editingRateId === rate.id ? 'bg-amber-50/60' : 'hover:bg-purple-50/40'
+                            selectedRateIds.has(rate.id) ? 'bg-cian' : editingRateId === rate.id ? 'bg-amarillo' : 'hover:bg-cian'
                           }`}
                         >
                           <td className="py-3 px-3">
                             <button
                               onClick={() => toggleRateSelection(rate.id)}
-                              className="text-purple-500 hover:text-purple-700 transition-colors"
+                              className="text-azul hover:text-azul transition-colors"
                             >
                               {selectedRateIds.has(rate.id) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                             </button>
                           </td>
-                          <td className="py-3 px-4 font-bold text-slate-800">{rate.department}</td>
-                          <td className="py-3 px-4 text-slate-700 font-semibold">{rate.city}</td>
+                          <td className="py-3 px-4 font-bold text-tinta">{rate.department}</td>
+                          <td className="py-3 px-4 text-tinta-suave font-semibold">{rate.city}</td>
                           <td className="py-2 px-4">
                             {editingRateId === rate.id ? (
                               <input
                                 type="number"
                                 value={editCost}
                                 onChange={(e) => setEditCost(e.target.value)}
-                                className="w-24 px-2 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                className="w-24 px-2 py-1.5 rounded-lg border border-borde bg-white text-xs font-bold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                                 autoFocus
                               />
                             ) : (
-                              <span className="font-black text-emerald-600">${rate.cost?.toLocaleString('es-CO')} COP</span>
+                              <span className="font-black text-azul">${rate.cost?.toLocaleString('es-CO')} COP</span>
                             )}
                           </td>
                           <td className="py-2 px-4">
@@ -2395,7 +2167,7 @@ export default function AdminDashboardPage() {
                               <select
                                 value={editDays}
                                 onChange={(e) => setEditDays(e.target.value)}
-                                className="w-36 px-2 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                                className="w-36 px-2 py-1.5 rounded-lg border border-borde bg-white text-xs font-semibold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                               >
                                 <option value="1-2 días hábiles">1-2 días hábiles</option>
                                 <option value="2-3 días hábiles">2-3 días hábiles</option>
@@ -2404,7 +2176,7 @@ export default function AdminDashboardPage() {
                                 <option value="7-10 días hábiles">7-10 días hábiles</option>
                               </select>
                             ) : (
-                              <span className="text-slate-500">{rate.estimatedDays}</span>
+                              <span className="text-tinta-suave">{rate.estimatedDays}</span>
                             )}
                           </td>
                           <td className="py-3 px-4 text-right">
@@ -2413,14 +2185,14 @@ export default function AdminDashboardPage() {
                                 <>
                                   <button
                                     onClick={() => handleInlineEditSave(rate)}
-                                    className="text-emerald-500 hover:text-emerald-700 p-1 transition-colors"
+                                    className="text-azul hover:text-azul p-1 transition-colors"
                                     title="Guardar cambios"
                                   >
                                     <Check className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => setEditingRateId(null)}
-                                    className="text-slate-400 hover:text-slate-600 p-1 transition-colors"
+                                    className="text-tinta-suave hover:text-tinta-suave p-1 transition-colors"
                                     title="Cancelar edición"
                                   >
                                     <X className="w-4 h-4" />
@@ -2434,14 +2206,14 @@ export default function AdminDashboardPage() {
                                       setEditCost(String(rate.cost || 0));
                                       setEditDays(rate.estimatedDays || '2-3 días hábiles');
                                     }}
-                                    className="text-amber-500 hover:text-amber-700 p-1 transition-colors"
+                                    className="text-tertiary hover:text-tinta p-1 transition-colors"
                                     title="Editar tarifa"
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleDeleteRate(rate.id, rate.city)}
-                                    className="text-slate-400 hover:text-rose-600 p-1 transition-colors"
+                                    className="text-tinta-suave hover:text-secondary p-1 transition-colors"
                                     title="Eliminar tarifa"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -2459,7 +2231,7 @@ export default function AdminDashboardPage() {
 
               {/* Summary footer */}
               {filteredRates.length > 0 && (
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between text-[11px] text-tinta-suave pt-2 border-t border-borde">
                   <span>Mostrando {filteredRates.length} de {shippingRates.length} tarifas{deptFilter !== 'all' ? ` en ${deptFilter}` : ''}</span>
                   <span>Ordenado por {sortColumn === 'department' ? 'Departamento' : sortColumn === 'city' ? 'Ciudad' : 'Costo'} ({sortDirection === 'asc' ? 'A→Z' : 'Z→A'})</span>
                 </div>
@@ -2467,14 +2239,14 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Reglas Globales */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Truck className="w-5 h-5 text-purple-600" /> Umbral para Envío Gratis y Descuentos
+            <div className={`${UI.card} space-y-6`}>
+              <h2 className="text-xl font-bold text-tinta flex items-center gap-2">
+                <Truck className="w-5 h-5 text-azul" /> Umbral para Envío Gratis y Descuentos
               </h2>
 
               <form onSubmit={handleSaveShippingConfig} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-2">
                     Monto Pedido para Envío Gratis (COP)
                   </label>
                   <input
@@ -2483,12 +2255,12 @@ export default function AdminDashboardPage() {
                     onChange={(e) =>
                       setShippingConfig({ ...shippingConfig, freeShippingThreshold: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-3 rounded-xl bg-cian border border-borde text-sm font-bold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-2">
                     Tarifa Base Nacional Estándar (COP)
                   </label>
                   <input
@@ -2497,12 +2269,12 @@ export default function AdminDashboardPage() {
                     onChange={(e) =>
                       setShippingConfig({ ...shippingConfig, defaultRate: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-3 rounded-xl bg-cian border border-borde text-sm font-bold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-2">
                     Mínimo Productos Descuento Cantidad
                   </label>
                   <input
@@ -2511,12 +2283,12 @@ export default function AdminDashboardPage() {
                     onChange={(e) =>
                       setShippingConfig({ ...shippingConfig, qtyDiscountThreshold: parseInt(e.target.value) || 0 })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-3 rounded-xl bg-cian border border-borde text-sm font-bold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  <label className="block text-xs font-bold text-tinta-suave uppercase mb-2">
                     Descuento Envío por Cantidad (COP)
                   </label>
                   <input
@@ -2525,14 +2297,14 @@ export default function AdminDashboardPage() {
                     onChange={(e) =>
                       setShippingConfig({ ...shippingConfig, qtyDiscountAmount: parseFloat(e.target.value) || 0 })
                     }
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-3 rounded-xl bg-cian border border-borde text-sm font-bold text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div className="md:col-span-2 lg:col-span-4">
                   <button
                     type="submit"
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2"
+                    className="bg-azul hover:bg-azul-hondo text-white font-bold text-sm px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2"
                   >
                     <Save className="w-4 h-4" /> Guardar Reglas Globales
                   </button>
@@ -2543,73 +2315,18 @@ export default function AdminDashboardPage() {
         )}
 
         {/* Tab 3: Cohortes por Edad */}
-        {activeTab === 'cohorts' && (
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Baby className="w-6 h-6 text-purple-600" /> Distribución de Bebés por Etapa de Crecimiento
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Total de bebés registrados en la base de datos: <strong className="text-purple-700 font-extrabold">{data.babyCohorts?.totalBabies || 0}</strong>
-                </p>
-              </div>
-
-              <button
-                onClick={loadRemarketingData}
-                className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-all flex items-center gap-1.5 text-xs font-bold w-fit shadow-2xs"
-              >
-                <RefreshCw className="w-4 h-4" /> Actualizar Cohortes
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="p-5 rounded-2xl bg-pink-50 border border-pink-200 shadow-2xs space-y-1">
-                <h3 className="font-extrabold text-pink-900 text-sm">Embarazo / Prenatal</h3>
-                <span className="text-3xl font-black text-pink-700 block">
-                  {data.babyCohorts?.summary?.embarazo || 0}
-                </span>
-                <p className="text-[11px] font-medium text-pink-700">Bebés en camino registrados por las mamás.</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-purple-50 border border-purple-200 shadow-2xs space-y-1">
-                <h3 className="font-extrabold text-purple-900 text-sm">Recién Nacidos (0 - 3m)</h3>
-                <span className="text-3xl font-black text-purple-700 block">
-                  {data.babyCohorts?.summary?.recienNacido || 0}
-                </span>
-                <p className="text-[11px] font-medium text-purple-700">Etapa de máxima cuidado y piel delicada.</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 shadow-2xs space-y-1">
-                <h3 className="font-extrabold text-amber-900 text-sm">Lactantes (3 - 12m)</h3>
-                <span className="text-3xl font-black text-amber-700 block">
-                  {(data.babyCohorts?.summary?.lactanteMenor || 0) + (data.babyCohorts?.summary?.lactanteMayor || 0)}
-                </span>
-                <p className="text-[11px] font-medium text-amber-700">Etapa de rutina de baño y sueño dulce.</p>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-sky-50 border border-sky-200 shadow-2xs space-y-1">
-                <h3 className="font-extrabold text-sky-900 text-sm">Toddler / Mayores (12m+)</h3>
-                <span className="text-3xl font-black text-sky-700 block">
-                  {data.babyCohorts?.summary?.toddler || 0}
-                </span>
-                <p className="text-[11px] font-medium text-sky-700">Niños exploradores e hidratación diaria.</p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Tab 4: Administración de Productos & Promociones de la Página Principal */}
         {activeTab === 'products' && (
           <div className="space-y-6">
             {/* Sub-Tab Navigation Bar */}
-            <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex items-center gap-2">
+            <div className="bg-white rounded-2xl p-2 border border-borde shadow-sm flex items-center gap-2">
               <button
                 onClick={() => setAdminProductSubTab('catalog')}
                 className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                   adminProductSubTab === 'catalog'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    ? 'bg-azul text-white shadow-md'
+                    : 'bg-cian text-tinta-suave hover:bg-cian'
                 }`}
               >
                 <ShoppingBag className="w-4 h-4" />
@@ -2620,8 +2337,8 @@ export default function AdminDashboardPage() {
                 onClick={() => setAdminProductSubTab('promotions')}
                 className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                   adminProductSubTab === 'promotions'
-                    ? 'bg-amber-500 text-white shadow-md'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    ? 'bg-tertiary text-white shadow-md'
+                    : 'bg-cian text-tinta-suave hover:bg-cian'
                 }`}
               >
                 <Gift className="w-4 h-4" />
@@ -2633,13 +2350,13 @@ export default function AdminDashboardPage() {
             {adminProductSubTab === 'catalog' && (
               <div className="space-y-6">
                 {/* Header Metrics & Main Action */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className={`${UI.card} flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
                   <div>
-                    <span className="text-[11px] font-black uppercase text-purple-700 tracking-wider bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                    <span className="text-[11px] font-black uppercase text-azul tracking-wider bg-cian px-3 py-1 rounded-full border border-borde">
                       Gestión del Catálogo E-Commerce
                     </span>
-                    <h2 className="text-2xl font-black text-slate-800 mt-1">Administración de Productos</h2>
-                    <p className="text-xs font-semibold text-slate-500">
+                    <h2 className="text-2xl font-black text-tinta mt-1">Administración de Productos</h2>
+                    <p className="text-xs font-semibold text-tinta-suave">
                       Crea y edita productos para la 2da sección de la página principal y la página de detalle.
                     </p>
                   </div>
@@ -2655,33 +2372,33 @@ export default function AdminDashboardPage() {
 
                 {/* Quick Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Total en Catálogo</span>
-                    <span className="text-2xl font-black text-slate-800 block">{products.length} productos</span>
+                  <div className="p-4 rounded-2xl bg-white border border-borde shadow-sm space-y-1">
+                    <span className="text-xs font-bold text-tinta-suave uppercase">Total en Catálogo</span>
+                    <span className="text-2xl font-black text-tinta block">{products.length} productos</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-2xs space-y-1">
-                    <span className="text-xs font-bold text-amber-700 uppercase">⭐ En 2da Sección Inicio</span>
-                    <span className="text-2xl font-black text-amber-900 block">
+                  <div className="p-4 rounded-2xl bg-cian border border-borde shadow-sm space-y-1">
+                    <span className="text-xs font-bold text-tinta uppercase">⭐ En 2da Sección Inicio</span>
+                    <span className="text-2xl font-black text-tinta block">
                       {products.filter((p) => p.isFeatured !== false).length} destacados
                     </span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200 shadow-2xs space-y-1">
-                    <span className="text-xs font-bold text-pink-700 uppercase">🔥 En Oferta / Promoción</span>
-                    <span className="text-2xl font-black text-pink-900 block">
+                  <div className="p-4 rounded-2xl bg-cian border border-borde shadow-sm space-y-1">
+                    <span className="text-xs font-bold text-secondary uppercase">🔥 En Oferta / Promoción</span>
+                    <span className="text-2xl font-black text-secondary block">
                       {products.filter((p) => p.originalPrice && p.originalPrice > p.price).length} promociones
                     </span>
                   </div>
                 </div>
 
                 {/* Filters Bar */}
-                <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="bg-white rounded-2xl p-4 border border-borde shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button
                       onClick={() => setProductFilter('all')}
                       className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                         productFilter === 'all'
-                          ? 'bg-purple-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-azul text-white shadow-sm'
+                          : 'bg-cian text-tinta-suave hover:bg-cian'
                       }`}
                     >
                       Todos ({products.length})
@@ -2690,8 +2407,8 @@ export default function AdminDashboardPage() {
                       onClick={() => setProductFilter('featured')}
                       className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1 ${
                         productFilter === 'featured'
-                          ? 'bg-amber-500 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-tertiary text-white shadow-sm'
+                          : 'bg-cian text-tinta-suave hover:bg-cian'
                       }`}
                     >
                       <Star className="w-3.5 h-3.5 fill-current" /> 2da Sección Inicio
@@ -2700,8 +2417,8 @@ export default function AdminDashboardPage() {
                       onClick={() => setProductFilter('promo')}
                       className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                         productFilter === 'promo'
-                          ? 'bg-rose-500 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-secondary text-white shadow-sm'
+                          : 'bg-cian text-tinta-suave hover:bg-cian'
                       }`}
                     >
                       En Oferta
@@ -2709,13 +2426,13 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="relative w-full sm:w-64">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <Search className="w-4 h-4 text-tinta-suave absolute left-3 top-2.5" />
                     <input
                       type="text"
                       value={productSearchQuery}
                       onChange={(e) => setProductSearchQuery(e.target.value)}
                       placeholder="Buscar producto..."
-                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      className="w-full pl-9 pr-4 py-2 rounded-xl bg-cian border border-borde text-xs text-tinta font-semibold focus:outline-none focus:ring-2 focus:ring-celeste"
                     />
                   </div>
                 </div>
@@ -2741,33 +2458,33 @@ export default function AdminDashboardPage() {
                         <div
                           key={product.id}
                           className={`border rounded-3xl p-5 bg-white space-y-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative ${
-                            isFeatured ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'
+                            isFeatured ? 'border-borde ring-2 ring-celeste' : 'border-borde'
                           }`}
                         >
                           {/* Featured Badge */}
                           <div className="flex items-center justify-between gap-2">
                             {isFeatured ? (
-                              <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> 2da Sección Inicio
+                              <span className="bg-amarillo text-tinta border border-borde text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-amarillo text-tertiary" /> 2da Sección Inicio
                               </span>
                             ) : (
-                              <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                              <span className="bg-cian text-tinta-suave text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                                 Solo en Catálogo
                               </span>
                             )}
 
                             {hasPromo && (
-                              <span className="bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-full">
+                              <span className="bg-cian text-secondary border border-secondary text-[10px] font-black px-2 py-0.5 rounded-full">
                                 🔥 En Promoción
                               </span>
                             )}
                           </div>
 
                           {/* Image Preview */}
-                          <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
+                          <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-cian border border-borde">
                             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                             {product.badge && (
-                              <span className="absolute top-2.5 left-2.5 bg-purple-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                              <span className="absolute top-2.5 left-2.5 bg-azul text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-sm">
                                 {product.badge}
                               </span>
                             )}
@@ -2775,16 +2492,16 @@ export default function AdminDashboardPage() {
 
                           {/* Content Info */}
                           <div className="space-y-1.5 flex-grow">
-                            <h3 className="font-extrabold text-slate-900 text-base leading-snug">{product.name}</h3>
-                            <p className="text-xs font-semibold text-slate-500 line-clamp-2">{product.subtitle}</p>
+                            <h3 className="font-extrabold text-tinta text-base leading-snug">{product.name}</h3>
+                            <p className="text-xs font-semibold text-tinta-suave line-clamp-2">{product.subtitle}</p>
 
                             {/* Price Display */}
                             <div className="pt-2 flex items-baseline gap-2">
-                              <span className="text-base font-black text-purple-700">
+                              <span className="text-base font-black text-azul">
                                 ${product.price?.toLocaleString('es-CO')} COP
                               </span>
                               {hasPromo && (
-                                <span className="text-xs text-slate-400 line-through font-bold">
+                                <span className="text-xs text-tinta-suave line-through font-bold">
                                   ${product.originalPrice?.toLocaleString('es-CO')} COP
                                 </span>
                               )}
@@ -2793,12 +2510,12 @@ export default function AdminDashboardPage() {
                             {/* Badges Summary */}
                             <div className="pt-2 flex flex-wrap gap-1">
                               {product.fragrances?.length > 0 && (
-                                <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                                <span className="bg-cian text-tinta-suave text-[10px] font-bold px-2 py-0.5 rounded-md">
                                   🌸 {product.fragrances.length} Aromas
                                 </span>
                               )}
                               {product.sizes?.length > 0 && (
-                                <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                                <span className="bg-cian text-tinta-suave text-[10px] font-bold px-2 py-0.5 rounded-md">
                                   📐 {product.sizes.length} Tallas
                                 </span>
                               )}
@@ -2806,11 +2523,11 @@ export default function AdminDashboardPage() {
                           </div>
 
                           {/* Quick Action Buttons */}
-                          <div className="pt-3 border-t border-slate-100 space-y-2">
+                          <div className="pt-3 border-t border-borde space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => handleOpenEditProduct(product)}
-                                className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold py-2 rounded-xl border border-purple-200 transition-colors flex items-center justify-center gap-1"
+                                className="w-full bg-cian hover:bg-cian text-azul text-xs font-bold py-2 rounded-xl border border-borde transition-colors flex items-center justify-center gap-1"
                               >
                                 <Pencil className="w-3.5 h-3.5" /> Editar Todo
                               </button>
@@ -2819,19 +2536,19 @@ export default function AdminDashboardPage() {
                                 onClick={() => handleToggleFeaturedProduct(product)}
                                 className={`w-full text-xs font-bold py-2 rounded-xl border transition-colors flex items-center justify-center gap-1 ${
                                   isFeatured
-                                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300'
-                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                    ? 'bg-amarillo hover:bg-amarillo text-tinta border-borde'
+                                    : 'bg-cian hover:bg-cian text-tinta-suave border-borde'
                                 }`}
                                 title="Alternar presencia en 2da sección de la página principal"
                               >
-                                <Star className={`w-3.5 h-3.5 ${isFeatured ? 'fill-amber-500 text-amber-500' : ''}`} />
+                                <Star className={`w-3.5 h-3.5 ${isFeatured ? 'fill-amarillo text-tertiary' : ''}`} />
                                 {isFeatured ? 'En Inicio' : '+ A Inicio'}
                               </button>
                             </div>
 
                             <button
                               onClick={() => handleDeleteProduct(product.id, product.name)}
-                              className="w-full text-rose-500 hover:text-rose-700 hover:bg-rose-50 text-[11px] font-bold py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
+                              className="w-full text-secondary hover:text-secondary hover:bg-cian text-[11px] font-bold py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
                             >
                               <Trash2 className="w-3.5 h-3.5" /> Eliminar Producto
                             </button>
@@ -2847,20 +2564,20 @@ export default function AdminDashboardPage() {
             {adminProductSubTab === 'promotions' && (
               <div className="space-y-6">
                 {/* Header Metrics & Main Action */}
-                <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className={`${UI.card} flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
                   <div>
-                    <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                    <span className="text-[11px] font-black uppercase text-tinta tracking-wider bg-amarillo px-3 py-1 rounded-full border border-borde">
                       Sección 3 de la Página Principal
                     </span>
-                    <h2 className="text-2xl font-black text-slate-800 mt-1">Promociones y Combos de Sueño</h2>
-                    <p className="text-xs font-semibold text-slate-500">
+                    <h2 className="text-2xl font-black text-tinta mt-1">Promociones y Combos de Sueño</h2>
+                    <p className="text-xs font-semibold text-tinta-suave">
                       Modifica, elimina o agrega ofertas especiales, imágenes o videos promocionales para la tienda.
                     </p>
                   </div>
 
                   <button
                     onClick={handleOpenCreatePromo}
-                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md hover:scale-105 transition-transform"
+                    className="px-5 py-2.5 rounded-xl bg-tertiary hover:bg-tertiary text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md hover:scale-105 transition-transform"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Crear Nueva Promoción / Combo</span>
@@ -2877,12 +2594,12 @@ export default function AdminDashboardPage() {
                       <div
                         key={promo.id}
                         className={`border rounded-3xl p-5 bg-white space-y-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative ${
-                          promo.isActive !== false ? 'border-amber-300 ring-2 ring-amber-100/60' : 'border-slate-200 opacity-80'
+                          promo.isActive !== false ? 'border-borde ring-2 ring-celeste' : 'border-borde opacity-80'
                         }`}
                       >
                         {/* Header Badges */}
                         <div className="flex items-center justify-between gap-2">
-                          <span className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                          <span className="bg-amarillo text-tinta border border-borde text-[10px] font-black px-2.5 py-0.5 rounded-full">
                             {promo.badge || 'OFERTA ESPECIAL ⭐'}
                           </span>
 
@@ -2890,8 +2607,8 @@ export default function AdminDashboardPage() {
                             onClick={() => handleTogglePromoActive(promo)}
                             className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border transition-all ${
                               promo.isActive !== false
-                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                                ? 'bg-celeste text-azul border-borde'
+                                : 'bg-cian text-tinta-suave border-borde'
                             }`}
                           >
                             {promo.isActive !== false ? '● ACTIVA EN INICIO' : '○ INACTIVA'}
@@ -2899,7 +2616,7 @@ export default function AdminDashboardPage() {
                         </div>
 
                         {/* Media Preview: Video o Imagen */}
-                        <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-slate-900 border border-slate-100">
+                        <div className="relative w-full h-44 rounded-2xl overflow-hidden bg-tinta/70 border border-borde">
                           {hasVideo ? (
                             isYouTube ? (
                               <iframe
@@ -2913,13 +2630,13 @@ export default function AdminDashboardPage() {
                           ) : promo.imageUrl ? (
                             <img src={promo.imageUrl} alt={promo.title} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold bg-slate-100">
+                            <div className="w-full h-full flex items-center justify-center text-tinta-suave text-xs font-bold bg-cian">
                               Sin Imagen/Video
                             </div>
                           )}
 
                           {hasVideo && (
-                            <span className="absolute bottom-2 right-2 bg-slate-900/80 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-slate-700">
+                            <span className="absolute bottom-2 right-2 bg-tinta/70 text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-borde">
                               🎬 Video Adjunto
                             </span>
                           )}
@@ -2928,29 +2645,29 @@ export default function AdminDashboardPage() {
                         {/* Text Content */}
                         <div className="space-y-1.5 flex-grow">
                           {promo.tagline && (
-                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider block">
+                            <span className="text-[10px] font-black text-tinta uppercase tracking-wider block">
                               {promo.tagline}
                             </span>
                           )}
-                          <h3 className="font-extrabold text-slate-900 text-base leading-snug">{promo.title}</h3>
-                          <p className="text-xs font-semibold text-slate-500 line-clamp-2">{promo.subtitle}</p>
+                          <h3 className="font-extrabold text-tinta text-base leading-snug">{promo.title}</h3>
+                          <p className="text-xs font-semibold text-tinta-suave line-clamp-2">{promo.subtitle}</p>
 
                           {/* Pricing & Savings */}
-                          <div className="pt-2 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                          <div className="pt-2 bg-cian p-3 rounded-xl border border-borde space-y-1">
                             {promo.savingText && (
-                              <p className="text-[11px] font-bold text-purple-700 flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                              <p className="text-[11px] font-bold text-azul flex items-center gap-1">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-azul" />
                                 {promo.savingText}
                               </p>
                             )}
                             <div className="flex items-baseline gap-2">
                               {promo.price && (
-                                <span className="text-base font-black text-purple-800">
+                                <span className="text-base font-black text-azul">
                                   ${promo.price?.toLocaleString('es-CO')} COP
                                 </span>
                               )}
                               {promo.originalPrice && (
-                                <span className="text-xs text-slate-400 line-through font-bold">
+                                <span className="text-xs text-tinta-suave line-through font-bold">
                                   ${promo.originalPrice?.toLocaleString('es-CO')} COP
                                 </span>
                               )}
@@ -2959,17 +2676,17 @@ export default function AdminDashboardPage() {
                         </div>
 
                         {/* Card Actions */}
-                        <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                        <div className="pt-3 border-t border-borde grid grid-cols-2 gap-2">
                           <button
                             onClick={() => handleOpenEditPromo(promo)}
-                            className="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold py-2 rounded-xl border border-amber-200 transition-colors flex items-center justify-center gap-1"
+                            className="w-full bg-amarillo hover:bg-amarillo text-tinta text-xs font-bold py-2 rounded-xl border border-borde transition-colors flex items-center justify-center gap-1"
                           >
                             <Pencil className="w-3.5 h-3.5" /> Editar Todo
                           </button>
 
                           <button
                             onClick={() => handleDeletePromo(promo.id, promo.title)}
-                            className="w-full text-rose-500 hover:text-rose-700 hover:bg-rose-50 text-[11px] font-bold py-2 rounded-xl border border-rose-100 transition-colors flex items-center justify-center gap-1"
+                            className="w-full text-secondary hover:text-secondary hover:bg-cian text-[11px] font-bold py-2 rounded-xl border border-secondary transition-colors flex items-center justify-center gap-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Eliminar
                           </button>
@@ -2988,8 +2705,8 @@ export default function AdminDashboardPage() {
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="font-black text-xl text-slate-900">Tips del Blog</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <h2 className="font-black text-xl text-tinta">Tips del Blog</h2>
+                <p className="text-xs text-tinta-suave mt-0.5">
                   Guías que se muestran en <span className="font-bold">/tips</span>. Puedes adjuntar
                   un video de YouTube en vez de la imagen de portada.
                 </p>
@@ -2999,13 +2716,13 @@ export default function AdminDashboardPage() {
                   href="/tips"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-borde text-tinta-suave hover:bg-cian font-bold text-xs transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" /> Ver en el sitio
                 </a>
                 <button
                   onClick={openNewTip}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-azul hover:bg-azul-hondo text-white font-bold text-xs shadow-md transition-colors"
                 >
                   <Plus className="w-4 h-4" /> Nuevo tip
                 </button>
@@ -3013,23 +2730,23 @@ export default function AdminDashboardPage() {
             </div>
 
             {loadingTips ? (
-              <p className="py-16 text-center text-sm text-slate-500 animate-pulse">Cargando tips…</p>
+              <p className="py-16 text-center text-sm text-tinta-suave animate-pulse">Cargando tips…</p>
             ) : tipsList.length === 0 ? (
-              <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="font-bold text-slate-700">Todavía no hay tips</p>
-                <p className="text-xs text-slate-500 mt-1">Crea el primero para publicarlo en el blog.</p>
+              <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-borde">
+                <BookOpen className="w-10 h-10 text-borde mx-auto mb-3" />
+                <p className="font-bold text-tinta-suave">Todavía no hay tips</p>
+                <p className="text-xs text-tinta-suave mt-1">Crea el primero para publicarlo en el blog.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {tipsList.map((tip) => (
                   <article
                     key={tip.id}
-                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col hover:border-purple-300 transition-colors"
+                    className="bg-white rounded-3xl border border-borde overflow-hidden flex flex-col hover:border-borde transition-colors"
                   >
-                    <div className="relative h-40 bg-slate-50 shrink-0">
+                    <div className="relative h-40 bg-cian shrink-0">
                       {tipVideoEmbed(tip.videoUrl) ? (
-                        <div className="absolute inset-0 grid place-items-center bg-slate-900 text-white gap-1.5">
+                        <div className="absolute inset-0 grid place-items-center bg-tinta/70 text-white gap-1.5">
                           <Video className="w-8 h-8" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">
                             Video de YouTube
@@ -3039,27 +2756,27 @@ export default function AdminDashboardPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={tip.image} alt="" className="w-full h-full object-contain p-2" />
                       ) : (
-                        <div className="absolute inset-0 grid place-items-center text-slate-300">
+                        <div className="absolute inset-0 grid place-items-center text-borde">
                           <ImageIcon className="w-8 h-8" />
                         </div>
                       )}
 
-                      <span className="absolute top-3 left-3 bg-white/95 border border-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1 rounded-full">
+                      <span className="absolute top-3 left-3 bg-white/95 border border-borde text-tinta-suave text-[10px] font-black px-2.5 py-1 rounded-full">
                         {tip.categoryLabel || tip.category}
                       </span>
 
                       {tip.isPublished === false && (
-                        <span className="absolute top-3 right-3 bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full">
+                        <span className="absolute top-3 right-3 bg-amarillo border border-borde text-tinta text-[10px] font-black px-2.5 py-1 rounded-full">
                           Borrador
                         </span>
                       )}
                     </div>
 
                     <div className="p-5 flex flex-col flex-1">
-                      <h3 className="font-black text-base text-slate-900 line-clamp-2">{tip.title}</h3>
-                      <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{tip.summary}</p>
+                      <h3 className="font-black text-base text-tinta line-clamp-2">{tip.title}</h3>
+                      <p className="text-xs text-tinta-suave mt-1.5 line-clamp-2">{tip.summary}</p>
 
-                      <p className="text-[11px] text-slate-400 mt-3">
+                      <p className="text-[11px] text-tinta-suave mt-3">
                         {tip.author || 'Sin autor'} · {tip.readTime} · {tip.date}
                       </p>
 
@@ -3068,7 +2785,7 @@ export default function AdminDashboardPage() {
                           {tip.tags.slice(0, 3).map((t) => (
                             <span
                               key={t}
-                              className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-full"
+                              className="bg-cian text-tinta-suave text-[10px] font-bold px-2 py-1 rounded-full"
                             >
                               {t}
                             </span>
@@ -3079,14 +2796,14 @@ export default function AdminDashboardPage() {
                       <div className="mt-auto pt-4 flex items-center gap-2">
                         <button
                           onClick={() => openEditTip(tip)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-colors"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-cian hover:bg-cian text-azul font-bold text-xs transition-colors"
                         >
                           <Pencil className="w-3.5 h-3.5" /> Editar
                         </button>
                         <button
                           onClick={() => handleDeleteTip(tip)}
                           title="Eliminar tip"
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          className="p-2 rounded-xl text-tinta-suave hover:text-secondary hover:bg-cian transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -3102,22 +2819,22 @@ export default function AdminDashboardPage() {
 
       {/* MODAL DE EDICIÓN Y CREACIÓN COMPLETA DE PRODUCTOS */}
       {showProductModal && (
-        <div className="fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-purple-100 max-w-2xl w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[99999] bg-tinta/70 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-borde max-w-2xl w-full rounded-3xl p-6 sm:p-8 text-tinta shadow-2xl space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center justify-between border-b border-borde pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                <span className="text-[10px] font-black uppercase tracking-wider text-azul bg-cian px-3 py-1 rounded-full border border-borde">
                   {editingProduct ? 'Editar Producto Existente' : 'Nuevo Producto Catálogo'}
                 </span>
-                <h3 className="font-black text-xl text-slate-900 mt-1">
+                <h3 className="font-black text-xl text-tinta mt-1">
                   {editingProduct ? `Modificar "${editingProduct.name}"` : 'Crear Producto para Inicio & Detalle'}
                 </h3>
               </div>
 
               <button
                 onClick={() => setShowProductModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                className="text-tinta-suave hover:text-tinta-suave p-1.5 rounded-full hover:bg-cian transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3126,40 +2843,40 @@ export default function AdminDashboardPage() {
             {/* Form Fields */}
             <div className="space-y-5 text-xs font-semibold">
               {/* Sección 1: Datos Básicos */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 text-purple-700">
-                  <Sparkles className="w-4 h-4 text-purple-600" /> Información Principal
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-tinta text-xs uppercase tracking-wide flex items-center gap-1.5 text-azul">
+                  <Sparkles className="w-4 h-4 text-azul" /> Información Principal
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Nombre del Producto *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Nombre del Producto *</label>
                     <input
                       type="text"
                       value={productForm.name}
                       onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                       placeholder="Ej. Colonia Ensueño Lavanda & Manzanilla"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold focus:ring-2 focus:ring-celeste"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Subtítulo / Eslogan *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Subtítulo / Eslogan *</label>
                     <input
                       type="text"
                       value={productForm.subtitle}
                       onChange={(e) => setProductForm({ ...productForm, subtitle: e.target.value })}
                       placeholder="Ej. Bruma suave relajante para antes de dormir"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Categoría</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Categoría</label>
                     <select
                       value={productForm.category}
                       onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold"
                     >
                       <option value="sueno">🌙 Sueño & Descanso</option>
                       <option value="piel">🌸 Piel Delicada</option>
@@ -3169,38 +2886,38 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Etiqueta / Badge Promocional</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Etiqueta / Badge Promocional</label>
                     <input
                       type="text"
                       value={productForm.badge}
                       onChange={(e) => setProductForm({ ...productForm, badge: e.target.value })}
                       placeholder="Ej. MÁS VENDIDO, 15% OFF, NUEVO"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sección 2: Precios y Oferta */}
-              <div className="space-y-3 p-4 bg-pink-50/60 rounded-2xl border border-pink-200">
-                <h4 className="font-bold text-pink-900 text-xs uppercase tracking-wide flex items-center gap-1.5">
-                  <Gift className="w-4 h-4 text-pink-600" /> Precios y Estado de Promoción
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-secondary text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-secondary" /> Precios y Estado de Promoción
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Precio de Venta ($ COP) *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Precio de Venta ($ COP) *</label>
                     <input
                       type="number"
                       value={productForm.price}
                       onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                       placeholder="28500"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-purple-700 font-black focus:ring-2 focus:ring-purple-400 text-sm"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-azul font-black focus:ring-2 focus:ring-celeste text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                       ¿Está en Oferta / Promoción?
                     </label>
                     <button
@@ -3208,8 +2925,8 @@ export default function AdminDashboardPage() {
                       onClick={() => setProductForm({ ...productForm, isPromo: !productForm.isPromo })}
                       className={`w-full py-2.5 rounded-xl text-xs font-black transition-all ${
                         productForm.isPromo
-                          ? 'bg-rose-500 text-white shadow-xs'
-                          : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                          ? 'bg-secondary text-white shadow-sm'
+                          : 'bg-borde text-tinta-suave hover:bg-borde'
                       }`}
                     >
                       {productForm.isPromo ? '🔥 SÍ (EN PROMOCIÓN)' : 'NO (PRECIO REGULAR)'}
@@ -3218,7 +2935,7 @@ export default function AdminDashboardPage() {
 
                   {productForm.isPromo && (
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-bold text-rose-800 mb-1">
+                      <label className="block text-[11px] font-bold text-secondary mb-1">
                         Precio Anterior / Sin Descuento ($ COP)
                       </label>
                       <input
@@ -3226,7 +2943,7 @@ export default function AdminDashboardPage() {
                         value={productForm.originalPrice}
                         onChange={(e) => setProductForm({ ...productForm, originalPrice: e.target.value })}
                         placeholder="Ej. 35000"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 bg-white text-slate-800 font-bold focus:ring-2 focus:ring-rose-400"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-secondary bg-white text-tinta font-bold focus:ring-2 focus:ring-celeste"
                       />
                     </div>
                   )}
@@ -3234,30 +2951,30 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Sección 3: Imágenes */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 text-purple-700">
-                  <ImageIcon className="w-4 h-4 text-purple-600" /> Imágenes del Producto
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-tinta text-xs uppercase tracking-wide flex items-center gap-1.5 text-azul">
+                  <ImageIcon className="w-4 h-4 text-azul" /> Imágenes del Producto
                 </h4>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">URL Imagen Principal *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">URL Imagen Principal *</label>
                     <input
                       type="url"
                       value={productForm.image}
                       onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
                       placeholder="https://..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
                     />
                     {productForm.image && (
-                      <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
+                      <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-borde">
                         <img src={productForm.image} alt="Vista previa" className="w-full h-full object-cover" />
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                       URLs Imágenes Adicionales (Separadas por coma)
                     </label>
                     <input
@@ -3265,21 +2982,21 @@ export default function AdminDashboardPage() {
                       value={productForm.additionalImages}
                       onChange={(e) => setProductForm({ ...productForm, additionalImages: e.target.value })}
                       placeholder="https://img1.com, https://img2.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sección 4: Opciones de Producto (Tallas y Fragancias) */}
-              <div className="space-y-3 p-4 bg-purple-50/60 rounded-2xl border border-purple-200">
-                <h4 className="font-bold text-purple-900 text-xs uppercase tracking-wide">
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-azul text-xs uppercase tracking-wide">
                   Opciones Seleccionables (Tallas & Aromas)
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                       Presentaciones / Tallas (Separadas por coma)
                     </label>
                     <input
@@ -3287,12 +3004,12 @@ export default function AdminDashboardPage() {
                       value={productForm.sizes}
                       onChange={(e) => setProductForm({ ...productForm, sizes: e.target.value })}
                       placeholder="150ml, 250ml, Pack x3"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                       Fragancias / Aromas (Separadas por coma)
                     </label>
                     <input
@@ -3300,32 +3017,32 @@ export default function AdminDashboardPage() {
                       value={productForm.fragrances}
                       onChange={(e) => setProductForm({ ...productForm, fragrances: e.target.value })}
                       placeholder="Flores Silvestres, Manzanilla, Sin Fragancia"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sección 5: Detalles Médicos, Beneficios e Ingredientes */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 text-purple-700">
-                  <ShieldCheck className="w-4 h-4 text-purple-600" /> Detalles Clínicos y Descripción
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-tinta text-xs uppercase tracking-wide flex items-center gap-1.5 text-azul">
+                  <ShieldCheck className="w-4 h-4 text-azul" /> Detalles Clínicos y Descripción
                 </h4>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Descripción Completa *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Descripción Completa *</label>
                     <textarea
                       rows={3}
                       value={productForm.description}
                       onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                       placeholder="Escribe la descripción del producto..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-purple-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-purple-800 mb-1">
+                    <label className="block text-[11px] font-bold text-azul mb-1">
                       🛡️ Garantía Pediátrica Certificada *
                     </label>
                     <input
@@ -3333,24 +3050,24 @@ export default function AdminDashboardPage() {
                       value={productForm.pediatricGuarantee}
                       onChange={(e) => setProductForm({ ...productForm, pediatricGuarantee: e.target.value })}
                       placeholder="Ej. Aprobado por la Asociación Colombiana de Pediatría"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-purple-300 bg-white text-purple-900 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-azul font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Sellos de Seguridad</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Sellos de Seguridad</label>
                     <input
                       type="text"
                       value={productForm.safetyInfo}
                       onChange={(e) => setProductForm({ ...productForm, safetyInfo: e.target.value })}
                       placeholder="Ej. Dermatológicamente testeado • Libre de Alcohol • Hipoalergénico"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                         Beneficios (Separados por coma)
                       </label>
                       <textarea
@@ -3358,12 +3075,12 @@ export default function AdminDashboardPage() {
                         value={productForm.benefits}
                         onChange={(e) => setProductForm({ ...productForm, benefits: e.target.value })}
                         placeholder="Induce sueño profundo, Calma irritaciones"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+                        className="w-full px-3.5 py-2 rounded-xl border border-borde bg-white text-tinta"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                         Ingredientes (Separados por coma)
                       </label>
                       <textarea
@@ -3371,7 +3088,7 @@ export default function AdminDashboardPage() {
                         value={productForm.ingredients}
                         onChange={(e) => setProductForm({ ...productForm, ingredients: e.target.value })}
                         placeholder="Aceite esencial de lavanda, Extracto de manzanilla"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-800"
+                        className="w-full px-3.5 py-2 rounded-xl border border-borde bg-white text-tinta"
                       />
                     </div>
                   </div>
@@ -3379,12 +3096,12 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Sección 6: Visibilidad */}
-              <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 bg-amarillo rounded-2xl border border-borde flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  <Star className="w-6 h-6 text-amber-500 fill-amber-400 shrink-0" />
+                  <Star className="w-6 h-6 text-tertiary fill-amarillo shrink-0" />
                   <div>
-                    <h5 className="font-extrabold text-amber-900 text-xs">Visibilidad en 2da Sección de Inicio</h5>
-                    <p className="text-[11px] text-amber-800">
+                    <h5 className="font-extrabold text-tinta text-xs">Visibilidad en 2da Sección de Inicio</h5>
+                    <p className="text-[11px] text-tinta">
                       Muestra este producto en los esenciales de la página principal.
                     </p>
                   </div>
@@ -3395,8 +3112,8 @@ export default function AdminDashboardPage() {
                   onClick={() => setProductForm({ ...productForm, isFeatured: !productForm.isFeatured })}
                   className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all shrink-0 ${
                     productForm.isFeatured
-                      ? 'bg-amber-500 text-white shadow-xs'
-                      : 'bg-slate-200 text-slate-600'
+                      ? 'bg-tertiary text-white shadow-sm'
+                      : 'bg-borde text-tinta-suave'
                   }`}
                 >
                   {productForm.isFeatured ? '⭐ MOSTRAR EN INICIO' : 'SOLO EN CATÁLOGO'}
@@ -3405,11 +3122,11 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-borde flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowProductModal(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-tinta-suave hover:bg-cian transition-colors"
               >
                 Cancelar
               </button>
@@ -3433,22 +3150,22 @@ export default function AdminDashboardPage() {
 
       {/* MODAL DE EDICIÓN Y CREACIÓN DE PROMOCIONES Y COMBOS (SECCIÓN 3 INICIO) */}
       {showPromoModal && (
-        <div className="fixed inset-0 z-[99999] bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-amber-200 max-w-2xl w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[99999] bg-tinta/70 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-borde max-w-2xl w-full rounded-3xl p-6 sm:p-8 text-tinta shadow-2xl space-y-6 relative my-8 max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center justify-between border-b border-borde pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                <span className="text-[10px] font-black uppercase tracking-wider text-tinta bg-amarillo px-3 py-1 rounded-full border border-borde">
                   {editingPromo ? 'Editar Promoción / Combo' : 'Nueva Promoción para Sección 3 Inicio'}
                 </span>
-                <h3 className="font-black text-xl text-slate-900 mt-1">
+                <h3 className="font-black text-xl text-tinta mt-1">
                   {editingPromo ? `Modificar "${editingPromo.title}"` : 'Crear Combo Promocional'}
                 </h3>
               </div>
 
               <button
                 onClick={() => setShowPromoModal(false)}
-                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                className="text-tinta-suave hover:text-tinta-suave p-1.5 rounded-full hover:bg-cian transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3457,89 +3174,89 @@ export default function AdminDashboardPage() {
             {/* Form Fields */}
             <div className="space-y-5 text-xs font-semibold">
               {/* Sección 1: Información de la Oferta */}
-              <div className="space-y-3 p-4 bg-amber-50/60 rounded-2xl border border-amber-200">
-                <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wide flex items-center gap-1.5">
-                  <Gift className="w-4 h-4 text-amber-600" /> Título y Eslogan de la Oferta
+              <div className="space-y-3 p-4 bg-amarillo rounded-2xl border border-borde">
+                <h4 className="font-bold text-tinta text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-tertiary" /> Título y Eslogan de la Oferta
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Título de la Promoción *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Título de la Promoción *</label>
                     <input
                       type="text"
                       value={promoForm.title}
                       onChange={(e) => setPromoForm({ ...promoForm, title: e.target.value })}
                       placeholder="Ej. Trío de Pañitos Húmedos"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 font-bold focus:ring-2 focus:ring-amber-400"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold focus:ring-2 focus:ring-celeste"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Eslogan / Tagline Superior</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Eslogan / Tagline Superior</label>
                     <input
                       type="text"
                       value={promoForm.tagline}
                       onChange={(e) => setPromoForm({ ...promoForm, tagline: e.target.value })}
                       placeholder="Ej. Paga 2 y Lleva 3, Combo Dueto Fragancia"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Etiqueta Destacada / Badge</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Etiqueta Destacada / Badge</label>
                     <input
                       type="text"
                       value={promoForm.badge}
                       onChange={(e) => setPromoForm({ ...promoForm, badge: e.target.value })}
                       placeholder="Ej. OFERTA ESTRELLA ⭐, REGALO GRATIS 🎁"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Descripción de la Oferta</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Descripción de la Oferta</label>
                     <textarea
                       rows={3}
                       value={promoForm.subtitle}
                       onChange={(e) => setPromoForm({ ...promoForm, subtitle: e.target.value })}
                       placeholder="Ej. Lleva 3 paquetes de Pañitos Húmedos Ensueño y paga solo 2..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sección 2: Precios y Mensaje de Ahorro */}
-              <div className="space-y-3 p-4 bg-purple-50/60 rounded-2xl border border-purple-200">
-                <h4 className="font-bold text-purple-900 text-xs uppercase tracking-wide flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-purple-600" /> Precios y Mensaje de Ahorro
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-azul text-xs uppercase tracking-wide flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-azul" /> Precios y Mensaje de Ahorro
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Precio Promocional ($ COP) *</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Precio Promocional ($ COP) *</label>
                     <input
                       type="number"
                       value={promoForm.price}
                       onChange={(e) => setPromoForm({ ...promoForm, price: e.target.value })}
                       placeholder="37800"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-purple-800 font-black text-sm"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-azul font-black text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Precio Original Sin Oferta ($ COP)</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Precio Original Sin Oferta ($ COP)</label>
                     <input
                       type="number"
                       value={promoForm.originalPrice}
                       onChange={(e) => setPromoForm({ ...promoForm, originalPrice: e.target.value })}
                       placeholder="56700"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-500 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta-suave font-bold"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold text-purple-800 mb-1">
+                    <label className="block text-[11px] font-bold text-azul mb-1">
                       Texto Destacado de Ahorro
                     </label>
                     <input
@@ -3547,37 +3264,37 @@ export default function AdminDashboardPage() {
                       value={promoForm.savingText}
                       onChange={(e) => setPromoForm({ ...promoForm, savingText: e.target.value })}
                       placeholder="Ej. Ahorras $18.900 COP o Pañitos Húmedos GRATIS"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-purple-200 bg-white text-purple-900 font-bold"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-azul font-bold"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sección 3: Multimedia (Imagen & Video) */}
-              <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 text-purple-700">
-                  <ImageIcon className="w-4 h-4 text-purple-600" /> Multimedia del Artículo (Imagen & Video)
+              <div className="space-y-3 p-4 bg-cian rounded-2xl border border-borde">
+                <h4 className="font-bold text-tinta text-xs uppercase tracking-wide flex items-center gap-1.5 text-azul">
+                  <ImageIcon className="w-4 h-4 text-azul" /> Multimedia del Artículo (Imagen & Video)
                 </h4>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">URL Imagen Promocional</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">URL Imagen Promocional</label>
                     <input
                       type="url"
                       value={promoForm.imageUrl}
                       onChange={(e) => setPromoForm({ ...promoForm, imageUrl: e.target.value })}
                       placeholder="https://..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                     {promoForm.imageUrl && (
-                      <div className="mt-2 w-24 h-24 rounded-xl overflow-hidden border border-slate-200">
+                      <div className="mt-2 w-24 h-24 rounded-xl overflow-hidden border border-borde">
                         <img src={promoForm.imageUrl} alt="Vista previa" className="w-full h-full object-cover" />
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
                       🎬 URL Video Promocional (MP4, WebM o YouTube)
                     </label>
                     <input
@@ -3585,10 +3302,10 @@ export default function AdminDashboardPage() {
                       value={promoForm.videoUrl}
                       onChange={(e) => setPromoForm({ ...promoForm, videoUrl: e.target.value })}
                       placeholder="https://www.youtube.com/watch?v=... o https://midominio.com/video.mp4"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
                     />
                     {promoForm.videoUrl && (
-                      <div className="mt-2 w-full h-36 rounded-xl overflow-hidden bg-slate-900 border border-slate-200 relative">
+                      <div className="mt-2 w-full h-36 rounded-xl overflow-hidden bg-tinta/70 border border-borde relative">
                         {promoForm.videoUrl.includes('youtube.com') || promoForm.videoUrl.includes('youtu.be') ? (
                           <iframe
                             src={promoForm.videoUrl.replace('watch?v=', 'embed/')}
@@ -3605,25 +3322,25 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Sección 4: Tipo de Artículo */}
-              <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 flex items-center justify-between gap-3">
+              <div className="p-4 bg-celeste rounded-2xl border border-borde flex items-center justify-between gap-3">
                 <div>
-                  <h5 className="font-extrabold text-emerald-900 text-xs">🛍️ Producto Independiente de Promoción</h5>
-                  <p className="text-[11px] text-emerald-800">
+                  <h5 className="font-extrabold text-azul text-xs">🛍️ Producto Independiente de Promoción</h5>
+                  <p className="text-[11px] text-azul">
                     Este combo se agregará al carrito como un producto armado independiente con su propio título, precio final, imágenes y videos.
                   </p>
                 </div>
-                <span className="bg-emerald-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shrink-0">
+                <span className="bg-azul text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shrink-0">
                   Combo Autónomo
                 </span>
               </div>
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-borde flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowPromoModal(false)}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-tinta-suave hover:bg-cian transition-colors"
               >
                 Cancelar
               </button>
@@ -3632,7 +3349,7 @@ export default function AdminDashboardPage() {
                 type="button"
                 onClick={handleSavePromo}
                 disabled={isSavingPromo}
-                className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-105 transition-transform"
+                className="px-6 py-2.5 rounded-xl bg-tertiary hover:bg-tertiary text-white text-xs font-black uppercase tracking-wider shadow-md hover:scale-105 transition-transform"
               >
                 {isSavingPromo
                   ? 'Guardando...'
@@ -3647,16 +3364,16 @@ export default function AdminDashboardPage() {
 
       {/* Modal de Configuración de Cuenta */}
       {showSettingsModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-purple-100 max-w-md w-full rounded-3xl p-6 text-slate-800 shadow-2xl space-y-6 relative">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-tinta/70 flex items-center justify-center p-4">
+          <div className="bg-white border border-borde max-w-md w-full rounded-3xl p-6 text-tinta shadow-2xl space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-borde pb-3">
               <div className="flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-purple-600" />
-                <h3 className="font-bold text-lg text-slate-800">Cambiar Contraseña Admin</h3>
+                <KeyRound className="w-5 h-5 text-azul" />
+                <h3 className="font-bold text-lg text-tinta">Cambiar Contraseña Admin</h3>
               </div>
               <button
                 onClick={() => setShowSettingsModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1"
+                className="text-tinta-suave hover:text-tinta-suave p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3664,7 +3381,7 @@ export default function AdminDashboardPage() {
 
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">
                   Contraseña Actual
                 </label>
                 <input
@@ -3673,12 +3390,12 @@ export default function AdminDashboardPage() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full px-4 py-2.5 rounded-xl bg-cian border border-borde text-xs text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">
                   Nueva Contraseña
                 </label>
                 <input
@@ -3687,12 +3404,12 @@ export default function AdminDashboardPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full px-4 py-2.5 rounded-xl bg-cian border border-borde text-xs text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                <label className="block text-xs font-bold text-tinta-suave uppercase mb-1">
                   Confirmar Nueva Contraseña
                 </label>
                 <input
@@ -3701,7 +3418,7 @@ export default function AdminDashboardPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repite la nueva contraseña"
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full px-4 py-2.5 rounded-xl bg-cian border border-borde text-xs text-tinta focus:outline-none focus:ring-2 focus:ring-celeste"
                 />
               </div>
 
@@ -3709,14 +3426,14 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setShowSettingsModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-borde text-xs font-semibold text-tinta-suave hover:bg-cian"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md"
+                  className="px-6 py-2 rounded-xl bg-azul hover:bg-azul-hondo text-white font-bold text-xs shadow-md"
                 >
                   {isChangingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
                 </button>
@@ -3728,25 +3445,25 @@ export default function AdminDashboardPage() {
 
       {/* MODAL DE CREACIÓN Y EDICIÓN DE TIPS */}
       {showTipForm && (
-        <div className="fixed inset-0 z-[99999] bg-slate-950/70 overflow-y-auto">
+        <div className="fixed inset-0 z-[99999] bg-tinta/70 overflow-y-auto">
           <div className="min-h-full flex items-start justify-center p-4 sm:p-6">
             <form
               onSubmit={handleSaveTip}
-              className="bg-white border border-purple-100 max-w-3xl w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-6 relative my-4"
+              className="bg-white border border-borde max-w-3xl w-full rounded-3xl p-6 sm:p-8 text-tinta shadow-2xl space-y-6 relative my-4"
             >
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-start justify-between gap-4 border-b border-borde pb-4">
                 <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-azul bg-cian px-3 py-1 rounded-full border border-borde">
                     {editingTipId ? 'Editar tip' : 'Nuevo tip'}
                   </span>
-                  <h3 className="font-black text-xl text-slate-900 mt-1.5">
+                  <h3 className="font-black text-xl text-tinta mt-1.5">
                     {editingTipId ? 'Modificar guía del blog' : 'Crear guía para el blog'}
                   </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowTipForm(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors shrink-0"
+                  className="text-tinta-suave hover:text-tinta-suave p-1.5 rounded-full hover:bg-cian transition-colors shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -3755,7 +3472,7 @@ export default function AdminDashboardPage() {
               {/* --- Contenido principal --- */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Título *
                   </label>
                   <input
@@ -3764,12 +3481,12 @@ export default function AdminDashboardPage() {
                     value={tipForm.title}
                     onChange={(e) => setTipForm({ ...tipForm, title: e.target.value })}
                     placeholder="La rutina de 10 minutos para dormirse sin llanto"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Subtítulo
                   </label>
                   <input
@@ -3777,18 +3494,18 @@ export default function AdminDashboardPage() {
                     value={tipForm.subtitle}
                     onChange={(e) => setTipForm({ ...tipForm, subtitle: e.target.value })}
                     placeholder="Tres pasos sencillos para señalizar el descanso"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Categoría
                   </label>
                   <select
                     value={tipForm.category}
                     onChange={(e) => setTipForm({ ...tipForm, category: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   >
                     <option value="sueno">Sueño Infantil</option>
                     <option value="piel">Piel Delicada</option>
@@ -3798,7 +3515,7 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Tiempo de lectura
                   </label>
                   <input
@@ -3806,12 +3523,12 @@ export default function AdminDashboardPage() {
                     value={tipForm.readTime}
                     onChange={(e) => setTipForm({ ...tipForm, readTime: e.target.value })}
                     placeholder="4 min lectura"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Autor
                   </label>
                   <input
@@ -3819,12 +3536,12 @@ export default function AdminDashboardPage() {
                     value={tipForm.author}
                     onChange={(e) => setTipForm({ ...tipForm, author: e.target.value })}
                     placeholder="Dra. Mariana Restrepo"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Cargo del autor
                   </label>
                   <input
@@ -3832,12 +3549,12 @@ export default function AdminDashboardPage() {
                     value={tipForm.authorRole}
                     onChange={(e) => setTipForm({ ...tipForm, authorRole: e.target.value })}
                     placeholder="Pediatra y Especialista en Sueño Infantil"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Fecha mostrada
                   </label>
                   <input
@@ -3845,33 +3562,33 @@ export default function AdminDashboardPage() {
                     value={tipForm.date}
                     onChange={(e) => setTipForm({ ...tipForm, date: e.target.value })}
                     placeholder="24 Jul 2026"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Si lo dejas vacío se usa la de hoy.</p>
+                  <p className="text-[10px] text-tinta-suave mt-1">Si lo dejas vacío se usa la de hoy.</p>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Orden
                   </label>
                   <input
                     type="number"
                     value={tipForm.sortOrder}
                     onChange={(e) => setTipForm({ ...tipForm, sortOrder: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Menor número aparece primero.</p>
+                  <p className="text-[10px] text-tinta-suave mt-1">Menor número aparece primero.</p>
                 </div>
               </div>
 
               {/* --- Portada: imagen o video --- */}
-              <div className="border-t border-slate-100 pt-5 space-y-4">
-                <h4 className="font-black text-sm text-slate-800 flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-purple-600" /> Portada del artículo
+              <div className="border-t border-borde pt-5 space-y-4">
+                <h4 className="font-black text-sm text-tinta flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-azul" /> Portada del artículo
                 </h4>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     URL de la imagen
                   </label>
                   <input
@@ -3879,22 +3596,22 @@ export default function AdminDashboardPage() {
                     value={tipForm.image}
                     onChange={(e) => setTipForm({ ...tipForm, image: e.target.value })}
                     placeholder="https://i.postimg.cc/..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-                    <Video className="w-3.5 h-3.5 text-rose-500" /> Link de YouTube
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-secondary" /> Link de YouTube
                   </label>
                   <input
                     type="url"
                     value={tipForm.videoUrl}
                     onChange={(e) => setTipForm({ ...tipForm, videoUrl: e.target.value })}
                     placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-tinta-suave mt-1">
                     Si pones un video, reemplaza a la imagen en el artículo. Acepta formato normal,
                     corto (youtu.be) o Shorts.
                   </p>
@@ -3902,7 +3619,7 @@ export default function AdminDashboardPage() {
                   {/* Previsualización real del embed */}
                   {tipForm.videoUrl && (
                     tipVideoEmbed(tipForm.videoUrl) ? (
-                      <div className="mt-3 relative aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-slate-900">
+                      <div className="mt-3 relative aspect-video rounded-2xl overflow-hidden border border-borde bg-tinta/70">
                         <iframe
                           src={tipVideoEmbed(tipForm.videoUrl)!}
                           title="Vista previa del video"
@@ -3912,7 +3629,7 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     ) : (
-                      <p className="mt-2 text-[11px] font-bold text-rose-600">
+                      <p className="mt-2 text-[11px] font-bold text-secondary">
                         No reconocemos ese link de YouTube. Revísalo.
                       </p>
                     )
@@ -3921,9 +3638,9 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* --- Texto --- */}
-              <div className="border-t border-slate-100 pt-5 space-y-4">
+              <div className="border-t border-borde pt-5 space-y-4">
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Resumen
                   </label>
                   <textarea
@@ -3931,12 +3648,12 @@ export default function AdminDashboardPage() {
                     value={tipForm.summary}
                     onChange={(e) => setTipForm({ ...tipForm, summary: e.target.value })}
                     placeholder="Lo que aparece en la tarjeta del listado."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Contenido
                   </label>
                   <textarea
@@ -3944,15 +3661,15 @@ export default function AdminDashboardPage() {
                     value={tipForm.content}
                     onChange={(e) => setTipForm({ ...tipForm, content: e.target.value })}
                     placeholder={'Primer párrafo.\n\nSegundo párrafo.\n\nTercer párrafo.'}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste leading-relaxed"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
+                  <p className="text-[10px] text-tinta-suave mt-1">
                     Separa los párrafos con una línea en blanco.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
                     Etiquetas
                   </label>
                   <input
@@ -3960,9 +3677,9 @@ export default function AdminDashboardPage() {
                     value={tipForm.tags}
                     onChange={(e) => setTipForm({ ...tipForm, tags: e.target.value })}
                     placeholder="rutina, sueño, recién nacido"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">Separadas por comas.</p>
+                  <p className="text-[10px] text-tinta-suave mt-1">Separadas por comas.</p>
                 </div>
 
                 <label className="flex items-center gap-2.5 cursor-pointer">
@@ -3970,26 +3687,26 @@ export default function AdminDashboardPage() {
                     type="checkbox"
                     checked={tipForm.isPublished}
                     onChange={(e) => setTipForm({ ...tipForm, isPublished: e.target.checked })}
-                    className="w-4 h-4 rounded accent-purple-600"
+                    className="w-4 h-4 rounded accent-azul"
                   />
-                  <span className="text-xs font-bold text-slate-700">
+                  <span className="text-xs font-bold text-tinta-suave">
                     Publicado (visible en el sitio)
                   </span>
                 </label>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
+              <div className="flex flex-wrap justify-end gap-3 border-t border-borde pt-5">
                 <button
                   type="button"
                   onClick={() => setShowTipForm(false)}
-                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-colors"
+                  className="px-6 py-2.5 rounded-xl border border-borde text-tinta-suave hover:bg-cian font-bold text-xs transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingTip}
-                  className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-azul hover:bg-azul-hondo text-white font-bold text-xs shadow-md disabled:opacity-50 transition-colors"
                 >
                   <Save className="w-4 h-4" />
                   {savingTip ? 'Guardando…' : editingTipId ? 'Guardar cambios' : 'Crear tip'}

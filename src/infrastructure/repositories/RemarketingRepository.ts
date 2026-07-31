@@ -54,6 +54,7 @@ export class RemarketingRepository {
         lactanteMenor: [] as typeof babies, // 3 - 6 meses
         lactanteMayor: [] as typeof babies, // 6 - 12 meses
         toddler: [] as typeof babies, // 12+ meses
+        sinFecha: [] as typeof babies, // sin fecha de nacimiento registrada
       };
 
       const now = new Date();
@@ -68,7 +69,10 @@ export class RemarketingRepository {
           else if (ageInMonths < 12) cohorts.lactanteMayor.push(baby);
           else cohorts.toddler.push(baby);
         } else {
-          cohorts.recienNacido.push(baby);
+          // Sin fecha no se puede saber la etapa. Antes caían en "Recién
+          // Nacido" y el panel mostraba todo en ese grupo aunque no fuera
+          // cierto; ahora quedan aparte y se ven como dato pendiente.
+          cohorts.sinFecha.push(baby);
         }
       });
 
@@ -80,6 +84,7 @@ export class RemarketingRepository {
           lactanteMenor: cohorts.lactanteMenor.length,
           lactanteMayor: cohorts.lactanteMayor.length,
           toddler: cohorts.toddler.length,
+          sinFecha: cohorts.sinFecha.length,
         },
         cohorts,
       };
@@ -87,8 +92,8 @@ export class RemarketingRepository {
       console.warn('Prisma getBabyCohorts fallback warning:', err);
       return {
         totalBabies: 0,
-        summary: { embarazo: 0, recienNacido: 0, lactanteMenor: 0, lactanteMayor: 0, toddler: 0 },
-        cohorts: { embarazo: [], recienNacido: [], lactanteMenor: [], lactanteMayor: [], toddler: [] },
+        summary: { embarazo: 0, recienNacido: 0, lactanteMenor: 0, lactanteMayor: 0, toddler: 0, sinFecha: 0 },
+        cohorts: { embarazo: [], recienNacido: [], lactanteMenor: [], lactanteMayor: [], toddler: [], sinFecha: [] },
       };
     }
   }

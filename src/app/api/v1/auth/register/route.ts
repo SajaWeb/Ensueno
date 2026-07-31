@@ -7,7 +7,7 @@ import { getJwtSecret } from '@/lib/jwt';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, fullName, docType, docNumber, phone, babyName, babyBirthDate, expectedDueDate, skinCondition, acceptDataPolicy } = body;
+    const { email, password, fullName, docType, docNumber, phone, babyName, babyBirthDate, expectedDueDate, skinCondition, hasBaby, acceptDataPolicy } = body;
 
     if (!acceptDataPolicy) {
       return NextResponse.json({ success: false, error: 'Debes aceptar la Política de Tratamiento de Datos Personales para registrarte.' }, { status: 400 });
@@ -45,6 +45,8 @@ export async function POST(req: Request) {
       docNumber,
       phone,
       babyName,
+      hasBaby: hasBaby !== false,
+      // Llega como "YYYY-MM-DD" desde <input type="date">; Prisma espera Date.
       babyBirthDate: babyBirthDate ? new Date(babyBirthDate) : undefined,
       expectedDueDate: expectedDueDate ? new Date(expectedDueDate) : undefined,
       skinCondition,

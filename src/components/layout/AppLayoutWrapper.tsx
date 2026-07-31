@@ -8,6 +8,7 @@ import ShippingBanner from '@/components/features/ShippingBanner';
 import UniversalAuthModal from '@/components/auth/UniversalAuthModal';
 import CartToast from '@/components/layout/CartToast';
 import MobileOfferModal from '@/components/features/MobileOfferModal';
+import WhatsAppButton from '@/components/features/WhatsAppButton';
 
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,6 +46,7 @@ export default function AppLayoutWrapper({ children }: { children: React.ReactNo
       <UniversalAuthModal />
       <CartToast />
       <MobileOfferModal />
+      <WhatsAppButton />
     </>
   );
 }
