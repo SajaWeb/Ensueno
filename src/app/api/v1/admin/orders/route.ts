@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { getJwtSecretEncoded } from '@/lib/jwt';
 import { prisma } from '@/lib/prisma';
+import { resendService } from '@/infrastructure/services/ResendService';
 
 // Helper to check admin authorization
 async function checkAdminAuth() {
@@ -173,6 +174,20 @@ export async function PUT(req: Request) {
         items: true,
       },
     });
+
+    // Avisar al cliente del nuevo estado. No se espera ni se deja que un fallo
+    // de correo tumbe la actualización: el estado ya quedó guardado.
+    if (updatedOrder.customerEmail) {
+      resendService
+        .sendOrderStatusEmail({
+          to: updatedOrder.customerEmail,
+          customerName: updatedOrder.customerName || 'Hola',
+          orderNumber: updatedOrder.orderNumber || updatedOrder.id,
+          status,
+          deliveryEstimate: updatedOrder.deliveryEstimate || undefined,
+        })
+        .catch((e) => console.error('No se pudo enviar el correo de estado:', e));
+    }
 
     return NextResponse.json({ success: true, data: updatedOrder });
   } catch (err: any) {

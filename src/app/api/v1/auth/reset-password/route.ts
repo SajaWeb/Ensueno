@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resendService } from '@/infrastructure/services/ResendService';
 import { userRepository } from '@/infrastructure/repositories/UserRepository';
 
 export async function POST(req: Request) {
@@ -17,6 +18,12 @@ export async function POST(req: Request) {
     const result = await userRepository.resetPasswordWithToken(email || '', verificationCode, newPassword);
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+    }
+
+    if (email) {
+      resendService
+        .sendPasswordChangedEmail(email, email.split('@')[0])
+        .catch((e) => console.error('No se pudo enviar el aviso de cambio de clave:', e));
     }
 
     return NextResponse.json({

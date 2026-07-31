@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { mercadoPagoService } from '@/infrastructure/services/MercadoPagoService';
 import { orderRepository } from '@/infrastructure/repositories/OrderRepository';
 import { resendService } from '@/infrastructure/services/ResendService';
+import { metaPixelService } from '@/infrastructure/services/MetaPixelService';
 
 /**
  * Webhook IPN de MercadoPago.
@@ -86,6 +87,17 @@ export async function POST(req: Request) {
                 department: fullOrder.department || undefined,
                 deliveryEstimate: fullOrder.deliveryEstimate || '2-4 días hábiles',
               }).catch((e) => console.error('Error enviando correo desde webhook:', e));
+
+              // El `Purchase` va aquí, que es cuando el pago quedó aprobado de
+              // verdad. Antes se disparaba al crear la orden, contando como
+              // venta también los checkouts abandonados y los rechazos.
+              metaPixelService
+                .sendCapiEvent(
+                  'Purchase',
+                  { email: fullOrder.customerEmail, phone: fullOrder.customerPhone || undefined },
+                  { order_id: fullOrder.orderNumber, value: fullOrder.total, currency: 'COP' }
+                )
+                .catch((e) => console.error('Error enviando Purchase a Meta CAPI:', e));
             }
           }
 

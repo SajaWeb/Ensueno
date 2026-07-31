@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Star, ShoppingBag, Heart, ShieldCheck, Check, Plus, Minus, ArrowLeft, Droplets, Sparkles, UserCircle, Trash2, Edit } from 'lucide-react';
+import {
+  ShoppingBag, ShieldCheck, Check, Plus, Minus, ArrowLeft, Droplets,
+  Sparkles, UserCircle, Trash2, Edit, Star, Truck,
+} from 'lucide-react';
 import { Product } from '@/types';
 import { apiService } from '@/services/api';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
-import ScrollReveal from '@/components/ui/ScrollReveal';
+import ProductGallery, { toMedia, Media } from '@/components/features/ProductGallery';
+import StarRating from '@/components/ui/StarRating';
 
 interface Review {
   id: string;
@@ -22,6 +25,19 @@ interface Review {
   user?: { role: string };
 }
 
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(price);
+
+const TRUST = [
+  { Icon: ShieldCheck, label: 'Sin lágrimas' },
+  { Icon: Droplets, label: 'pH neutro' },
+  { Icon: Sparkles, label: 'Aprobado pediatría' },
+];
+
 export default function ProductDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -33,8 +49,8 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'descripcion' | 'ingredientes' | 'seguridad'>('descripcion');
 
-  const { addToCart } = useCart();
-  const { isSaved, toggleSavedItem, currentUser: user } = useUser();
+  const { addToCart, freeShippingThreshold } = useCart();
+  const { currentUser: user } = useUser();
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
@@ -64,8 +80,8 @@ export default function ProductDetailPage() {
         const data = await apiService.getProductById(id || 'panitos-humedos');
         if (data) {
           setProduct(data);
-          setSelectedFragrance(data.fragrances[0] || 'Manzanilla & Algodón');
-          setSelectedSize(data.sizes[0] || 'Paquete x80 telas');
+          setSelectedFragrance(data.fragrances[0] || '');
+          setSelectedSize(data.sizes[0] || '');
           loadReviews(data.id);
         }
       } catch (e) {
@@ -104,12 +120,11 @@ export default function ProductDetailPage() {
   const handleEditClick = (r: Review) => {
     setEditingReviewId(r.id);
     setReviewForm({ rating: r.rating, comment: r.comment });
-    const el = document.getElementById('review-form');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleDeleteReview = async (reviewId: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar esta reseña?')) return;
+    if (!confirm('¿Seguro que quieres eliminar esta reseña?')) return;
     try {
       await apiService.reviews.delete(reviewId);
       if (product) await loadReviews(product.id);
@@ -120,548 +135,515 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center font-headline font-medium text-on-surface-variant animate-pulse">
-        Cargando producto de Ensueño... ☁️
+      <div className="ens-band ens-band--cian">
+        <div className="max-w-7xl mx-auto px-4 py-24 text-center text-tinta-suave animate-pulse">
+          Cargando producto…
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="font-headline font-bold text-2xl text-on-surface">Producto no encontrado</h2>
-        <p className="text-on-surface-variant text-sm">El producto que buscas no existe o ha sido movido.</p>
-        <Link href="/" className="inline-block bg-primary text-white font-headline font-bold text-xs px-6 py-3 rounded-full">
-          Volver al Inicio
-        </Link>
+      <div className="ens-band ens-band--cian">
+        <div className="max-w-7xl mx-auto px-4 py-24 text-center space-y-4">
+          <h1 className="font-display text-3xl text-tinta">Producto no encontrado</h1>
+          <p className="text-tinta-suave">Este producto no existe o cambió de dirección.</p>
+          <Link href="/" className="ens-btn ens-btn--azul mt-2">
+            Volver al inicio
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const saved = isSaved(product.id);
+  const hasPromo = Boolean(product.originalPrice && product.originalPrice > product.price);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  // La imagen principal más las adicionales del admin. Las URLs de video se
+  // detectan solas, así que la misma tira sirve para fotos y videos.
+  const media: Media[] = [
+    { type: 'image' as const, url: product.image },
+    ...(product.additionalImages ?? []).filter(Boolean).map(toMedia),
+  ];
+
+  // Los combos traen una sola opción de relleno en cada selector: mostrar un
+  // chip único sin alternativa es ruido, así que se ocultan.
+  const showFragrances = product.fragrances.length > 1;
+  const showSizes = product.sizes.length > 1;
+  const hasIngredients = product.ingredients.length > 0;
+
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((a, b) => a + b.rating, 0) / reviews.length
+      : product.rating;
+  const reviewCount = reviews.length > 0 ? reviews.length : product.reviewsCount;
+
+  const filtered = starFilter === 'all' ? reviews : reviews.filter((r) => r.rating === starFilter);
+  const totalPages = Math.ceil(filtered.length / REVIEWS_PER_PAGE) || 1;
+  const paginated = filtered.slice((currentPage - 1) * REVIEWS_PER_PAGE, currentPage * REVIEWS_PER_PAGE);
+
+  const chip = (active: boolean) =>
+    `px-4 h-11 rounded-full text-sm font-bold transition-colors ens-focus inline-flex items-center gap-2 ${
+      active
+        ? 'bg-azul text-white'
+        : 'bg-white text-tinta border border-borde hover:border-azul'
+    }`;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 page-entry-anim">
-      {/* Breadcrumb Navigation */}
-      <nav className="flex items-center space-x-2 text-xs font-medium text-on-surface-variant">
-        <Link href="/" className="hover:text-primary transition-colors flex items-center space-x-1">
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Inicio</span>
-        </Link>
-        <span>/</span>
-        <span className="capitalize">{product.category}</span>
-        <span>/</span>
-        <span className="text-on-surface font-semibold">{product.name}</span>
-      </nav>
+    <div className="page-entry-anim">
+      {/* ================= Ficha ================= */}
+      <section className="ens-band ens-band--cian">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <nav aria-label="Ruta de navegación" className="flex items-center gap-2 text-sm text-tinta-suave mb-8">
+            <Link href="/" className="inline-flex items-center gap-1.5 hover:text-azul transition-colors ens-focus">
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              Inicio
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span className="capitalize">{product.category}</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-tinta font-bold">{product.name}</span>
+          </nav>
 
-      {/* Main Product Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-        {/* Left Image Gallery */}
-        <ScrollReveal animation="fade-right">
-          <div className="space-y-4">
-            <div className="relative w-full h-[420px] sm:h-[500px] rounded-3xl overflow-hidden bg-white soft-glow-card border border-surface-container-high">
-              <Image
-                src={product.image}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+            {/* --- Galería: principal arriba, miniaturas debajo --- */}
+            <div className="space-y-4">
+              <ProductGallery
+                media={media}
                 alt={product.name}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
+                badge={product.badge}
               />
-              {product.badge && (
-                <span className="absolute top-4 left-4 bg-secondary text-white font-headline font-bold text-xs px-4 py-1.5 rounded-full shadow-md">
-                  {product.badge}
-                </span>
-              )}
-              <button
-                onClick={() => toggleSavedItem(product.id)}
-                className="absolute top-4 right-4 p-3 rounded-full bg-white/80 backdrop-blur-sm shadow-md hover:scale-110 transition-transform"
-              >
-                <Heart className={`w-5 h-5 ${saved ? 'fill-secondary text-secondary' : 'text-outline'}`} />
-              </button>
+
+              <ul className="grid grid-cols-3 gap-3">
+                {TRUST.map(({ Icon, label }) => (
+                  <li
+                    key={label}
+                    className="bg-white border border-borde rounded-2xl p-3 text-center"
+                  >
+                    <Icon className="w-5 h-5 text-azul mx-auto" aria-hidden="true" />
+                    <span className="block mt-1.5 text-xs font-bold text-tinta">{label}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Guarantee Badges */}
-            <div className="grid grid-cols-3 gap-3 text-center text-xs">
-              <div className="p-3 bg-white/90 rounded-2xl border border-surface-container-high space-y-1 soft-glow-card">
-                <ShieldCheck className="w-5 h-5 text-primary mx-auto" />
-                <span className="font-semibold block text-on-surface">Sin Lágrimas</span>
-              </div>
-              <div className="p-3 bg-white/90 rounded-2xl border border-surface-container-high space-y-1 soft-glow-card">
-                <Droplets className="w-5 h-5 text-secondary mx-auto" />
-                <span className="font-semibold block text-on-surface">pH Neutro</span>
-              </div>
-              <div className="p-3 bg-white/90 rounded-2xl border border-surface-container-high space-y-1 soft-glow-card">
-                <Sparkles className="w-5 h-5 text-tertiary mx-auto" />
-                <span className="font-semibold block text-on-surface">Aprobado Pediatría</span>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-
-        {/* Right Details & Configuration */}
-        <ScrollReveal animation="fade-left" delay={150}>
-          <div className="space-y-8">
+            {/* --- Información y compra --- */}
             <div>
-              <div className="flex items-center space-x-2 text-xs font-semibold text-tertiary mb-2">
-                <div className="flex text-amber-400">
-                  {Array.from({ length: 5 }).map((_, i) => {
-                    const avg = reviews.length > 0
-                      ? reviews.reduce((a, b) => a + b.rating, 0) / reviews.length
-                      : (product.reviewsCount > 0 ? product.rating : 0);
-                    return (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.round(avg)
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'fill-slate-100 text-slate-200'
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-                <span>
-                  {reviews.length > 0 ? (
-                    <>
-                      {(reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)} ({reviews.length} {reviews.length === 1 ? 'reseña verificada' : 'reseñas verificadas'})
-                    </>
-                  ) : product.reviewsCount > 0 ? (
-                    <>
-                      {product.rating.toFixed(1)} ({product.reviewsCount} {product.reviewsCount === 1 ? 'reseña verificada' : 'reseñas verificadas'})
-                    </>
-                  ) : (
-                    <span className="text-slate-400 font-medium">Sin reseñas aún • ¡Sé el primero en opinar!</span>
-                  )}
-                </span>
-              </div>
+              <p className="ens-eyebrow text-azul capitalize">{product.category}</p>
 
-              <h1 className="font-headline font-extrabold text-3xl sm:text-4xl text-on-surface tracking-tight mb-2">
+              <h1 className="mt-3 font-display text-tinta leading-tight text-[clamp(1.875rem,4vw,2.75rem)]">
                 {product.name}
               </h1>
 
-              <p className="text-sm sm:text-base text-on-surface-variant font-body leading-relaxed">
-                {product.subtitle}
-              </p>
-            </div>
+              <p className="mt-3 text-lg text-tinta-suave leading-relaxed">{product.subtitle}</p>
 
-            {/* Pricing */}
-            <div className="flex items-baseline space-x-3 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-surface-container-high soft-glow-card">
-              <span className="font-headline font-extrabold text-3xl text-primary">
-                {formatPrice(product.price)}
-              </span>
-              {product.originalPrice && (
-                <span className="text-sm text-outline line-through">
-                  {formatPrice(product.originalPrice)}
-                </span>
-              )}
-              <span className="text-xs font-bold text-secondary bg-secondary-container/60 px-3 py-1 rounded-full ml-auto">
-                Envío Gratis desde $60.000
-              </span>
-            </div>
-
-            {/* Fragrance Selector */}
-            {product.fragrances.length > 0 && (
-              <div className="space-y-3">
-                <label className="block text-xs font-headline font-bold uppercase tracking-wider text-on-surface-variant">
-                  Aroma / Fragancia: <span className="text-primary font-bold">{selectedFragrance}</span>
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {product.fragrances.map((frag) => (
-                    <button
-                      key={frag}
-                      onClick={() => setSelectedFragrance(frag)}
-                      className={`px-4 py-2.5 rounded-full font-headline font-semibold text-xs transition-all squishy-button flex items-center space-x-2 ${
-                        selectedFragrance === frag
-                          ? 'bg-primary text-white shadow-soft-glow'
-                          : 'bg-white text-on-surface-variant border border-surface-container-high hover:bg-surface-container-low'
-                      }`}
-                    >
-                      {selectedFragrance === frag && <Check className="w-3.5 h-3.5" />}
-                      <span>{frag}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Size Selector */}
-            {product.sizes.length > 0 && (
-              <div className="space-y-3">
-                <label className="block text-xs font-headline font-bold uppercase tracking-wider text-on-surface-variant">
-                  Presentación: <span className="text-primary font-bold">{selectedSize}</span>
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {product.sizes.map((sz) => (
-                    <button
-                      key={sz}
-                      onClick={() => setSelectedSize(sz)}
-                      className={`px-4 py-2.5 rounded-full font-headline font-semibold text-xs transition-all squishy-button ${
-                        selectedSize === sz
-                          ? 'bg-secondary text-white shadow-soft-pink-glow'
-                          : 'bg-white text-on-surface-variant border border-surface-container-high hover:bg-surface-container-low'
-                      }`}
-                    >
-                      <span>{sz}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quantity & Add to Cart Action */}
-            <div className="space-y-4 pt-4 border-t border-surface-container-high">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2 bg-white border border-surface-container-high rounded-full p-1.5 shadow-sm">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-8 text-center font-headline font-bold text-sm">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center justify-center text-on-surface"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => addToCart(product, selectedFragrance, selectedSize, quantity)}
-                  className="btn-ensueno-primary flex-1 h-12 text-xs font-extrabold uppercase tracking-wider"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Añadir al Carrito ({formatPrice(product.price * quantity)})</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Specs Tabs */}
-            <div className="pt-6 border-t border-surface-container-high space-y-4">
-              <div className="flex space-x-4 border-b border-surface-container-high pb-2">
-                <button
-                  onClick={() => setActiveTab('descripcion')}
-                  className={`font-headline font-bold text-xs pb-2 transition-colors ${
-                    activeTab === 'descripcion' ? 'text-primary border-b-2 border-primary' : 'text-outline'
-                  }`}
-                >
-                  Beneficios
-                </button>
-                <button
-                  onClick={() => setActiveTab('ingredientes')}
-                  className={`font-headline font-bold text-xs pb-2 transition-colors ${
-                    activeTab === 'ingredientes' ? 'text-primary border-b-2 border-primary' : 'text-outline'
-                  }`}
-                >
-                  Ingredientes
-                </button>
-                <button
-                  onClick={() => setActiveTab('seguridad')}
-                  className={`font-headline font-bold text-xs pb-2 transition-colors ${
-                    activeTab === 'seguridad' ? 'text-primary border-b-2 border-primary' : 'text-outline'
-                  }`}
-                >
-                  Garantía Pediátrica
-                </button>
-              </div>
-
-              <div className="text-xs text-on-surface-variant leading-relaxed min-h-[100px]">
-                {activeTab === 'descripcion' && (
-                  <ul className="space-y-2">
-                    {product.benefits.map((b, i) => (
-                      <li key={i} className="flex items-start space-x-2">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="mt-5">
+                {reviewCount > 0 ? (
+                  <StarRating rating={avgRating} count={reviewCount} />
+                ) : (
+                  <p className="text-sm text-tinta-suave">
+                    Sin reseñas todavía. Sé la primera en opinar.
+                  </p>
                 )}
+              </div>
 
-                {activeTab === 'ingredientes' && (
-                  <ul className="space-y-1.5 list-disc list-inside">
-                    {product.ingredients.map((ing, i) => (
-                      <li key={i}>{ing}</li>
+              {/* Precio */}
+              <div className="mt-6 bg-white border border-borde rounded-2xl p-5">
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <span className="font-display text-4xl text-azul">{formatPrice(product.price)}</span>
+                  {hasPromo && (
+                    <span className="text-base text-tinta-suave line-through">
+                      {formatPrice(product.originalPrice!)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 flex items-center gap-2 text-sm font-bold text-tinta-suave">
+                  <Truck className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+                  Envío gratis desde {formatPrice(freeShippingThreshold)}
+                </p>
+              </div>
+
+              {/* Opciones */}
+              {showFragrances && (
+                <fieldset className="mt-7">
+                  <legend className="ens-eyebrow text-tinta-suave mb-3">Aroma</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {product.fragrances.map((frag) => (
+                      <button
+                        key={frag}
+                        type="button"
+                        onClick={() => setSelectedFragrance(frag)}
+                        aria-pressed={selectedFragrance === frag}
+                        className={chip(selectedFragrance === frag)}
+                      >
+                        {selectedFragrance === frag && <Check className="w-4 h-4" aria-hidden="true" />}
+                        {frag}
+                      </button>
                     ))}
-                  </ul>
-                )}
-
-                {activeTab === 'seguridad' && (
-                  <div className="space-y-3">
-                    {product.pediatricGuarantee && (
-                      <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 text-purple-900 font-bold flex items-start gap-2.5">
-                        <ShieldCheck className="w-5 h-5 text-purple-600 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="block text-[11px] font-black uppercase text-purple-700">Garantía Pediátrica Certificada</span>
-                          <span>{product.pediatricGuarantee}</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-700">
-                      <span className="block text-[11px] font-black uppercase text-slate-500 mb-1">Sellos & Registro de Seguridad</span>
-                      <p>{product.safetyInfo}</p>
-                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-      </div>
+                </fieldset>
+              )}
 
-      {/* REVIEWS SECTION */}
-      <div className="pt-16 max-w-4xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h2 className="font-headline font-extrabold text-2xl sm:text-3xl text-on-surface">
-            Calificaciones y Reseñas
-          </h2>
-          <p className="text-sm text-on-surface-variant">
-            Descubre lo que otras familias opinan sobre {product.name}.
-          </p>
-        </div>
+              {showSizes && (
+                <fieldset className="mt-6">
+                  <legend className="ens-eyebrow text-tinta-suave mb-3">Presentación</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {product.sizes.map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setSelectedSize(sz)}
+                        aria-pressed={selectedSize === sz}
+                        className={chip(selectedSize === sz)}
+                      >
+                        {selectedSize === sz && <Check className="w-4 h-4" aria-hidden="true" />}
+                        {sz}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
 
-        {/* Review Form (Only for logged in users) */}
-        {user ? (
-          <div id="review-form" className="bg-white p-6 rounded-3xl border border-surface-container-high soft-glow-card">
-            <h3 className="font-headline font-bold text-lg mb-4 text-primary">
-              {editingReviewId ? 'Modificar tu reseña' : 'Dejar una reseña'}
-            </h3>
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                  Calificación
-                </label>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
+              {/* Cantidad y compra. Queda por debajo de la tira de miniaturas. */}
+              <div className="mt-8 pt-8 border-t border-borde">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex items-center gap-1 bg-white border border-borde rounded-full p-1.5 self-start">
                     <button
-                      key={star}
                       type="button"
-                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                      className="p-1 transition-transform hover:scale-110"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1}
+                      aria-label="Quitar una unidad"
+                      className="w-9 h-9 grid place-items-center rounded-full text-tinta hover:bg-cian disabled:opacity-40 disabled:hover:bg-transparent transition-colors ens-focus"
                     >
-                      <Star
-                        className={`w-8 h-8 ${
-                          star <= reviewForm.rating
-                            ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
-                            : 'fill-slate-100 text-slate-200'
-                        }`}
-                      />
+                      <Minus className="w-4 h-4" aria-hidden="true" />
                     </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wider">
-                  Tu Opinión
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={reviewForm.comment}
-                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                  placeholder="¿Qué te pareció este producto? Comparte tu experiencia..."
-                  className="w-full px-4 py-3 rounded-2xl border border-surface-container-high bg-surface-container-low text-sm text-on-surface focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-shadow"
-                />
-              </div>
-              <div className="flex justify-end gap-3">
-                {editingReviewId && (
+                    <span className="w-10 text-center font-bold tabular-nums" aria-live="polite">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(quantity + 1)}
+                      aria-label="Añadir una unidad"
+                      className="w-9 h-9 grid place-items-center rounded-full text-tinta hover:bg-cian transition-colors ens-focus"
+                    >
+                      <Plus className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => {
-                      setEditingReviewId(null);
-                      setReviewForm({ rating: 5, comment: '' });
-                    }}
-                    className="px-5 py-2.5 rounded-full text-xs font-bold text-slate-500 hover:bg-slate-100"
+                    onClick={() => addToCart(product, selectedFragrance, selectedSize, quantity)}
+                    className="ens-btn ens-btn--azul flex-1"
                   >
-                    Cancelar
+                    <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+                    Agregar al carrito · {formatPrice(product.price * quantity)}
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={submittingReview}
-                  className="btn-ensueno-primary px-8 py-2.5 text-xs font-extrabold uppercase tracking-wider"
-                >
-                  {submittingReview ? 'Enviando...' : editingReviewId ? 'Actualizar Reseña' : 'Publicar Reseña'}
-                </button>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
-        ) : (
-          <div className="bg-surface-container-low p-6 rounded-3xl text-center border border-surface-container-high">
-            <UserCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-on-surface-variant font-medium">
-              Inicia sesión o regístrate para dejar una reseña sobre este producto.
-            </p>
-            <Link href="/perfil" className="inline-block mt-4 btn-ensueno-secondary px-6 py-2 text-xs font-extrabold uppercase">
-              Iniciar Sesión
-            </Link>
-          </div>
-        )}
+        </div>
+      </section>
 
-        {/* Reviews Filters & Breakdown Summary */}
-        {reviews.length > 0 && (
-          <div className="bg-white p-6 rounded-3xl border border-surface-container-high soft-glow-card space-y-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500">Filtrar Reseñas por Calificación</h4>
-            
-            <div className="flex flex-wrap items-center gap-2">
+      {/* ================= Detalle ================= */}
+      <section className="ens-band ens-band--blanco">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
+          <div className="flex flex-wrap gap-2 border-b border-borde">
+            {([
+              ['descripcion', 'Beneficios'],
+              ...(hasIngredients ? [['ingredientes', 'Ingredientes'] as const] : []),
+              ['seguridad', 'Garantía pediátrica'],
+            ] as const).map(([key, label]) => (
               <button
-                onClick={() => { setStarFilter('all'); setCurrentPage(1); }}
-                className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                  starFilter === 'all'
-                    ? 'bg-purple-600 text-white shadow-md'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                key={key}
+                type="button"
+                onClick={() => setActiveTab(key)}
+                aria-current={activeTab === key}
+                className={`px-5 py-3 -mb-px border-b-[3px] font-bold text-sm transition-colors ens-focus ${
+                  activeTab === key
+                    ? 'border-azul text-azul'
+                    : 'border-transparent text-tinta-suave hover:text-tinta'
                 }`}
               >
-                Todas ({reviews.length})
+                {label}
               </button>
-
-              {[5, 4, 3, 2, 1].map((stars) => {
-                const count = reviews.filter((r) => r.rating === stars).length;
-                return (
-                  <button
-                    key={stars}
-                    onClick={() => { setStarFilter(stars); setCurrentPage(1); }}
-                    className={`px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${
-                      starFilter === stars
-                        ? 'bg-amber-500 text-white shadow-md'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    <span>{stars}</span>
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span className="text-[10px] opacity-80">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
+            ))}
           </div>
-        )}
 
-        {/* Reviews List */}
-        <div className="space-y-4">
-          {loadingReviews ? (
-            <div className="text-center py-8 text-sm text-on-surface-variant animate-pulse">
-              Cargando reseñas...
-            </div>
-          ) : reviews.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-surface-container-high border-dashed">
-              <Star className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-              <p className="text-sm font-medium text-slate-400">Aún no hay reseñas para este producto.</p>
-              <p className="text-xs text-slate-400 mt-1">¡Sé el primero en compartir tu experiencia!</p>
+          <div className="pt-8 text-tinta-suave leading-relaxed">
+            {activeTab === 'descripcion' && (
+              <>
+                <p className="text-lg text-tinta mb-6">{product.description}</p>
+                <ul className="space-y-3">
+                  {product.benefits.map((b, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <Check className="w-5 h-5 text-azul shrink-0 mt-0.5" aria-hidden="true" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {activeTab === 'ingredientes' && (
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {product.ingredients.map((ing, i) => (
+                  <li key={i} className="bg-cian border border-borde rounded-2xl px-4 py-3 text-tinta">
+                    {ing}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {activeTab === 'seguridad' && (
+              <div className="space-y-4">
+                {product.pediatricGuarantee && (
+                  <div className="bg-celeste border border-borde rounded-2xl p-5 flex items-start gap-3">
+                    <ShieldCheck className="w-6 h-6 text-azul shrink-0" aria-hidden="true" />
+                    <div>
+                      <span className="ens-eyebrow text-azul block mb-1">Garantía certificada</span>
+                      <p className="text-tinta">{product.pediatricGuarantee}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="bg-cian border border-borde rounded-2xl p-5">
+                  <span className="ens-eyebrow text-tinta-suave block mb-1">Sellos y registro</span>
+                  <p className="text-tinta">{product.safetyInfo}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= Reseñas ================= */}
+      <section className="ens-band ens-band--cian">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16 space-y-8">
+          <div>
+            <p className="ens-eyebrow text-azul">Opiniones</p>
+            <h2 className="mt-3 font-display text-tinta text-[clamp(1.5rem,3vw,2.25rem)] leading-tight">
+              Lo que dicen otras familias
+            </h2>
+          </div>
+
+          {/* Formulario */}
+          {user ? (
+            <div id="review-form" className="bg-white border border-borde rounded-2xl p-6">
+              <h3 className="font-display text-xl text-tinta mb-5">
+                {editingReviewId ? 'Modifica tu reseña' : 'Deja tu reseña'}
+              </h3>
+              <form onSubmit={handleReviewSubmit} className="space-y-5">
+                <fieldset>
+                  <legend className="ens-eyebrow text-tinta-suave mb-2">Calificación</legend>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                        aria-label={`${star} de 5 estrellas`}
+                        aria-pressed={reviewForm.rating === star}
+                        className="p-1 rounded-full transition-transform hover:scale-110 ens-focus"
+                      >
+                        <Star
+                          className={`w-8 h-8 ${
+                            star <= reviewForm.rating
+                              ? 'fill-amarillo text-tertiary'
+                              : 'fill-cian text-borde'
+                          }`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <div>
+                  <label htmlFor="review-comment" className="ens-eyebrow text-tinta-suave block mb-2">
+                    Tu opinión
+                  </label>
+                  <textarea
+                    id="review-comment"
+                    required
+                    rows={4}
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                    placeholder="¿Cómo le fue a tu bebé con este producto?"
+                    className="w-full px-4 py-3 rounded-2xl border border-borde bg-cian text-tinta placeholder:text-tinta-suave focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-3">
+                  {editingReviewId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingReviewId(null);
+                        setReviewForm({ rating: 5, comment: '' });
+                      }}
+                      className="ens-btn ens-btn--linea"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button type="submit" disabled={submittingReview} className="ens-btn ens-btn--azul">
+                    {submittingReview
+                      ? 'Publicando…'
+                      : editingReviewId
+                        ? 'Actualizar reseña'
+                        : 'Publicar reseña'}
+                  </button>
+                </div>
+              </form>
             </div>
           ) : (
-            <>
-              {(() => {
-                const filtered = starFilter === 'all' ? reviews : reviews.filter((r) => r.rating === starFilter);
-                const totalPages = Math.ceil(filtered.length / REVIEWS_PER_PAGE) || 1;
-                const startIndex = (currentPage - 1) * REVIEWS_PER_PAGE;
-                const paginated = filtered.slice(startIndex, startIndex + REVIEWS_PER_PAGE);
+            <div className="bg-white border border-borde rounded-2xl p-8 text-center">
+              <UserCircle className="w-12 h-12 text-borde mx-auto mb-3" aria-hidden="true" />
+              <p className="text-tinta-suave mb-5">Inicia sesión para dejar tu reseña.</p>
+              <Link href="/perfil" className="ens-btn ens-btn--linea">
+                Iniciar sesión
+              </Link>
+            </div>
+          )}
 
-                if (filtered.length === 0) {
+          {/* Filtro por estrellas */}
+          {reviews.length > 0 && (
+            <div className="bg-white border border-borde rounded-2xl p-5">
+              <p className="ens-eyebrow text-tinta-suave mb-3">Filtrar por calificación</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setStarFilter('all'); setCurrentPage(1); }}
+                  aria-pressed={starFilter === 'all'}
+                  className={chip(starFilter === 'all') + ' !h-10 !text-xs'}
+                >
+                  Todas ({reviews.length})
+                </button>
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const count = reviews.filter((r) => r.rating === stars).length;
                   return (
-                    <div className="text-center py-8 bg-white rounded-3xl border border-slate-100 text-slate-400 text-xs">
-                      No hay reseñas con la calificación de {starFilter} estrella(s).
-                    </div>
+                    <button
+                      key={stars}
+                      type="button"
+                      onClick={() => { setStarFilter(stars); setCurrentPage(1); }}
+                      aria-pressed={starFilter === stars}
+                      className={chip(starFilter === stars) + ' !h-10 !text-xs'}
+                    >
+                      {stars}
+                      <Star className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
+                      <span className="opacity-70">({count})</span>
+                    </button>
                   );
-                }
+                })}
+              </div>
+            </div>
+          )}
 
-                return (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4">
-                      {paginated.map((r) => (
-                        <div key={r.id} className="bg-white p-5 sm:p-6 rounded-3xl border border-surface-container-high shadow-sm hover:shadow-md transition-shadow relative group">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                                {r.userName.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="font-bold text-sm text-on-surface">{r.userName}</p>
-                                <p className="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">
-                                  {new Date(r.createdAt).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex space-x-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-100 text-slate-200'}`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-sm text-on-surface-variant leading-relaxed">
-                            {r.comment}
+          {/* Lista */}
+          {loadingReviews ? (
+            <p className="text-center py-10 text-tinta-suave animate-pulse">Cargando reseñas…</p>
+          ) : reviews.length === 0 ? (
+            <div className="bg-white border border-borde border-dashed rounded-2xl p-10 text-center">
+              <Star className="w-10 h-10 text-borde mx-auto mb-3" aria-hidden="true" />
+              <p className="font-bold text-tinta">Todavía no hay reseñas</p>
+              <p className="text-sm text-tinta-suave mt-1">Sé la primera en contar tu experiencia.</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="bg-white border border-borde rounded-2xl p-8 text-center text-tinta-suave">
+              No hay reseñas de {starFilter} estrella{starFilter === 1 ? '' : 's'}.
+            </p>
+          ) : (
+            <>
+              <ul className="space-y-4">
+                {paginated.map((r) => (
+                  <li key={r.id} className="bg-white border border-borde rounded-2xl p-5 sm:p-6 relative group">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="w-10 h-10 shrink-0 grid place-items-center rounded-full bg-celeste text-azul font-bold"
+                        >
+                          {r.userName.charAt(0).toUpperCase()}
+                        </span>
+                        <div>
+                          <p className="font-bold text-tinta">{r.userName}</p>
+                          <p className="text-xs text-tinta-suave">
+                            {new Date(r.createdAt).toLocaleDateString('es-CO', {
+                              year: 'numeric', month: 'long', day: 'numeric',
+                            })}
                           </p>
-                          
-                          {/* Edit/Delete Actions */}
-                          {user && (user.id === r.userId || user.role === 'ADMIN') && (
-                            <div className="absolute top-4 right-4 sm:opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2 bg-white/90 backdrop-blur-sm p-1 rounded-full shadow-sm border border-slate-100">
-                              {user.id === r.userId && (
-                                <button
-                                  onClick={() => handleEditClick(r)}
-                                  className="p-1.5 text-slate-400 hover:text-primary transition-colors bg-white rounded-full"
-                                  title="Editar mi reseña"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              {user.role === 'ADMIN' && (
-                                <button
-                                  onClick={() => handleDeleteReview(r.id)}
-                                  className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors bg-white rounded-full"
-                                  title="Eliminar reseña (Admin)"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          )}
                         </div>
-                      ))}
+                      </div>
+                      <div className="flex gap-0.5 shrink-0" role="img" aria-label={`${r.rating} de 5 estrellas`}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < r.rating ? 'fill-amarillo text-tertiary' : 'fill-cian text-borde'
+                            }`}
+                            aria-hidden="true"
+                          />
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                        <button
-                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                        >
-                          ← Anterior
-                        </button>
-                        <span className="text-xs font-bold text-slate-600">
-                          Página {currentPage} de {totalPages}
-                        </span>
-                        <button
-                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                        >
-                          Siguiente →
-                        </button>
+                    <p className="text-tinta-suave leading-relaxed">{r.comment}</p>
+
+                    {user && (user.id === r.userId || user.role === 'ADMIN') && (
+                      <div className="absolute top-4 right-4 flex gap-1 sm:opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
+                        {user.id === r.userId && (
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(r)}
+                            aria-label="Editar mi reseña"
+                            className="w-9 h-9 grid place-items-center rounded-full bg-white border border-borde text-tinta-suave hover:text-azul hover:border-azul transition-colors ens-focus"
+                          >
+                            <Edit className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
+                        {user.role === 'ADMIN' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReview(r.id)}
+                            aria-label="Eliminar reseña"
+                            className="w-9 h-9 grid place-items-center rounded-full bg-white border border-borde text-tinta-suave hover:text-secondary hover:border-secondary transition-colors ens-focus"
+                          >
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        )}
                       </div>
                     )}
-                  </div>
-                );
-              })()}
+                  </li>
+                ))}
+              </ul>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="ens-btn ens-btn--linea !h-10 !text-xs disabled:opacity-40"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm font-bold text-tinta-suave" aria-live="polite">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="ens-btn ens-btn--linea !h-10 !text-xs disabled:opacity-40"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

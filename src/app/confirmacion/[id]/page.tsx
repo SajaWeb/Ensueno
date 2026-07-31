@@ -135,8 +135,8 @@ function ConfirmationContent() {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center space-y-4">
-        <div className="w-12 h-12 border-4 border-pink-300 border-t-purple-600 rounded-full animate-spin mx-auto" />
-        <p className="text-xs font-bold text-slate-500">Cargando estado del pedido...</p>
+        <div className="w-12 h-12 border-4 border-borde border-t-azul rounded-full animate-spin mx-auto" />
+        <p className="text-xs font-bold text-tinta-suave">Cargando estado del pedido...</p>
       </div>
     );
   }
@@ -146,37 +146,37 @@ function ConfirmationContent() {
       {/* Dynamic Status Banner */}
       {isRejected ? (
         // STATE 1: REJECTED / FAILURE
-        <div className="bg-rose-50/90 border border-rose-200 rounded-3xl p-6 sm:p-8 space-y-5 text-center shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-3xl shadow-xs">
-            <ShieldAlert className="w-9 h-9 text-rose-600" />
+        <div className="bg-cian border border-secondary rounded-3xl p-6 sm:p-8 space-y-5 text-center shadow-sm">
+          <div className="w-16 h-16 mx-auto rounded-full bg-cian text-secondary flex items-center justify-center text-3xl shadow-sm">
+            <ShieldAlert className="w-9 h-9 text-secondary" />
           </div>
           <div>
-            <span className="inline-block bg-rose-200/80 text-rose-800 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-wider mb-2">
+            <span className="inline-block bg-cian text-secondary font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-wider mb-2">
               Pago Rechazado o Incompleto
             </span>
-            <h1 className="font-extrabold text-2xl sm:text-3xl text-slate-800">
+            <h1 className="font-extrabold text-2xl sm:text-3xl text-tinta">
               No pudimos procesar tu pago con MercadoPago 💔
             </h1>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
+            <p className="text-tinta-suave text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
               La transacción fue rechazada por la entidad bancaria, fondos insuficientes o cancelada durante el proceso. Tu orden de compra{' '}
-              <strong className="font-mono text-purple-700">#{order?.orderNumber || id}</strong> sigue registrada.
+              <strong className="font-mono text-azul">#{order?.orderNumber || id}</strong> sigue registrada.
             </p>
           </div>
 
-          <div className="bg-white/80 p-4 rounded-2xl border border-rose-100 max-w-md mx-auto text-left text-xs space-y-1.5 text-slate-700">
+          <div className="bg-white/80 p-4 rounded-2xl border border-secondary max-w-md mx-auto text-left text-xs space-y-1.5 text-tinta-suave">
             <div className="flex justify-between font-semibold">
               <span>Referencia de Orden:</span>
-              <span className="font-mono text-purple-800">#{order?.orderNumber || id}</span>
+              <span className="font-mono text-azul">#{order?.orderNumber || id}</span>
             </div>
             {paymentId && (
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-tinta-suave">
                 <span>ID Transacción MercadoPago:</span>
                 <span className="font-mono">{paymentId}</span>
               </div>
             )}
-            <div className="flex justify-between font-semibold border-t border-slate-100 pt-1.5 mt-1.5">
+            <div className="flex justify-between font-semibold border-t border-borde pt-1.5 mt-1.5">
               <span>Total a Pagar:</span>
-              <span className="text-purple-700 font-bold">{formatPrice(order?.total)}</span>
+              <span className="text-azul font-bold">{formatPrice(order?.total)}</span>
             </div>
           </div>
 
@@ -200,25 +200,25 @@ function ConfirmationContent() {
         </div>
       ) : isPending ? (
         // STATE 2: PENDING / VERIFICATION
-        <div className="bg-amber-50/90 border border-amber-200 rounded-3xl p-6 sm:p-8 space-y-5 text-center shadow-sm">
-          <div className="w-16 h-16 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-3xl shadow-xs">
-            <Clock className="w-9 h-9 text-amber-600 animate-pulse" />
+        <div className="bg-amarillo border border-borde rounded-3xl p-6 sm:p-8 space-y-5 text-center shadow-sm">
+          <div className="w-16 h-16 mx-auto rounded-full bg-amarillo text-tertiary flex items-center justify-center text-3xl shadow-sm">
+            <Clock className="w-9 h-9 text-tertiary animate-pulse" />
           </div>
           <div>
-            <span className="inline-block bg-amber-200/80 text-amber-900 font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-wider mb-2">
+            <span className="inline-block bg-amarillo text-tinta font-extrabold text-[11px] px-3.5 py-1 rounded-full uppercase tracking-wider mb-2">
               Pago en Verificación
             </span>
-            <h1 className="font-extrabold text-2xl sm:text-3xl text-slate-800">
+            <h1 className="font-extrabold text-2xl sm:text-3xl text-tinta">
               MercadoPago está verificando tu transacción ⏳
             </h1>
-            <p className="text-slate-600 text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
+            <p className="text-tinta-suave text-xs sm:text-sm max-w-lg mx-auto mt-2 leading-relaxed">
               Si realizaste el pago por PSE, Efecty o transferencia bancaria, MercadoPago puede demorar unos minutos en confirmar el pago. Te notificaremos por correo electrónico apenas sea aprobado.
             </p>
           </div>
 
-          <div className="inline-flex items-center space-x-2 bg-white px-5 py-2.5 rounded-full border border-amber-200 shadow-2xs font-extrabold text-xs text-slate-700">
+          <div className="inline-flex items-center space-x-2 bg-white px-5 py-2.5 rounded-full border border-borde shadow-sm font-extrabold text-xs text-tinta-suave">
             <span>Número de Orden:</span>
-            <span className="text-purple-700 font-mono">#{order?.orderNumber || id}</span>
+            <span className="text-azul font-mono">#{order?.orderNumber || id}</span>
           </div>
 
           <div className="flex justify-center gap-3 pt-2">
@@ -232,34 +232,34 @@ function ConfirmationContent() {
       ) : (
         // STATE 3: APPROVED / SUCCESS
         <div className="text-center space-y-4">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 flex items-center justify-center text-primary text-3xl shadow-md border border-white">
+          <div className="w-20 h-20 mx-auto rounded-full bg-cian flex items-center justify-center text-primary text-3xl shadow-md border border-white">
             ✨
           </div>
-          <span className="inline-block bg-purple-100 text-purple-800 font-headline font-extrabold text-xs px-4 py-1.5 rounded-full border border-purple-200">
+          <span className="inline-block bg-cian text-azul font-headline font-extrabold text-xs px-4 py-1.5 rounded-full border border-borde">
             ¡PAGO APROBADO Y CONFIRMADO!
           </span>
-          <h1 className="font-headline font-extrabold text-3xl sm:text-4xl text-slate-800">
+          <h1 className="font-headline font-extrabold text-3xl sm:text-4xl text-tinta">
             ¡Gracias por tu compra en Ensueño! ☁️
           </h1>
-          <p className="text-slate-600 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+          <p className="text-tinta-suave text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
             Hemos enviado la confirmación y recibo de compra a tu correo electrónico. Tu pedido se encuentra en preparación.
           </p>
-          <div className="inline-flex items-center space-x-2 bg-white px-5 py-2.5 rounded-full border border-purple-100 shadow-xs font-headline font-extrabold text-xs text-slate-700">
+          <div className="inline-flex items-center space-x-2 bg-white px-5 py-2.5 rounded-full border border-borde shadow-sm font-headline font-extrabold text-xs text-tinta-suave">
             <span>Número de Orden:</span>
-            <span className="text-purple-700 font-mono tracking-wider">#{order?.orderNumber || id}</span>
+            <span className="text-azul font-mono tracking-wider">#{order?.orderNumber || id}</span>
           </div>
         </div>
       )}
 
       {/* Progress Timeline Stepper */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 soft-glow-card border border-purple-100 space-y-6">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 soft-glow-card border border-borde space-y-6">
         <div className="flex flex-col items-center justify-center space-y-1">
-          <h2 className="font-headline font-bold text-base text-slate-800 text-center">
+          <h2 className="font-headline font-bold text-base text-tinta text-center">
             Estado del Envío en Tiempo Real
           </h2>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider border bg-cian text-azul border-borde">
             <span>Estado:</span>
-            <strong className="text-purple-900 font-black">
+            <strong className="text-azul font-black">
               {order?.status === 'orden_generada'
                 ? '1. Orden Generada (Pendiente Pago)'
                 : order?.status === 'confirmado'
@@ -289,16 +289,16 @@ function ConfirmationContent() {
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
                 isRejected
-                  ? 'bg-rose-100 text-rose-500'
+                  ? 'bg-cian text-secondary'
                   : isApproved
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'bg-amber-500 text-white shadow-md'
+                  ? 'bg-azul text-white'
+                  : 'bg-tertiary text-white shadow-md'
               }`}
             >
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <span className="font-headline font-bold text-xs text-slate-800">1. Confirmación</span>
-            <span className="text-[10px] text-slate-500">
+            <span className="font-headline font-bold text-xs text-tinta">1. Confirmación</span>
+            <span className="text-[10px] text-tinta-suave">
               {isRejected ? 'Pago Rechazado' : isPending ? 'Pago en Proceso' : 'Pago Aprobado'}
             </span>
           </div>
@@ -311,13 +311,13 @@ function ConfirmationContent() {
           >
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
-                (order?.statusStep || 1) >= 2 ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-400'
+                (order?.statusStep || 1) >= 2 ? 'bg-azul text-white' : 'bg-cian text-tinta-suave'
               }`}
             >
               <PackageCheck className="w-6 h-6" />
             </div>
-            <span className="font-headline font-bold text-xs text-slate-800">2. Empacada</span>
-            <span className="text-[10px] text-slate-500">Empaque Cuidado</span>
+            <span className="font-headline font-bold text-xs text-tinta">2. Empacada</span>
+            <span className="text-[10px] text-tinta-suave">Empaque Cuidado</span>
           </div>
 
           {/* Step 3: En Camino */}
@@ -329,18 +329,18 @@ function ConfirmationContent() {
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
                 order?.status === 'sin_poder_entregarse'
-                  ? 'bg-amber-500 text-white shadow-md animate-pulse'
+                  ? 'bg-tertiary text-white shadow-md animate-pulse'
                   : (order?.statusStep || 1) >= 3
-                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
-                  : 'bg-slate-100 text-slate-400'
+                  ? 'bg-azul text-white'
+                  : 'bg-cian text-tinta-suave'
               }`}
             >
               <Truck className="w-6 h-6" />
             </div>
-            <span className="font-headline font-bold text-xs text-slate-800">
+            <span className="font-headline font-bold text-xs text-tinta">
               {order?.status === 'sin_poder_entregarse' ? 'Novedad Entrega' : '3. En Camino'}
             </span>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[10px] text-tinta-suave">
               {order?.status === 'sin_poder_entregarse' ? 'Verificar Dirección' : 'Despacho Servientrega'}
             </span>
           </div>
@@ -354,30 +354,30 @@ function ConfirmationContent() {
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${
                 order?.status === 'devolucion'
-                  ? 'bg-rose-500 text-white shadow-md'
+                  ? 'bg-secondary text-white shadow-md'
                   : (order?.statusStep || 1) >= 4
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200'
-                  : 'bg-slate-100 text-slate-400'
+                  ? 'bg-azul text-white'
+                  : 'bg-cian text-tinta-suave'
               }`}
             >
               <MapPin className="w-6 h-6" />
             </div>
-            <span className="font-headline font-bold text-xs text-slate-800">
+            <span className="font-headline font-bold text-xs text-tinta">
               {order?.status === 'devolucion' ? 'Devolución' : '4. Entregado'}
             </span>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[10px] text-tinta-suave">
               {order?.status === 'devolucion' ? 'Retorno a Taller' : 'En tu Hogar'}
             </span>
           </div>
         </div>
 
-        <div className="bg-purple-50/50 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-2 border border-purple-100">
+        <div className="bg-cian p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between text-xs text-tinta-suave gap-2 border border-borde">
           <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-purple-600" />
+            <Calendar className="w-4 h-4 text-azul" />
             <span>Entrega Estimada: <strong>{order?.deliveryEstimate || '2 - 4 días hábiles'}</strong></span>
           </div>
           <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-sky-600" />
+            <Clock className="w-4 h-4 text-azul" />
             <span>Horario de Entrega: <strong>8:00 AM - 6:00 PM</strong></span>
           </div>
         </div>
@@ -385,20 +385,20 @@ function ConfirmationContent() {
 
       {/* Summary Card */}
       {order && (
-        <div className="bg-white rounded-3xl p-6 sm:p-8 soft-glow-card border border-purple-100 space-y-4">
-          <h3 className="font-headline font-bold text-base text-slate-800 border-b border-purple-50 pb-3">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 soft-glow-card border border-borde space-y-4">
+          <h3 className="font-headline font-bold text-base text-tinta border-b border-borde pb-3">
             Detalles de la Orden
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-tinta-suave">
             <div>
-              <span className="font-semibold block text-slate-400 mb-1 uppercase text-[10px]">Destinatario:</span>
-              <p className="font-bold text-slate-800">{order.customerName || 'Cliente Ensueño'}</p>
+              <span className="font-semibold block text-tinta-suave mb-1 uppercase text-[10px]">Destinatario:</span>
+              <p className="font-bold text-tinta">{order.customerName || 'Cliente Ensueño'}</p>
               <p>{order.customerEmail || ''}</p>
               {order.customerPhone && <p>Tel: {order.customerPhone}</p>}
             </div>
             <div>
-              <span className="font-semibold block text-slate-400 mb-1 uppercase text-[10px]">Dirección de Envío:</span>
-              <p className="font-bold text-slate-800">{order.shippingAddress || 'Dirección de Entrega'}</p>
+              <span className="font-semibold block text-tinta-suave mb-1 uppercase text-[10px]">Dirección de Envío:</span>
+              <p className="font-bold text-tinta">{order.shippingAddress || 'Dirección de Entrega'}</p>
               <p>{order.city ? `${order.city}, ${order.department || 'Colombia'}` : 'Colombia'}</p>
             </div>
           </div>
@@ -424,7 +424,7 @@ function ConfirmationContent() {
 
 export default function OrderConfirmationPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-slate-500">Cargando...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-tinta-suave">Cargando...</div>}>
       <ConfirmationContent />
     </Suspense>
   );

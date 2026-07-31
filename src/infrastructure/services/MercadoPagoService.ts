@@ -49,10 +49,24 @@ export class MercadoPagoService {
     const isLocal = rawAppUrl.includes('localhost') || rawAppUrl.includes('127.0.0.1');
     const appUrl = isLocal ? 'https://ensueno.com.co' : rawAppUrl;
 
-    const isTestCredentials = this.isSandbox || this.accessToken.startsWith('TEST-') || this.accessToken.includes('3573047533');
+    // Las credenciales de prueba se deducen del TOKEN, no de la bandera
+    // MERCADOPAGO_SANDBOX. Antes se usaba `this.isSandbox || ...`, y con un
+    // token de producción (APP_USR-) más SANDBOX=true daba `true`: se omitía el
+    // `payer` y ningún cliente real llegaba con su correo a MercadoPago.
+    // El token es la única fuente que no puede contradecirse a sí misma.
+    const isTestCredentials =
+      this.accessToken.startsWith('TEST-') || this.accessToken.includes('3573047533');
 
-    // In sandbox mode, sending a real email (e.g. gmail.com) in payer.email causes MercadoPago to reject
-    // the transaction with "Una de las partes con la que intentas hacer el pago es de prueba".
+    if (this.isSandbox && this.accessToken.startsWith('APP_USR-')) {
+      console.warn(
+        '[MercadoPago] MERCADOPAGO_SANDBOX=true pero el token es de producción (APP_USR-). ' +
+          'Se ignora la bandera y se opera en producción; ponla en false para evitar confusión.'
+      );
+    }
+
+    // Con credenciales de prueba, mandar un correo real (gmail.com) hace que
+    // MercadoPago rechace con "Una de las partes con la que intentas hacer el
+    // pago es de prueba".
     const payerEmail = (isTestCredentials && !data.customerEmail.includes('@testuser.com'))
       ? undefined
       : data.customerEmail;

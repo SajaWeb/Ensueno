@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useToast } from '@/context/ToastContext';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
+import { Tip } from '@/types';
 import {
   Users,
   ShoppingBag,
@@ -45,6 +46,9 @@ import {
   ChevronRight,
   Star,
   Gift,
+  BookOpen,
+  Video,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
@@ -54,7 +58,20 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'cohorts' | 'products' | 'shipping' | 'coupons' | 'tips'>('orders');
+
+  // ---------------- Módulo de Tips ----------------
+  const [tipsList, setTipsList] = useState<Tip[]>([]);
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [showTipForm, setShowTipForm] = useState(false);
+  const [editingTipId, setEditingTipId] = useState<string | null>(null);
+  const [savingTip, setSavingTip] = useState(false);
+  const emptyTipForm = {
+    title: '', subtitle: '', category: 'sueno', readTime: '3 min lectura',
+    date: '', author: '', authorRole: '', image: '', videoUrl: '',
+    summary: '', content: '', tags: '', isPublished: true, sortOrder: 0,
+  };
+  const [tipForm, setTipForm] = useState<Record<string, any>>(emptyTipForm);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     babyCohorts?: any;
@@ -839,66 +856,184 @@ export default function AdminDashboardPage() {
 
   const allFilteredSelected = filteredRates.length > 0 && filteredRates.every((r) => selectedRateIds.has(r.id));
 
-  // Login exclusivo de Administrador en Tonos Pastel Ensueño
+  // ---------------- Handlers de Tips ----------------
+  const fetchTips = async () => {
+    setLoadingTips(true);
+    try {
+      // includeAll: el panel también tiene que ver los borradores.
+      setTipsList(await apiService.getTips(undefined, undefined, true));
+    } catch (err) {
+      console.error('Error cargando tips:', err);
+      showToast('No pudimos cargar los tips', 'error');
+    } finally {
+      setLoadingTips(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'tips') fetchTips();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, activeTab]);
+
+  const openNewTip = () => {
+    setEditingTipId(null);
+    setTipForm(emptyTipForm);
+    setShowTipForm(true);
+  };
+
+  const openEditTip = (tip: Tip) => {
+    setEditingTipId(tip.id);
+    setTipForm({
+      title: tip.title, subtitle: tip.subtitle, category: tip.category,
+      readTime: tip.readTime, date: tip.date, author: tip.author,
+      authorRole: tip.authorRole, image: tip.image, videoUrl: tip.videoUrl || '',
+      summary: tip.summary,
+      // Un párrafo por línea en blanco: es como se escribe naturalmente.
+      content: (tip.content || []).join('\n\n'),
+      tags: (tip.tags || []).join(', '),
+      isPublished: tip.isPublished !== false,
+      sortOrder: tip.sortOrder ?? 0,
+    });
+    setShowTipForm(true);
+  };
+
+  const handleSaveTip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tipForm.title?.trim()) {
+      showToast('El título es obligatorio', 'error');
+      return;
+    }
+    setSavingTip(true);
+    try {
+      const payload = {
+        ...tipForm,
+        sortOrder: Number(tipForm.sortOrder) || 0,
+        videoUrl: tipForm.videoUrl?.trim() || null,
+        content: String(tipForm.content || '')
+          .split(/\n\s*\n/)
+          .map((x) => x.trim())
+          .filter(Boolean),
+        tags: String(tipForm.tags || '')
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean),
+      };
+      const res = editingTipId
+        ? await apiService.updateTip(editingTipId, payload)
+        : await apiService.createTip(payload);
+
+      if (res.success) {
+        showToast(editingTipId ? 'Tip actualizado' : 'Tip creado', 'success');
+        setShowTipForm(false);
+        setEditingTipId(null);
+        setTipForm(emptyTipForm);
+        await fetchTips();
+      } else {
+        showToast(res.error || 'No pudimos guardar el tip', 'error');
+      }
+    } catch (err) {
+      console.error('Error guardando tip:', err);
+      showToast('No pudimos guardar el tip', 'error');
+    } finally {
+      setSavingTip(false);
+    }
+  };
+
+  const handleDeleteTip = async (tip: Tip) => {
+    if (!confirm(`¿Eliminar el tip "${tip.title}"? No se puede deshacer.`)) return;
+    try {
+      const res = await apiService.deleteTip(tip.id);
+      if (res.success) {
+        showToast('Tip eliminado', 'success');
+        await fetchTips();
+      } else {
+        showToast(res.error || 'No pudimos eliminar el tip', 'error');
+      }
+    } catch (err) {
+      console.error('Error eliminando tip:', err);
+      showToast('No pudimos eliminar el tip', 'error');
+    }
+  };
+
+  /** Acepta cualquier forma de link de YouTube y devuelve la URL de incrustado. */
+  const tipVideoEmbed = (url?: string | null): string | null => {
+    if (!url) return null;
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/i);
+    return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+  };
+
+
+  // Login de administrador con la identidad de marca
   if (isAuthenticated === false) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-sky-50 py-16 px-4 flex items-center justify-center relative overflow-hidden">
-        <div className="max-w-md w-full bg-white/90 backdrop-blur-xl border border-pink-100 rounded-3xl p-8 shadow-xl space-y-6 relative z-10">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-gradient-to-tr from-pink-200 via-purple-200 to-sky-200 text-purple-700 rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-white">
-              <ShieldCheck className="w-9 h-9 text-purple-700" />
+      <main className="min-h-screen bg-cian flex flex-col items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full">
+          {/* Salida clara hacia el sitio: quien llega aquí por error necesita
+              una puerta de vuelta, no el botón de atrás del navegador. */}
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-bold text-tinta-suave hover:text-azul transition-colors mb-6"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Volver al sitio
+          </a>
+
+          <div className="bg-white border border-borde rounded-[24px] p-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-celeste rounded-2xl grid place-items-center mx-auto">
+                <ShieldCheck className="w-8 h-8 text-azul" />
+              </div>
+              <p className="ens-eyebrow text-azul mt-5">Panel interno</p>
+              <h1 className="mt-2 font-display text-2xl leading-tight text-tinta">
+                Administración Ensueño
+              </h1>
+              <p className="mt-3 text-sm text-tinta-suave">
+                Ingresa con tu cuenta autorizada para gestionar catálogo, envíos y tips.
+              </p>
             </div>
-            <div className="inline-block px-3 py-1 rounded-full bg-pink-100 text-pink-700 text-[10px] font-bold uppercase tracking-widest border border-pink-200">
-              Acceso Administrador Ensueño
-            </div>
-            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Portal Ensueño Admin</h1>
-            <p className="text-xs text-slate-500">
-              Ingresa tus credenciales autorizadas para gestionar envíos, catálogo de productos y remarketing.
-            </p>
+
+            {loginError && (
+              <p className="mt-6 bg-cian border border-secondary text-secondary text-sm font-bold p-3.5 rounded-2xl">
+                {loginError}
+              </p>
+            )}
+
+            <form onSubmit={handleAdminLogin} className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="admin-email" className="ens-eyebrow text-tinta-suave block mb-2">
+                  Correo electrónico
+                </label>
+                <input
+                  id="admin-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="admin-pass" className="ens-eyebrow text-tinta-suave block mb-2">
+                  Contraseña
+                </label>
+                <input
+                  id="admin-pass"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                />
+              </div>
+
+              <button type="submit" className="ens-btn ens-btn--azul w-full">
+                Entrar al panel
+              </button>
+            </form>
           </div>
-
-          {loginError && (
-            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3.5 rounded-xl font-medium">
-              {loginError}
-            </div>
-          )}
-
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-                Correo Electrónico Administrador
-              </label>
-              <input
-                type="email"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
-                Contraseña de Seguridad
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3.5 rounded-xl shadow-md shadow-pink-200 transition-all text-xs tracking-wider uppercase"
-            >
-              Ingresar al Dashboard Admin
-            </button>
-          </form>
-
-
         </div>
       </main>
     );
@@ -1124,6 +1259,36 @@ export default function AdminDashboardPage() {
                 </span>
               )}
             </button>
+
+            {/* Item 7: Tips */}
+            <button
+              onClick={() => {
+                setActiveTab('tips');
+                setIsMobileMenuOpen(false);
+              }}
+              title="Guías y Tips del Blog"
+              className={`w-full flex items-center ${
+                isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+              } py-3 rounded-2xl font-bold text-xs transition-all ${
+                activeTab === 'tips'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-200'
+                  : 'text-slate-600 hover:bg-purple-50 hover:text-purple-700'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">Tips del Blog</span>}
+              </div>
+              {!isSidebarCollapsed && tipsList.length > 0 && (
+                <span
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    activeTab === 'tips' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-700'
+                  }`}
+                >
+                  {tipsList.length}
+                </span>
+              )}
+            </button>
           </nav>
         </div>
 
@@ -1140,6 +1305,16 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+
+          {/* Vuelta al sitio público, sin cerrar sesión. */}
+          <a
+            href="/"
+            title="Ir al sitio web"
+            className="bg-white hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold py-1.5 px-2 rounded-xl transition-all flex items-center justify-center gap-1 w-full"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            {!isSidebarCollapsed && <span>Ir al sitio</span>}
+          </a>
 
           <div className={`flex items-center gap-2 pt-1 border-t border-purple-100 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
             <button
@@ -2807,6 +2982,122 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {/* ================== MÓDULO DE TIPS ================== */}
+        {activeTab === 'tips' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="font-black text-xl text-slate-900">Tips del Blog</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Guías que se muestran en <span className="font-bold">/tips</span>. Puedes adjuntar
+                  un video de YouTube en vez de la imagen de portada.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/tips"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" /> Ver en el sitio
+                </a>
+                <button
+                  onClick={openNewTip}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Nuevo tip
+                </button>
+              </div>
+            </div>
+
+            {loadingTips ? (
+              <p className="py-16 text-center text-sm text-slate-500 animate-pulse">Cargando tips…</p>
+            ) : tipsList.length === 0 ? (
+              <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-slate-200">
+                <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <p className="font-bold text-slate-700">Todavía no hay tips</p>
+                <p className="text-xs text-slate-500 mt-1">Crea el primero para publicarlo en el blog.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {tipsList.map((tip) => (
+                  <article
+                    key={tip.id}
+                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col hover:border-purple-300 transition-colors"
+                  >
+                    <div className="relative h-40 bg-slate-50 shrink-0">
+                      {tipVideoEmbed(tip.videoUrl) ? (
+                        <div className="absolute inset-0 grid place-items-center bg-slate-900 text-white gap-1.5">
+                          <Video className="w-8 h-8" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Video de YouTube
+                          </span>
+                        </div>
+                      ) : tip.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={tip.image} alt="" className="w-full h-full object-contain p-2" />
+                      ) : (
+                        <div className="absolute inset-0 grid place-items-center text-slate-300">
+                          <ImageIcon className="w-8 h-8" />
+                        </div>
+                      )}
+
+                      <span className="absolute top-3 left-3 bg-white/95 border border-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1 rounded-full">
+                        {tip.categoryLabel || tip.category}
+                      </span>
+
+                      {tip.isPublished === false && (
+                        <span className="absolute top-3 right-3 bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded-full">
+                          Borrador
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-black text-base text-slate-900 line-clamp-2">{tip.title}</h3>
+                      <p className="text-xs text-slate-500 mt-1.5 line-clamp-2">{tip.summary}</p>
+
+                      <p className="text-[11px] text-slate-400 mt-3">
+                        {tip.author || 'Sin autor'} · {tip.readTime} · {tip.date}
+                      </p>
+
+                      {tip.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          {tip.tags.slice(0, 3).map((t) => (
+                            <span
+                              key={t}
+                              className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-full"
+                            >
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="mt-auto pt-4 flex items-center gap-2">
+                        <button
+                          onClick={() => openEditTip(tip)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTip(tip)}
+                          title="Eliminar tip"
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* MODAL DE EDICIÓN Y CREACIÓN COMPLETA DE PRODUCTOS */}
@@ -3428,6 +3719,280 @@ export default function AdminDashboardPage() {
                   className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md"
                 >
                   {isChangingPassword ? 'Actualizando...' : 'Actualizar Contraseña'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CREACIÓN Y EDICIÓN DE TIPS */}
+      {showTipForm && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/70 overflow-y-auto">
+          <div className="min-h-full flex items-start justify-center p-4 sm:p-6">
+            <form
+              onSubmit={handleSaveTip}
+              className="bg-white border border-purple-100 max-w-3xl w-full rounded-3xl p-6 sm:p-8 text-slate-800 shadow-2xl space-y-6 relative my-4"
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
+                    {editingTipId ? 'Editar tip' : 'Nuevo tip'}
+                  </span>
+                  <h3 className="font-black text-xl text-slate-900 mt-1.5">
+                    {editingTipId ? 'Modificar guía del blog' : 'Crear guía para el blog'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTipForm(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition-colors shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* --- Contenido principal --- */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Título *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={tipForm.title}
+                    onChange={(e) => setTipForm({ ...tipForm, title: e.target.value })}
+                    placeholder="La rutina de 10 minutos para dormirse sin llanto"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Subtítulo
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.subtitle}
+                    onChange={(e) => setTipForm({ ...tipForm, subtitle: e.target.value })}
+                    placeholder="Tres pasos sencillos para señalizar el descanso"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Categoría
+                  </label>
+                  <select
+                    value={tipForm.category}
+                    onChange={(e) => setTipForm({ ...tipForm, category: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  >
+                    <option value="sueno">Sueño Infantil</option>
+                    <option value="piel">Piel Delicada</option>
+                    <option value="higiene">Higiene &amp; Cuidados</option>
+                    <option value="rutinas">Rutinas Diarias</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Tiempo de lectura
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.readTime}
+                    onChange={(e) => setTipForm({ ...tipForm, readTime: e.target.value })}
+                    placeholder="4 min lectura"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Autor
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.author}
+                    onChange={(e) => setTipForm({ ...tipForm, author: e.target.value })}
+                    placeholder="Dra. Mariana Restrepo"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Cargo del autor
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.authorRole}
+                    onChange={(e) => setTipForm({ ...tipForm, authorRole: e.target.value })}
+                    placeholder="Pediatra y Especialista en Sueño Infantil"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Fecha mostrada
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.date}
+                    onChange={(e) => setTipForm({ ...tipForm, date: e.target.value })}
+                    placeholder="24 Jul 2026"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Si lo dejas vacío se usa la de hoy.</p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Orden
+                  </label>
+                  <input
+                    type="number"
+                    value={tipForm.sortOrder}
+                    onChange={(e) => setTipForm({ ...tipForm, sortOrder: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Menor número aparece primero.</p>
+                </div>
+              </div>
+
+              {/* --- Portada: imagen o video --- */}
+              <div className="border-t border-slate-100 pt-5 space-y-4">
+                <h4 className="font-black text-sm text-slate-800 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-purple-600" /> Portada del artículo
+                </h4>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    URL de la imagen
+                  </label>
+                  <input
+                    type="url"
+                    value={tipForm.image}
+                    onChange={(e) => setTipForm({ ...tipForm, image: e.target.value })}
+                    placeholder="https://i.postimg.cc/..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-rose-500" /> Link de YouTube
+                  </label>
+                  <input
+                    type="url"
+                    value={tipForm.videoUrl}
+                    onChange={(e) => setTipForm({ ...tipForm, videoUrl: e.target.value })}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Si pones un video, reemplaza a la imagen en el artículo. Acepta formato normal,
+                    corto (youtu.be) o Shorts.
+                  </p>
+
+                  {/* Previsualización real del embed */}
+                  {tipForm.videoUrl && (
+                    tipVideoEmbed(tipForm.videoUrl) ? (
+                      <div className="mt-3 relative aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-slate-900">
+                        <iframe
+                          src={tipVideoEmbed(tipForm.videoUrl)!}
+                          title="Vista previa del video"
+                          className="absolute inset-0 w-full h-full border-0"
+                          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-[11px] font-bold text-rose-600">
+                        No reconocemos ese link de YouTube. Revísalo.
+                      </p>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* --- Texto --- */}
+              <div className="border-t border-slate-100 pt-5 space-y-4">
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Resumen
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={tipForm.summary}
+                    onChange={(e) => setTipForm({ ...tipForm, summary: e.target.value })}
+                    placeholder="Lo que aparece en la tarjeta del listado."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Contenido
+                  </label>
+                  <textarea
+                    rows={8}
+                    value={tipForm.content}
+                    onChange={(e) => setTipForm({ ...tipForm, content: e.target.value })}
+                    placeholder={'Primer párrafo.\n\nSegundo párrafo.\n\nTercer párrafo.'}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400 leading-relaxed"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Separa los párrafos con una línea en blanco.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                    Etiquetas
+                  </label>
+                  <input
+                    type="text"
+                    value={tipForm.tags}
+                    onChange={(e) => setTipForm({ ...tipForm, tags: e.target.value })}
+                    placeholder="rutina, sueño, recién nacido"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Separadas por comas.</p>
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={tipForm.isPublished}
+                    onChange={(e) => setTipForm({ ...tipForm, isPublished: e.target.checked })}
+                    className="w-4 h-4 rounded accent-purple-600"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    Publicado (visible en el sitio)
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-5">
+                <button
+                  type="button"
+                  onClick={() => setShowTipForm(false)}
+                  className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingTip}
+                  className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md disabled:opacity-50 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {savingTip ? 'Guardando…' : editingTipId ? 'Guardar cambios' : 'Crear tip'}
                 </button>
               </div>
             </form>

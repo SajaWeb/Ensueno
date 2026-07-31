@@ -38,36 +38,32 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles =
       'inline-flex items-center justify-center font-headline font-extrabold uppercase tracking-wider rounded-full transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
 
-    // Strictly soft pastel colors - NO NEON
+    // Colores sólidos de marca. Los nombres del union se conservan tal cual:
+    // confirmacion/[id] es el único consumidor y pasa `white`/`secondary`/`lg`
+    // en 5 sitios — renombrar variantes rompería TypeScript ahí.
     const variants: Record<ButtonVariant, string> = {
-      // Rosa Pastel Ensueño
+      // Ancla oscura + blanco → 7.31:1
       primary:
-        'bg-gradient-to-r from-pink-300 via-pink-400 to-purple-300 hover:from-pink-400 hover:to-purple-400 text-white shadow-md shadow-pink-200/60 border border-white/40 focus:ring-pink-300',
-      // Azul Pastel Ensueño
+        'bg-azul hover:bg-azul-hondo text-white border border-azul hover:border-azul-hondo focus:ring-azul',
+      // Celeste de marca con tinta oscura → 11.60:1
       secondary:
-        'bg-gradient-to-r from-sky-200 via-sky-300 to-blue-300 hover:from-sky-300 hover:to-blue-400 text-slate-800 shadow-md shadow-sky-200/50 border border-white/50 focus:ring-sky-300',
-      // Amarillo Pastel Ensueño
-      amber:
-        'bg-gradient-to-r from-yellow-200 via-amber-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-amber-950 shadow-md shadow-yellow-200/50 border border-white/50 focus:ring-amber-300',
-      // Cielo Pastel Ensueño
-      sky:
-        'bg-gradient-to-r from-sky-100 via-sky-200 to-sky-300 hover:from-sky-200 hover:to-sky-400 text-sky-950 shadow-md shadow-sky-200/50 border border-white/60 focus:ring-sky-200',
-      // Blanco Pastel / Cristal
-      white:
-        'bg-white/95 hover:bg-white text-slate-700 shadow-md shadow-slate-200/60 border border-slate-200/80 focus:ring-slate-300',
-      // Delineado Pastel
+        'bg-celeste hover:bg-cian text-tinta border border-celeste focus:ring-azul',
+      // Amarillo de marca con tinta oscura → 12.33:1
+      amber: 'bg-amarillo hover:bg-cian text-tinta border border-amarillo focus:ring-azul',
+      // Cian de marca con tinta oscura → 13.71:1
+      sky: 'bg-cian hover:bg-celeste text-tinta border border-cian focus:ring-azul',
+      white: 'bg-white hover:bg-cian text-tinta border border-borde focus:ring-azul',
       outline:
-        'bg-transparent border-2 border-pink-300 text-pink-600 hover:bg-pink-50/80 focus:ring-pink-200',
-      // Fantasma / Sutil
-      ghost:
-        'bg-transparent text-slate-600 hover:bg-slate-100/80 hover:text-slate-800 focus:ring-slate-200',
+        'bg-transparent border-2 border-azul text-azul hover:bg-celeste hover:text-tinta focus:ring-azul',
+      ghost: 'bg-transparent text-tinta-suave hover:bg-cian hover:text-tinta focus:ring-azul',
     };
 
-    // Strict symmetrical heights for consistency across all screen elements
+    // `lg` lleva padding vertical propio: `h-13` no existía en la escala por
+    // defecto de Tailwind v3 y el botón colapsaba a la altura del texto.
     const sizes: Record<ButtonSize, string> = {
       sm: 'h-9 px-4 text-[11px]',
       md: 'h-11 px-6 text-xs',
-      lg: 'h-13 px-8 text-sm',
+      lg: 'h-13 py-3.5 px-8 text-sm',
       icon: 'h-11 w-11 p-0 shrink-0',
     };
 

@@ -29,15 +29,15 @@ function PaymentResultHandler() {
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-      <div className="w-12 h-12 border-4 border-pink-300 border-t-purple-600 rounded-full animate-spin" />
-      <p className="text-xs font-bold text-slate-600">Procesando respuesta de MercadoPago...</p>
+      <div className="w-12 h-12 border-4 border-borde border-t-azul rounded-full animate-spin" />
+      <p className="text-xs font-bold text-tinta-suave">Procesando respuesta de MercadoPago...</p>
     </div>
   );
 }
 
 export default function PaymentResultPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-slate-500">Cargando...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-tinta-suave">Cargando...</div>}>
       <PaymentResultHandler />
     </Suspense>
   );

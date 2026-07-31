@@ -250,13 +250,37 @@ export const apiService = {
     return res.json();
   },
 
-  async getTips(category?: string, query?: string): Promise<Tip[]> {
+  async getTips(category?: string, query?: string, includeAll = false): Promise<Tip[]> {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     if (query) params.append('q', query);
+    if (includeAll) params.append('includeAll', 'true');
 
     const res = await fetch(`/api/v1/tips?${params.toString()}`, { cache: 'no-store' });
     const json = await res.json();
     return json.data || [];
+  },
+
+  async createTip(data: Partial<Tip>) {
+    const res = await fetch('/api/v1/tips', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async updateTip(id: string, data: Partial<Tip>) {
+    const res = await fetch('/api/v1/tips', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return res.json();
+  },
+
+  async deleteTip(id: string) {
+    const res = await fetch(`/api/v1/tips?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    return res.json();
   },
 };

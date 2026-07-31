@@ -222,25 +222,23 @@ export async function POST(req: Request) {
       // No lanzar error — la orden se creó; el usuario puede reintentar el pago
     }
 
-    // 2. Enviar evento de compra a Meta Conversions API (CAPI)
+    // 2. Meta CAPI: aquí la orden solo está GENERADA, todavía no pagada, así
+    // que el evento correcto es InitiateCheckout. El `Purchase` lo dispara el
+    // webhook cuando MercadoPago confirma el pago aprobado.
     await metaPixelService.sendCapiEvent(
-      'Purchase',
+      'InitiateCheckout',
       { email: customerEmail, phone: customerPhone },
       { order_id: order.orderNumber, value: total, currency: 'COP' }
     );
 
-    // 3. Enviar correo de confirmación de pedido con Resend
-    await resendService.sendOrderConfirmationEmail({
-      to: customerEmail,
-      customerName,
-      orderNumber: order.orderNumber,
-      total,
-      items: order.items,
-      shippingAddress,
-      city,
-      department,
-      deliveryEstimate,
-    });
+    // 3. NO se envía el correo de confirmación aquí.
+    //
+    // En este punto el cliente todavía no ha pagado: apenas va camino a
+    // MercadoPago. Enviarlo ahora le afirmaba "recibimos tu pago" a quien luego
+    // abandonaba el checkout o era rechazado, y quien sí pagaba recibía el mismo
+    // correo dos veces (el webhook ya lo manda al aprobarse el pago).
+    // Ver el manejador de `approved` en
+    // src/app/api/v1/payments/mercadopago/webhook/route.ts
 
     return NextResponse.json({
       success: true,

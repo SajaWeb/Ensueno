@@ -90,16 +90,16 @@ function ResetPasswordForm() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-sky-50 py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white/90 backdrop-blur-md rounded-3xl shadow-xl p-8 border border-purple-100">
+    <main className="min-h-screen bg-cian py-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <div className="max-w-md w-full bg-white/90 rounded-3xl shadow-xl p-8 border border-borde">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-purple-200 shadow-2xs">
-            {step === 1 ? <Mail className="w-8 h-8 text-purple-600" /> : <ShieldCheck className="w-8 h-8 text-purple-600" />}
+          <div className="w-16 h-16 bg-cian text-azul rounded-2xl flex items-center justify-center mx-auto mb-4 border border-borde shadow-sm">
+            {step === 1 ? <Mail className="w-8 h-8 text-azul" /> : <ShieldCheck className="w-8 h-8 text-azul" />}
           </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-black text-tinta tracking-tight">
             {step === 1 ? 'Recuperar Contraseña' : 'Confirmar Código y Nueva Clave'}
           </h1>
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-tinta-suave mt-2">
             {step === 1
               ? 'Ingresa tu correo registrado para enviarte un código de seguridad de 6 dígitos mediante Resend'
               : 'Ingresa el código de 6 dígitos enviado a tu correo e ingresa tu nueva clave'}
@@ -110,14 +110,14 @@ function ResetPasswordForm() {
           <div
             className={`p-4 rounded-2xl mb-6 flex items-start gap-3 text-xs font-semibold ${
               message.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-rose-50 text-rose-800 border border-rose-200'
+                ? 'bg-celeste text-azul border border-borde'
+                : 'bg-cian text-secondary border border-secondary'
             }`}
           >
             {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-azul shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
             )}
             <span>{message.text}</span>
           </div>
@@ -126,7 +126,7 @@ function ResetPasswordForm() {
         {step === 1 ? (
           <form onSubmit={handleRequestCode} className="space-y-5">
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-bold text-tinta-suave uppercase tracking-wider mb-2">
                 Correo Electrónico Registrado
               </label>
               <div className="relative">
@@ -136,16 +136,16 @@ function ResetPasswordForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ejemplo@correo.com"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-800 text-xs font-semibold"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-borde focus:outline-none focus:ring-2 focus:ring-celeste text-tinta text-xs font-semibold"
                 />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                <Mail className="w-4 h-4 text-tinta-suave absolute left-4 top-3.5" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-ensueno-primary w-full shadow-md shadow-purple-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-ensueno-primary w-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? 'Enviando Código...' : 'Enviar Código de Seguridad'}
             </button>
@@ -153,13 +153,13 @@ function ResetPasswordForm() {
         ) : (
           <form onSubmit={handleConfirmReset} className="space-y-5">
             {email && (
-              <div className="bg-purple-50 border border-purple-200 p-3 rounded-xl text-xs text-purple-800 text-center font-bold">
+              <div className="bg-cian border border-borde p-3 rounded-xl text-xs text-azul text-center font-bold">
                 Código enviado a: <span className="font-mono">{email}</span>
               </div>
             )}
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-bold text-tinta-suave uppercase tracking-wider mb-2">
                 Código de Confirmación (6 Dígitos)
               </label>
               <div className="relative">
@@ -170,14 +170,14 @@ function ResetPasswordForm() {
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="Ej: 482915"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-800 font-mono text-center tracking-widest text-lg font-black bg-purple-50/50"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-borde focus:outline-none focus:ring-2 focus:ring-celeste text-tinta font-mono text-center tracking-widest text-lg font-black bg-cian"
                 />
-                <KeyRound className="w-4 h-4 text-purple-500 absolute left-4 top-4" />
+                <KeyRound className="w-4 h-4 text-azul absolute left-4 top-4" />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-bold text-tinta-suave uppercase tracking-wider mb-2">
                 Nueva Contraseña
               </label>
               <div className="relative">
@@ -187,14 +187,14 @@ function ResetPasswordForm() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-800 text-xs font-semibold"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-borde focus:outline-none focus:ring-2 focus:ring-celeste text-tinta text-xs font-semibold"
                 />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                <Lock className="w-4 h-4 text-tinta-suave absolute left-4 top-3.5" />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-bold text-tinta-suave uppercase tracking-wider mb-2">
                 Confirmar Nueva Contraseña
               </label>
               <div className="relative">
@@ -204,16 +204,16 @@ function ResetPasswordForm() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repite tu clave"
-                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-slate-800 text-xs font-semibold"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-borde focus:outline-none focus:ring-2 focus:ring-celeste text-tinta text-xs font-semibold"
                 />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                <Lock className="w-4 h-4 text-tinta-suave absolute left-4 top-3.5" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="btn-ensueno-primary w-full shadow-md shadow-purple-200 text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+              className="btn-ensueno-primary w-full text-xs uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? 'Restableciendo...' : 'Guardar Nueva Contraseña'}
             </button>
@@ -221,15 +221,15 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="w-full text-slate-500 hover:text-purple-700 text-xs font-bold text-center block pt-1"
+              className="w-full text-tinta-suave hover:text-azul text-xs font-bold text-center block pt-1"
             >
               ← Volver a ingresar correo
             </button>
           </form>
         )}
 
-        <div className="mt-8 text-center pt-6 border-t border-slate-100">
-          <Link href="/perfil" className="text-xs font-bold text-purple-600 hover:text-purple-700 inline-flex items-center gap-1.5">
+        <div className="mt-8 text-center pt-6 border-t border-borde">
+          <Link href="/perfil" className="text-xs font-bold text-azul hover:text-azul inline-flex items-center gap-1.5">
             <ArrowLeft className="w-4 h-4" /> Volver al Inicio de Sesión
           </Link>
         </div>
@@ -240,7 +240,7 @@ function ResetPasswordForm() {
 
 export default function RecuperarPasswordPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-slate-500">Cargando...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs font-bold text-tinta-suave">Cargando...</div>}>
       <ResetPasswordForm />
     </Suspense>
   );
