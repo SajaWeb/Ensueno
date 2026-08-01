@@ -52,7 +52,7 @@ export default async function HomePage() {
       {/* ================= Hero ================= */}
       <section className="ens-band ens-band--celeste overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16">
-          <div className="grid lg:grid-cols-[1fr_1.05fr] gap-8 lg:gap-6 items-end">
+          <div className="grid lg:grid-cols-[0.95fr_1.15fr] gap-8 lg:gap-6 items-end">
             <div className="pb-8 sm:pb-16 lg:pb-24">
               <p className="ens-eyebrow text-azul">Cuidado pediátrico · Colombia</p>
 
@@ -75,32 +75,48 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Foto real a sangre contra la banda, con la estrellita detrás
-                para que ambas se lean sin competir. */}
-            <div className="relative justify-self-center lg:justify-self-end w-full max-w-md lg:max-w-none">
-              {/* A la derecha: por la izquierda chocaba con el borde recto
-                  de la foto. */}
-              <div
-                aria-hidden="true"
-                className="absolute -top-2 right-0 sm:-right-2 w-24 h-24 sm:w-36 sm:h-36 z-20"
-              >
-                <Image
-                  src={MASCOT_URL}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 96px, 144px"
-                  className="object-contain"
-                />
-              </div>
+            {/* Foto real a sangre contra la banda, con la estrellita encima
+                en la esquina superior derecha. */}
+            <div className="relative w-full">
+              {/* El PNG es apaisado (2528x1696) y trae mucho aire transparente
+                  a los lados: el sujeto solo ocupa del 16% al 75% del ancho,
+                  por eso "a tamaño natural" se veía diminuto.
 
-              <div className="relative z-10 aspect-[842/1130] w-full max-w-[24rem] sm:max-w-[30rem] mx-auto lg:mx-0 lg:ml-auto">
+                  Se agranda ensanchando la caja más allá de la columna: el
+                  sobrante se va hacia la derecha, que es puro transparente, y
+                  la sección ya recorta con overflow-hidden. Se mantiene
+                  `object-contain` con la relación nativa para que NUNCA se
+                  recorte la foto (ni la cabeza de la mamá arriba).
+
+                  La máscara desvanece el borde inferior contra la banda para
+                  que la foto se funda con la nube en vez de cortarse en seco. */}
+              <div
+                className="relative z-10 aspect-[2528/1696] w-[114%] sm:w-[116%] lg:w-[124%]
+                           [mask-image:linear-gradient(to_bottom,#000_78%,transparent_98%)]
+                           [-webkit-mask-image:linear-gradient(to_bottom,#000_78%,transparent_98%)]"
+              >
                 <Image
                   src="/hero-familia.png"
                   alt="Mamá y bebé con la Colonia Ensueño"
                   fill
                   priority
-                  sizes="(max-width: 640px) 22rem, 26rem"
+                  sizes="(max-width: 1024px) 122vw, 70vw"
                   className="object-contain object-bottom"
+                />
+              </div>
+
+              {/* Sobre la foto: la esquina superior derecha del PNG es
+                  transparente, así que no tapa a la mamá ni a la bebé. */}
+              <div
+                aria-hidden="true"
+                className="absolute top-0 right-2 sm:right-4 w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 z-20"
+              >
+                <Image
+                  src={MASCOT_URL}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 96px, (max-width: 1024px) 128px, 160px"
+                  className="object-contain"
                 />
               </div>
             </div>
