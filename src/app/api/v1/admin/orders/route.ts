@@ -1,38 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
-import { getJwtSecretEncoded } from '@/lib/jwt';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
 import { resendService } from '@/infrastructure/services/ResendService';
-
-// Helper to check admin authorization
-async function checkAdminAuth() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('ensueno_token')?.value;
-
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, getJwtSecretEncoded());
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id as string },
-      select: { id: true, role: true, email: true },
-    });
-
-    if (user && user.role === 'ADMIN') {
-      return user;
-    }
-  } catch (err) {
-    // invalid token
-  }
-  return null;
-}
 
 export async function GET(req: Request) {
   try {
-    const admin = await checkAdminAuth();
+    const admin = await requireAdmin();
     if (!admin) {
-      return NextResponse.json({ success: false, error: 'No autorizado. Se requiere rol de Administrador' }, { status: 401 });
+      return noAutorizado();
     }
 
     const { searchParams } = new URL(req.url);
@@ -107,9 +82,9 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const admin = await checkAdminAuth();
+    const admin = await requireAdmin();
     if (!admin) {
-      return NextResponse.json({ success: false, error: 'No autorizado. Se requiere rol de Administrador' }, { status: 401 });
+      return noAutorizado();
     }
 
     const body = await req.json();

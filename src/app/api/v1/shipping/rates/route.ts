@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { shippingRepository } from '@/infrastructure/repositories/ShippingRepository';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
+
+/* Las tarifas se leen para cotizar el flete, pero cambiarlas es del panel:
+   define lo que se le cobra a cada clienta según su ciudad. */
 
 export async function GET() {
   try {
@@ -14,6 +18,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const body = await req.json();
     const { department, city, cities, cost, estimatedDays } = body;
 
@@ -63,6 +69,8 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server';
 import { productRepository } from '@/infrastructure/repositories/ProductRepository';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
+
+/*
+ * El GET es público para la portada. Todo lo que escribe exige administrador:
+ * esta ruta queda fuera del matcher del middleware (/api/v1/admin/*), así que
+ * la única defensa es la de aquí adentro.
+ */
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const stage = searchParams.get('stage') || undefined;
-    const includeAll = searchParams.get('all') === 'true';
+    // Ver las promociones inactivas es cosa del panel, no del público.
+    const includeAll = searchParams.get('all') === 'true' && Boolean(await requireAdmin());
 
     const promotions = await productRepository.getPromotions(stage, includeAll);
     return NextResponse.json({ success: true, data: promotions });
@@ -17,6 +25,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const body = await req.json();
 
     if (!body.title) {
@@ -33,6 +43,8 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const body = await req.json();
     const { id, ...data } = body;
 
@@ -50,6 +62,8 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     if (!id) {

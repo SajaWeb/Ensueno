@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
 import { remarketingRepository } from '@/infrastructure/repositories/RemarketingRepository';
 import { resendService } from '@/infrastructure/services/ResendService';
 
 export async function GET(req: Request) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return noAutorizado();
+    }
+
     const babyCohorts = await remarketingRepository.getBabyCohorts();
     const surveyResponses = await remarketingRepository.getSurveyResponses();
     const pendingReminders = await remarketingRepository.getPendingReminders();
@@ -90,6 +96,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return noAutorizado();
+    }
+
     const { action, motherEmail, motherName, babyName, productTitle } = await req.json();
 
     if (action === 'send_reminder') {
