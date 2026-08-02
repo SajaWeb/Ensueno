@@ -59,8 +59,8 @@ export const MOCK_PRODUCTS: Product[] = [
     inStock: true
   },
   {
-    id: 'crema-corporal-ensueno',
-    name: 'Cremas Corporales Ensueño',
+    id: 'mantequilla-corporal-ensueno',
+    name: 'Mantequilla Corporal Ensueño',
     subtitle: 'Hidratación profunda 24h con Avena Coloidal & Manteca de Karité',
     category: 'piel',
     price: 32000,
@@ -103,7 +103,7 @@ export const MOCK_TIPS: Tip[] = [
     summary: 'Establecer una secuencia predecible todas las noches reduce el cortisol del bebé y fomenta un sueño continuo más profundo.',
     content: [
       'Paso 1: Limpieza suave con los Pañitos Húmedos Ensueño a luz tenue.',
-      'Paso 2: Masaje amoroso con la Crema Corporal Ensueño en espaldita y piernas.',
+      'Paso 2: Masaje amoroso con la Mantequilla Corporal Ensueño en espaldita y piernas.',
       'Paso 3: Un toque de Colonia Ensueño en la manta para evocar aromas relajantes de lavanda.'
     ],
     tags: ['Sueño', 'Rutina Nocturna', 'Recién Nacidos']
@@ -121,7 +121,7 @@ export const MOCK_TIPS: Tip[] = [
     image: 'https://i.postimg.cc/bwvrdd7T/Whats-App-Image-2026-07-24-at-10-06-48-AM-(1).jpg',
     summary: 'Los cambios de temperatura provocan deshidratación cutánea rápida. Te enseñamos a sellar la humedad natural.',
     content: [
-      'Aplica la crema corporal dentro de los primeros 3 minutos posteriores a la limpieza.',
+      'Aplica la mantequilla corporal dentro de los primeros 3 minutos posteriores a la limpieza.',
       'Evita ropa de lana o telas sintéticas directas en el cuerpo del bebé; prefiere siempre 100% algodón orgánico.',
       'Mantén la habitación a una temperatura templada constante (20°C - 22°C).'
     ],

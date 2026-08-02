@@ -42,7 +42,7 @@ export const INITIAL_PROMOTIONS: Promotion[] = [
   {
     id: 'promo-3',
     title: 'Trío Esencial Ensueño',
-    subtitle: 'Lleva los 3 productos indispensables (Pañitos + Colonia + Crema Corporal) en un empaque especial de regalo.',
+    subtitle: 'Lleva los 3 productos indispensables (Pañitos + Colonia + Mantequilla Corporal) en un empaque especial de regalo.',
     tagline: 'Kit Cuidado Completo',
     badge: '25% DESCUENTO ✨',
     badgeColor: 'amber',
@@ -52,7 +52,7 @@ export const INITIAL_PROMOTIONS: Promotion[] = [
     imageUrl: 'https://i.postimg.cc/QdMCVV2n/Whats-App-Image-2026-07-24-at-10-11-38-AM.jpg',
     videoUrl: '',
     isActive: true,
-    productId: 'crema-corporal-ensueno',
+    productId: 'mantequilla-corporal-ensueno',
     sortOrder: 3,
   },
 ];
@@ -222,7 +222,7 @@ export class ProductRepository {
       benefits: Array.isArray(data.benefits) ? data.benefits : typeof data.benefits === 'string' ? data.benefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       ingredients: Array.isArray(data.ingredients) ? data.ingredients : typeof data.ingredients === 'string' ? data.ingredients.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       safetyInfo: data.safetyInfo || 'Dermatológicamente testeado',
-      pediatricGuarantee: data.pediatricGuarantee || 'Aprobado por la Asociación Colombiana de Pediatría',
+      pediatricGuarantee: data.pediatricGuarantee || 'Vegano, libre de crueldad animal, sin parabenos, sin colorantes, sin sulfatos',
       inStock: data.inStock !== false,
       isFeatured: data.isFeatured !== false,
       slug,

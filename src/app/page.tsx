@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, ShieldCheck, Sparkles, Check } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, Check, Leaf } from 'lucide-react';
 import { Product, Promotion, Tip } from '@/types';
 import { productRepository } from '@/infrastructure/repositories/ProductRepository';
 import { MOCK_TIPS } from '@/data/mockData';
@@ -9,6 +9,7 @@ import ProductSlider from '@/components/features/ProductSlider';
 import HeroSlider from '@/components/features/HeroSlider';
 import NubeDivider from '@/components/ui/NubeDivider';
 import { heroRepository } from '@/infrastructure/repositories/HeroRepository';
+import { PROCLAMAS_APROBADAS, ATRIBUTOS_FORMULA } from '@/data/brandClaims';
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -59,6 +60,22 @@ export default async function HomePage() {
 
         {/* Firma: la nube toma el color de la banda de abajo. */}
         <NubeDivider className="text-white -mb-px relative z-20" />
+      </section>
+
+      {/* ========== Composición de la marca ========== */}
+      <section className="bg-white border-b border-borde">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-7">
+          <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:gap-x-10">
+            {ATRIBUTOS_FORMULA.map((atributo) => (
+              <li key={atributo} className="flex items-center gap-2">
+                <Leaf className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+                <span className="text-xs sm:text-sm font-bold text-tinta-suave whitespace-nowrap">
+                  {atributo}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {/* ================= Productos ================= */}
@@ -177,29 +194,24 @@ export default async function HomePage() {
                 Formulado para piel que apenas empieza
               </h2>
               <p className="mt-4 text-lg text-tinta-suave leading-relaxed">
-                Cada producto Ensueño se formula bajo estándares dermatológicos
-                pediátricos, para que la piel de tu bebé quede protegida y suave.
+                Cada producto Ensueño se formula pensando en la piel más
+                delicada, para que la de tu bebé quede protegida y suave.
               </p>
 
-              <ul className="mt-8 grid sm:grid-cols-2 gap-4">
-                <li className="bg-white border border-borde rounded-2xl p-5">
-                  <ShieldCheck className="w-8 h-8 text-azul" aria-hidden="true" />
-                  <h3 className="mt-3 font-display text-lg text-tinta">
-                    Probado clínicamente
-                  </h3>
-                  <p className="mt-1 text-sm text-tinta-suave">
-                    Avalado por la Asociación Colombiana de Pediatría.
-                  </p>
-                </li>
-                <li className="bg-white border border-borde rounded-2xl p-5">
-                  <Sparkles className="w-8 h-8 text-secondary" aria-hidden="true" />
-                  <h3 className="mt-3 font-display text-lg text-tinta">
-                    Ingredientes naturales
-                  </h3>
-                  <p className="mt-1 text-sm text-tinta-suave">
-                    Sin alcohol, sulfatos ni colorantes agresivos.
-                  </p>
-                </li>
+              {/* Las tres proclamas aprobadas de la marca. Salen de
+                  `brandClaims` para que no vuelvan a escribirse a mano.
+                  En fila y no en tres columnas: "Dermatológicamente" es una
+                  palabra larga y en una columna estrecha se recortaba. */}
+              <ul className="mt-8 space-y-3">
+                {PROCLAMAS_APROBADAS.map((proclama) => (
+                  <li
+                    key={proclama}
+                    className="bg-white border border-borde rounded-2xl px-5 py-4 flex items-center gap-3.5"
+                  >
+                    <ShieldCheck className="w-7 h-7 text-azul shrink-0" aria-hidden="true" />
+                    <h3 className="font-display text-lg text-tinta leading-snug">{proclama}</h3>
+                  </li>
+                ))}
               </ul>
             </div>
 

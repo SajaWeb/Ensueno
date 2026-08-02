@@ -28,7 +28,7 @@ export const HERO_POR_DEFECTO: HeroSlideData = {
   eyebrow: 'Cuidado pediátrico · Colombia',
   title: 'El cuidado más tierno para tu bebé',
   subtitle:
-    'Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente: pañitos, colonia y crema corporal.',
+    'Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente: pañitos, colonia y mantequilla corporal.',
   image: '/hero-familia.png',
   imageAlt: 'Mamá y bebé con la Colonia Ensueño',
   primaryLabel: 'Ver productos',

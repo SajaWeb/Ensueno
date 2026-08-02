@@ -13,6 +13,7 @@ import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
 import { variantPrice, hasVariantPricing } from '@/lib/pricing';
+import { PROCLAMAS_APROBADAS, ATRIBUTOS_FORMULA } from '@/data/brandClaims';
 import ProductGallery, { toMedia, Media } from '@/components/features/ProductGallery';
 import StarRating from '@/components/ui/StarRating';
 
@@ -34,12 +35,9 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0,
   }).format(price);
 
-/* Sellos que se muestran si el producto no trae ninguno cargado desde el panel. */
-const TRUST_FALLBACK = [
-  { Icon: ShieldCheck, label: 'Sin lágrimas' },
-  { Icon: Droplets, label: 'pH neutro' },
-  { Icon: Sparkles, label: 'Aprobado pediatría' },
-];
+/* Sellos que se muestran si el producto no trae ninguno cargado desde el panel.
+   Son las tres proclamas aprobadas de la marca: no se inventa ninguna otra. */
+const TRUST_FALLBACK = PROCLAMAS_APROBADAS.map((label) => ({ Icon: ShieldCheck, label }));
 
 /**
  * Los sellos se escriben en el panel como texto libre en un solo campo
@@ -221,9 +219,19 @@ export default function ProductDetailPage() {
   const showSizes = product.sizes.length > 1;
   const hasIngredients = product.ingredients.length > 0;
 
-  // Los sellos salen del campo "Sellos de Seguridad" del panel. Antes eran una
+  // Los sellos salen del campo "Proclamas aprobadas" del panel. Antes eran una
   // constante fija y editarlos en el admin no cambiaba nada en esta página.
   const seals = parseSeals(product.safetyInfo);
+
+  /* Composición: lo que diga la ficha, o los atributos de marca si viene vacía.
+     El campo del panel se escribe como lista separada por comas. */
+  const formulaAtributos = product.pediatricGuarantee?.trim()
+    ? product.pediatricGuarantee
+        .split(',')
+        .map((s) => s.trim().replace(/^y\s+/i, ''))
+        .filter(Boolean)
+        .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    : [...ATRIBUTOS_FORMULA];
   const trustSeals =
     seals.length > 0
       ? seals.map((label) => ({ Icon: sealIcon(label), label }))
@@ -420,7 +428,7 @@ export default function ProductDetailPage() {
             {([
               ['descripcion', 'Beneficios'],
               ...(hasIngredients ? [['ingredientes', 'Ingredientes'] as const] : []),
-              ['seguridad', 'Garantía pediátrica'],
+              ['seguridad', 'Seguridad y fórmula'],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
@@ -465,15 +473,23 @@ export default function ProductDetailPage() {
 
             {activeTab === 'seguridad' && (
               <div className="space-y-4">
-                {product.pediatricGuarantee && (
-                  <div className="bg-celeste border border-borde rounded-2xl p-5 flex items-start gap-3">
-                    <ShieldCheck className="w-6 h-6 text-azul shrink-0" aria-hidden="true" />
-                    <div>
-                      <span className="ens-eyebrow text-azul block mb-1">Garantía certificada</span>
-                      <p className="text-tinta">{product.pediatricGuarantee}</p>
-                    </div>
-                  </div>
-                )}
+                {/* Composición. Sale del campo del panel si la ficha lo trae
+                    cargado; si no, de los atributos de marca. Se pinta una sola
+                    vez: antes se repetía como chips y como párrafo. */}
+                <div className="bg-celeste border border-borde rounded-2xl p-5">
+                  <span className="ens-eyebrow text-azul block mb-3">Nuestra fórmula</span>
+                  <ul className="flex flex-wrap gap-2">
+                    {formulaAtributos.map((atributo) => (
+                      <li
+                        key={atributo}
+                        className="inline-flex items-center gap-1.5 bg-white border border-borde rounded-full px-3 py-1.5 text-sm text-tinta"
+                      >
+                        <Leaf className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+                        {atributo}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 {seals.length > 0 && (
                   <div className="bg-cian border border-borde rounded-2xl p-5">
                     <span className="ens-eyebrow text-tinta-suave block mb-3">Sellos y registro</span>

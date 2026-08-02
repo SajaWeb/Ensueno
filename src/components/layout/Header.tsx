@@ -23,8 +23,8 @@ const PRODUCT_LINKS = [
     blurb: 'Sin alcohol, flor de azahar',
   },
   {
-    href: '/productos/crema-corporal-ensueno',
-    label: 'Crema Corporal',
+    href: '/productos/mantequilla-corporal-ensueno',
+    label: 'Mantequilla Corporal',
     blurb: 'Avena coloidal y karité',
   },
 ];
