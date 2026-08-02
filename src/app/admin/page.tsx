@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
     eyebrow: 'Cuidado pediátrico · Colombia',
     title: 'El cuidado más tierno para tu bebé',
     subtitle:
-      'Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente: pañitos, colonia y crema corporal.',
+      'Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente: pañitos, colonia y mantequilla corporal.',
     image: '/hero-familia.png',
     imageAlt: 'Mamá y bebé con la Colonia Ensueño',
     primaryLabel: 'Ver productos',
@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
     badge: '',
     description: '',
     safetyInfo: 'Dermatológicamente testeado • Libre de Alcohol • Hipoalergénico',
-    pediatricGuarantee: 'Aprobado por la Asociación Colombiana de Pediatría',
+    pediatricGuarantee: 'Vegano, libre de crueldad animal, sin parabenos, sin colorantes, sin sulfatos',
     sizes: '150ml, 250ml',
     fragrances: 'Flores Silvestres & Lavanda, Manzanilla Dulce',
     benefits: 'Induce sueño profundo, Calma irritaciones, Suavidad 24h',
@@ -738,7 +738,7 @@ export default function AdminDashboardPage() {
       badge: 'NUEVO',
       description: 'Fórmula delicada enriquecida con extractos naturales para el cuidado diario de tu bebé.',
       safetyInfo: 'Dermatológicamente testeado • Libre de Alcohol • Hipoalergénico',
-      pediatricGuarantee: 'Aprobado por la Asociación Colombiana de Pediatría',
+      pediatricGuarantee: 'Vegano, libre de crueldad animal, sin parabenos, sin colorantes, sin sulfatos',
       sizes: '150ml, 250ml',
       fragrances: 'Flores Silvestres & Lavanda, Manzanilla Dulce',
       benefits: 'Induce sueño profundo, Calma irritaciones, Suavidad prolongada',
@@ -763,7 +763,7 @@ export default function AdminDashboardPage() {
       badge: product.badge || '',
       description: product.description || '',
       safetyInfo: product.safetyInfo || 'Dermatológicamente testeado',
-      pediatricGuarantee: product.pediatricGuarantee || 'Aprobado por la Asociación Colombiana de Pediatría',
+      pediatricGuarantee: product.pediatricGuarantee || 'Vegano, libre de crueldad animal, sin parabenos, sin colorantes, sin sulfatos',
       // Reconstruye "150ml:28500, 250ml" para poder seguir editando los precios
       // por presentación en el mismo campo.
       sizes: Array.isArray(product.sizes)
@@ -2414,7 +2414,7 @@ export default function AdminDashboardPage() {
                                     customer.email,
                                     motherName,
                                     babyName,
-                                    'Cremas Corporales Ensueño'
+                                    'Mantequilla Corporal Ensueño'
                                   )
                                 }
                                 className="inline-flex items-center gap-1.5 bg-azul hover:bg-azul-hondo text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-sm transition-all"
@@ -4336,19 +4336,19 @@ export default function AdminDashboardPage() {
 
                   <div>
                     <label className="block text-[11px] font-bold text-azul mb-1">
-                      🛡️ Garantía Pediátrica Certificada *
+                      🛡️ Composición de la fórmula *
                     </label>
                     <input
                       type="text"
                       value={productForm.pediatricGuarantee}
                       onChange={(e) => setProductForm({ ...productForm, pediatricGuarantee: e.target.value })}
-                      placeholder="Ej. Aprobado por la Asociación Colombiana de Pediatría"
+                      placeholder="Ej. Vegano, sin parabenos, sin colorantes"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-azul font-bold"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Sellos de Seguridad</label>
+                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">Proclamas aprobadas</label>
                     <input
                       type="text"
                       value={productForm.safetyInfo}

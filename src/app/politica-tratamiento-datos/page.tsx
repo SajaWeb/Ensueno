@@ -93,7 +93,7 @@ export default function PoliticaTratamientoDatosPage() {
               <span>3. Tratamiento de Datos Sensibles del Bebé</span>
             </div>
             <p>
-              Garantizamos que la información referente a la salud de la piel del bebé (ej. piel sensible, atópica o con brotes) es tratada con máximo rigor de confidencialidad y únicamente con el fin de recomendar productos hipoalergénicos aprobados por dermatología y pediatría.
+              Garantizamos que la información referente a la salud de la piel del bebé (ej. piel sensible, atópica o con brotes) es tratada con máximo rigor de confidencialidad y únicamente con el fin de recomendar productos hipoalergénicos y probados en pieles sensibles.
             </p>
           </section>
 

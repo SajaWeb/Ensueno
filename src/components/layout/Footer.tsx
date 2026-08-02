@@ -18,12 +18,12 @@ const TRUST = [
   {
     Icon: Award,
     title: 'Probado dermatológicamente',
-    blurb: 'Aprobado por pediatras',
+    blurb: 'Hipoalergénicos y probados en pieles sensibles',
   },
   {
     Icon: Moon,
     title: 'Tres esenciales',
-    blurb: 'Pañitos, colonia y crema',
+    blurb: 'Pañitos, colonia y mantequilla',
   },
   {
     Icon: Heart,
@@ -90,10 +90,10 @@ export default function Footer() {
                 </li>
                 <li>
                   <Link
-                    href="/productos/crema-corporal-ensueno"
+                    href="/productos/mantequilla-corporal-ensueno"
                     className="hover:text-celeste transition-colors"
                   >
-                    Crema corporal
+                    Mantequilla corporal
                   </Link>
                 </li>
               </ul>

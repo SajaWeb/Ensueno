@@ -112,7 +112,7 @@ export async function POST(req: Request) {
         motherEmail,
         motherName,
         babyName,
-        productTitle || 'Cremas & Pañitos Húmedos Ensueño'
+        productTitle || 'Mantequilla Corporal & Pañitos Húmedos Ensueño'
       );
 
       return NextResponse.json({
