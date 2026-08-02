@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 import { formatSizePrices } from '@/lib/pricing';
 import { Tip } from '@/types';
+import ImageUploader from '@/components/admin/ImageUploader';
 import {
   Users,
   ShoppingBag,
@@ -3939,51 +3940,30 @@ export default function AdminDashboardPage() {
                   <ImageIcon className="w-3.5 h-3.5" /> Imagen
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
-                        Imagen *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={heroForm.image}
-                        onChange={(e) => setHeroForm({ ...heroForm, image: e.target.value })}
-                        placeholder="/hero-familia.png o https://…"
-                        className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
-                      />
-                      <p className="text-[10px] text-tinta-suave mt-1">
-                        PNG con fondo transparente y apaisado (relación 3:2), como el actual. Puede ser un
-                        archivo de la carpeta <span className="font-bold">/public</span> o una URL completa.
-                      </p>
-                    </div>
+                <ImageUploader
+                  section="hero"
+                  aspect="wide"
+                  required
+                  label="Imagen"
+                  value={heroForm.image}
+                  onChange={(url) => setHeroForm({ ...heroForm, image: url })}
+                  hint="PNG con fondo transparente y apaisado (relación 3:2), como el actual."
+                />
 
-                    <div>
-                      <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
-                        Texto alternativo
-                      </label>
-                      <input
-                        type="text"
-                        value={heroForm.imageAlt}
-                        onChange={(e) => setHeroForm({ ...heroForm, imageAlt: e.target.value })}
-                        placeholder="Mamá y bebé con la Colonia Ensueño"
-                        className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
-                      />
-                      <p className="text-[10px] text-tinta-suave mt-1">
-                        Lo que lee quien no puede ver la foto. Describe la escena en pocas palabras.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="w-full sm:w-40 aspect-[3/2] rounded-xl bg-celeste border border-borde overflow-hidden grid place-items-center shrink-0">
-                    {heroForm.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={heroForm.image} alt="" className="w-full h-full object-contain" />
-                    ) : (
-                      <ImageIcon className="w-6 h-6 text-borde" />
-                    )}
-                  </div>
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                    Texto alternativo
+                  </label>
+                  <input
+                    type="text"
+                    value={heroForm.imageAlt}
+                    onChange={(e) => setHeroForm({ ...heroForm, imageAlt: e.target.value })}
+                    placeholder="Mamá y bebé con la Colonia Ensueño"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1">
+                    Lo que lee quien no puede ver la foto. Describe la escena en pocas palabras.
+                  </p>
                 </div>
 
                 <label className="flex items-center gap-2.5 cursor-pointer">
@@ -4232,34 +4212,66 @@ export default function AdminDashboardPage() {
                   <ImageIcon className="w-4 h-4 text-azul" /> Imágenes del Producto
                 </h4>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">URL Imagen Principal *</label>
-                    <input
-                      type="url"
-                      value={productForm.image}
-                      onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
-                    />
-                    {productForm.image && (
-                      <div className="mt-2 w-20 h-20 rounded-xl overflow-hidden border border-borde">
-                        <img src={productForm.image} alt="Vista previa" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                  </div>
+                <div className="space-y-4">
+                  <ImageUploader
+                    section="productos"
+                    required
+                    label="Imagen principal"
+                    value={productForm.image}
+                    onChange={(url) => setProductForm({ ...productForm, image: url })}
+                    hint="La que sale en el catálogo y como portada de la ficha."
+                  />
 
+                  {/* Galería: el campo sigue siendo una lista separada por comas,
+                      pero se administra con miniaturas en vez de a mano. */}
                   <div>
-                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">
-                      URLs Imágenes Adicionales (Separadas por coma)
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Imágenes adicionales
                     </label>
-                    <input
-                      type="text"
-                      value={productForm.additionalImages}
-                      onChange={(e) => setProductForm({ ...productForm, additionalImages: e.target.value })}
-                      placeholder="https://img1.com, https://img2.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta focus:ring-2 focus:ring-celeste"
-                    />
+
+                    {(() => {
+                      const galeria = String(productForm.additionalImages || '')
+                        .split(',')
+                        .map((s: string) => s.trim())
+                        .filter(Boolean);
+
+                      const guardar = (lista: string[]) =>
+                        setProductForm({ ...productForm, additionalImages: lista.join(', ') });
+
+                      return (
+                        <>
+                          {galeria.length > 0 && (
+                            <ul className="flex flex-wrap gap-2 mb-3">
+                              {galeria.map((url: string, i: number) => (
+                                <li
+                                  key={`${url}-${i}`}
+                                  className="relative w-20 h-20 rounded-xl overflow-hidden border border-borde bg-white"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt="" className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={() => guardar(galeria.filter((_: string, j: number) => j !== i))}
+                                    title="Quitar"
+                                    className="absolute top-1 right-1 w-5 h-5 grid place-items-center rounded-full bg-white/90 border border-borde text-tinta-suave hover:text-secondary transition-colors"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <ImageUploader
+                            section="productos"
+                            label="Agregar otra"
+                            value=""
+                            onChange={(url) => url && guardar([...galeria, url])}
+                            hint="Se van sumando a la galería de la ficha. Puedes subirlas de a una."
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -4558,21 +4570,13 @@ export default function AdminDashboardPage() {
                 </h4>
 
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-tinta-suave mb-1">URL Imagen Promocional</label>
-                    <input
-                      type="url"
-                      value={promoForm.imageUrl}
-                      onChange={(e) => setPromoForm({ ...promoForm, imageUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta"
-                    />
-                    {promoForm.imageUrl && (
-                      <div className="mt-2 w-24 h-24 rounded-xl overflow-hidden border border-borde">
-                        <img src={promoForm.imageUrl} alt="Vista previa" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                  </div>
+                  <ImageUploader
+                    section="promociones"
+                    label="Imagen promocional"
+                    value={promoForm.imageUrl}
+                    onChange={(url) => setPromoForm({ ...promoForm, imageUrl: url })}
+                    hint="La que acompaña al combo en la portada."
+                  />
 
                   <div>
                     <label className="block text-[11px] font-bold text-tinta-suave mb-1">
@@ -4868,18 +4872,14 @@ export default function AdminDashboardPage() {
                   <ImageIcon className="w-4 h-4 text-azul" /> Portada del artículo
                 </h4>
 
-                <div>
-                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
-                    URL de la imagen
-                  </label>
-                  <input
-                    type="url"
-                    value={tipForm.image}
-                    onChange={(e) => setTipForm({ ...tipForm, image: e.target.value })}
-                    placeholder="https://i.postimg.cc/..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
-                  />
-                </div>
+                <ImageUploader
+                  section="tips"
+                  aspect="wide"
+                  label="Imagen de portada"
+                  value={tipForm.image}
+                  onChange={(url) => setTipForm({ ...tipForm, image: url })}
+                  hint="Se ve en el listado de /tips y encabezando el artículo."
+                />
 
                 <div>
                   <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5 flex items-center gap-1.5">
