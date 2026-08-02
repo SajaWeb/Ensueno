@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { HeroSlideData } from '@/infrastructure/repositories/HeroRepository';
 
 const MASCOT_URL =
-  'https://i.postimg.cc/25VxdkZn/Whats-App-Image-2026-07-24-at-10-04-09-AM-1-removebg-preview.png';
+  'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/estrella.webp';
 
 /** Los enlaces internos van por <Link>; anclas y externos, por <a>. */
 function CtaLink({ href, label, variant }: { href: string; label: string; variant: 'azul' | 'blanco' }) {

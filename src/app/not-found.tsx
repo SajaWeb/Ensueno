@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 
 const MASCOT_URL =
-  'https://i.postimg.cc/25VxdkZn/Whats-App-Image-2026-07-24-at-10-04-09-AM-1-removebg-preview.png';
+  'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/estrella.webp';
 
 export const metadata = {
   title: 'Página no encontrada | Ensueño',

@@ -8,7 +8,7 @@ import { ShoppingBag, User, Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 
-const LOGO_URL = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
+const LOGO_URL = 'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/logo.webp';
 
 /** Los tres SKU reales, para el mega-menú. */
 const PRODUCT_LINKS = [

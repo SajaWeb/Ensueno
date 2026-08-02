@@ -8,7 +8,7 @@ import { useCart } from '@/context/CartContext';
 
 const SESSION_KEY = 'ensueno_oferta_vista';
 const MASCOT_URL =
-  'https://i.postimg.cc/25VxdkZn/Whats-App-Image-2026-07-24-at-10-04-09-AM-1-removebg-preview.png';
+  'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/estrella.webp';
 
 /**
  * Solo móvil. Sustituye a la barra de envío gratis, que en pantallas pequeñas
