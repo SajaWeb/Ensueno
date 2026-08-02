@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { useToast } from '@/context/ToastContext';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
+import { formatSizePrices } from '@/lib/pricing';
 import { Tip } from '@/types';
 import {
   Users,
@@ -84,10 +85,12 @@ function babyAgeLabel(birthDate?: string | Date | null): string {
 /** Un módulo = una entrada aquí. Menú y cabecera se derivan de esto. */
 const MODULES = {
   orders:   { eyebrow: 'Pedidos',    title: 'Pedidos y pagos',        nav: 'Pedidos',    Icon: ShoppingBag, description: 'Estado de cada pedido, pagos aprobados por MercadoPago y seguimiento de despachos.' },
+  hero:     { eyebrow: 'Portada',    title: 'Hero de la portada',     nav: 'Portada',    Icon: Layers,      description: 'Lo primero que se ve al entrar. Con más de una diapositiva, la portada las va rotando sola.' },
   crm:      { eyebrow: 'Clientes',   title: 'Mamás y bebés',          nav: 'Clientes',   Icon: Users,       description: 'Directorio de clientas registradas, sus bebés y los recordatorios de recompra.' },
   shipping: { eyebrow: 'Envíos',     title: 'Tarifas de envío',       nav: 'Envíos',     Icon: Truck,       description: 'Fletes por departamento y municipio, y el umbral de envío gratis.' },
   products: { eyebrow: 'Catálogo',   title: 'Productos y combos',     nav: 'Catálogo',   Icon: ImageIcon,   description: 'Fichas del catálogo, imágenes y las promociones que salen en la portada.' },
   tips:     { eyebrow: 'Contenido',  title: 'Tips del blog',          nav: 'Tips',       Icon: BookOpen,    description: 'Guías publicadas en /tips, con imagen o video de YouTube.' },
+  team:     { eyebrow: 'Equipo',     title: 'Administradores',        nav: 'Equipo',     Icon: ShieldCheck, description: 'Quién puede entrar al panel. Invita por correo: cada persona define su propia contraseña.' },
 } as const;
 
 type ModuleKey = keyof typeof MODULES;
@@ -99,7 +102,56 @@ export default function AdminDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'crm' | 'products' | 'shipping' | 'tips'>('orders');
+  /* Recuperación de clave dentro de la misma tarjeta de login: quien queda por
+     fuera del panel no debería tener que irse a la web de la tienda. */
+  const [loginView, setLoginView] = useState<'login' | 'forgot' | 'reset'>('login');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [recoveryConfirm, setRecoveryConfirm] = useState('');
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<ModuleKey>('orders');
+
+  // ---------------- Módulo de Portada (hero) ----------------
+  const [heroSlides, setHeroSlides] = useState<any[]>([]);
+  const [heroInterval, setHeroInterval] = useState(6000);
+  const [loadingHero, setLoadingHero] = useState(false);
+  const [savingHero, setSavingHero] = useState(false);
+  const [busyHeroId, setBusyHeroId] = useState<string | null>(null);
+  const [showHeroForm, setShowHeroForm] = useState(false);
+  const [editingHeroId, setEditingHeroId] = useState<string | null>(null);
+  /* Valores del hero que trae la portada de fábrica: al crear la primera
+     diapositiva se parte de ahí en vez de una pantalla en blanco. */
+  const emptyHeroForm = {
+    eyebrow: 'Cuidado pediátrico · Colombia',
+    title: 'El cuidado más tierno para tu bebé',
+    subtitle:
+      'Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente: pañitos, colonia y crema corporal.',
+    image: '/hero-familia.png',
+    imageAlt: 'Mamá y bebé con la Colonia Ensueño',
+    primaryLabel: 'Ver productos',
+    primaryHref: '#productos',
+    secondaryLabel: 'Leer los tips',
+    secondaryHref: '/tips',
+    showMascot: true,
+    isActive: true,
+  };
+  const [heroForm, setHeroForm] = useState<Record<string, any>>(emptyHeroForm);
+  /** Índice que se está viendo en la vista previa del módulo. */
+  const [heroPreview, setHeroPreview] = useState(0);
+
+  // ---------------- Módulo de Equipo ----------------
+  const [adminsList, setAdminsList] = useState<any[]>([]);
+  const [invitesList, setInvitesList] = useState<any[]>([]);
+  const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+  const [loadingTeam, setLoadingTeam] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ fullName: '', email: '' });
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [busyTeamId, setBusyTeamId] = useState<string | null>(null);
+  /* Sin RESEND_API_KEY el correo solo se simula. Se muestra el enlace para que
+     la invitación siga sirviendo en desarrollo; en producción llega vacío. */
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
 
   // ---------------- Módulo de Tips ----------------
   const [tipsList, setTipsList] = useState<Tip[]>([]);
@@ -364,9 +416,92 @@ export default function AdminDashboardPage() {
     }
   };
 
+  /** Cambia de vista en la tarjeta de login sin arrastrar el error anterior. */
+  const goToLoginView = (view: 'login' | 'forgot' | 'reset') => {
+    setLoginError(null);
+    setLoginView(view);
+  };
+
+  const handleRequestRecoveryCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+    const email = recoveryEmail.trim();
+    if (!email) return;
+
+    setRecoveryBusy(true);
+    try {
+      const res = await apiService.requestPasswordReset(email);
+      if (res.success) {
+        // El endpoint responde igual si el correo no existe, para no delatar
+        // qué cuentas están registradas. El copy acompaña esa decisión.
+        showToast('Si el correo está registrado, el código llega en unos segundos', 'success');
+        setLoginView('reset');
+      } else {
+        setLoginError(res.error || 'No pudimos enviar el código');
+      }
+    } catch (err) {
+      setLoginError('Error al conectar con el servidor');
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
+  const handleConfirmRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError(null);
+
+    const code = recoveryCode.trim();
+    if (code.length !== 6) {
+      setLoginError('El código son 6 dígitos.');
+      return;
+    }
+    if (recoveryPassword.length < 6) {
+      setLoginError('La contraseña debe tener al menos 6 caracteres.');
+      return;
+    }
+    if (recoveryPassword !== recoveryConfirm) {
+      setLoginError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    setRecoveryBusy(true);
+    try {
+      const res = await apiService.resetPassword(code, recoveryPassword, recoveryEmail.trim());
+      if (!res.success) {
+        setLoginError(res.error || 'No pudimos restablecer la contraseña');
+        return;
+      }
+
+      // Con la clave nueva ya se puede entrar: se evita pedirla otra vez.
+      const login = await apiService.login(recoveryEmail.trim(), recoveryPassword);
+      if (login.success && login.user?.role === 'ADMIN') {
+        setIsAuthenticated(true);
+        showToast('¡Contraseña actualizada! Bienvenida de vuelta', 'success');
+        loadProductsAndShipping();
+        const remarketingRes = await apiService.getAdminRemarketingData();
+        if (remarketingRes.success) setData(remarketingRes.data);
+      } else if (login.success) {
+        setLoginError('Tu contraseña se actualizó, pero esta cuenta no tiene permisos de Administrador.');
+        goToLoginView('login');
+      } else {
+        showToast('Contraseña actualizada. Ingresa con tu clave nueva.', 'success');
+        goToLoginView('login');
+      }
+
+      setRecoveryCode('');
+      setRecoveryPassword('');
+      setRecoveryConfirm('');
+    } catch (err) {
+      setLoginError('Error al conectar con el servidor');
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch('/api/v1/auth/logout', { method: 'POST' });
     setIsAuthenticated(false);
+    goToLoginView('login');
     showToast('Sesión de administración cerrada', 'info');
   };
 
@@ -628,7 +763,11 @@ export default function AdminDashboardPage() {
       description: product.description || '',
       safetyInfo: product.safetyInfo || 'Dermatológicamente testeado',
       pediatricGuarantee: product.pediatricGuarantee || 'Aprobado por la Asociación Colombiana de Pediatría',
-      sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes || '',
+      // Reconstruye "150ml:28500, 250ml" para poder seguir editando los precios
+      // por presentación en el mismo campo.
+      sizes: Array.isArray(product.sizes)
+        ? formatSizePrices(product.sizes, product.sizePrices)
+        : product.sizes || '',
       fragrances: Array.isArray(product.fragrances) ? product.fragrances.join(', ') : product.fragrances || '',
       benefits: Array.isArray(product.benefits) ? product.benefits.join(', ') : product.benefits || '',
       ingredients: Array.isArray(product.ingredients) ? product.ingredients.join(', ') : product.ingredients || '',
@@ -658,7 +797,8 @@ export default function AdminDashboardPage() {
         description: productForm.description,
         safetyInfo: productForm.safetyInfo,
         pediatricGuarantee: productForm.pediatricGuarantee,
-        sizes: productForm.sizes.split(',').map((s) => s.trim()).filter(Boolean),
+        // Va crudo: el repositorio separa el nombre del precio ("250ml:39900").
+        sizes: productForm.sizes,
         fragrances: productForm.fragrances.split(',').map((s) => s.trim()).filter(Boolean),
         benefits: productForm.benefits.split(',').map((s) => s.trim()).filter(Boolean),
         ingredients: productForm.ingredients.split(',').map((s) => s.trim()).filter(Boolean),
@@ -937,12 +1077,307 @@ export default function AdminDashboardPage() {
         { label: 'Envío gratis desde', value: `$${Number(shippingConfig.freeShippingThreshold || 0).toLocaleString('es-CO')}`, Icon: Gift },
       ];
     }
+    if (tab === 'team') {
+      return [
+        { label: 'Administradores', value: adminsList.length, Icon: ShieldCheck },
+        { label: 'Invitaciones pendientes', value: invitesList.length, Icon: Mail },
+      ];
+    }
+    if (tab === 'hero') {
+      return [
+        { label: 'Diapositivas', value: heroSlides.length, Icon: Layers },
+        { label: 'En la portada', value: heroActivas.length, Icon: CheckCircle2 },
+        {
+          label: 'Cambia cada',
+          value: heroInterval > 0 && heroActivas.length > 1 ? `${heroInterval / 1000} s` : '—',
+          Icon: RefreshCw,
+        },
+      ];
+    }
     return [];
   };
 
   const allFilteredSelected = filteredRates.length > 0 && filteredRates.every((r) => selectedRateIds.has(r.id));
 
   // ---------------- Handlers de Tips ----------------
+  // ---------------- Portada (hero) ----------------
+
+  const fetchHero = async () => {
+    setLoadingHero(true);
+    try {
+      // includeAll: el panel también ve las diapositivas apagadas.
+      const res = await apiService.getHero(true);
+      if (res.success) {
+        setHeroSlides(res.data.slides || []);
+        setHeroInterval(res.data.intervalMs ?? 6000);
+        setHeroPreview(0);
+      } else {
+        showToast(res.error || 'No pudimos cargar la portada', 'error');
+      }
+    } catch (err) {
+      console.error('Error cargando la portada:', err);
+      showToast('No pudimos cargar la portada', 'error');
+    } finally {
+      setLoadingHero(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'hero') fetchHero();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, activeTab]);
+
+  const openNewHeroSlide = () => {
+    setEditingHeroId(null);
+    setHeroForm(emptyHeroForm);
+    setShowHeroForm(true);
+  };
+
+  const openEditHeroSlide = (slide: any) => {
+    setEditingHeroId(slide.id);
+    setHeroForm({
+      eyebrow: slide.eyebrow || '',
+      title: slide.title || '',
+      subtitle: slide.subtitle || '',
+      image: slide.image || '',
+      imageAlt: slide.imageAlt || '',
+      primaryLabel: slide.primaryLabel || '',
+      primaryHref: slide.primaryHref || '',
+      secondaryLabel: slide.secondaryLabel || '',
+      secondaryHref: slide.secondaryHref || '',
+      showMascot: slide.showMascot !== false,
+      isActive: slide.isActive !== false,
+    });
+    setShowHeroForm(true);
+  };
+
+  const handleSaveHeroSlide = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!heroForm.title?.trim()) {
+      showToast('El titular es obligatorio', 'error');
+      return;
+    }
+    if (!heroForm.image?.trim()) {
+      showToast('La imagen es obligatoria', 'error');
+      return;
+    }
+
+    setSavingHero(true);
+    try {
+      const res = editingHeroId
+        ? await apiService.updateHeroSlide(editingHeroId, heroForm)
+        : await apiService.createHeroSlide(heroForm);
+
+      if (res.success) {
+        showToast(editingHeroId ? 'Diapositiva actualizada' : 'Diapositiva creada', 'success');
+        setShowHeroForm(false);
+        setEditingHeroId(null);
+        setHeroForm(emptyHeroForm);
+        await fetchHero();
+      } else {
+        showToast(res.error || 'No pudimos guardar la diapositiva', 'error');
+      }
+    } catch (err) {
+      console.error('Error guardando la diapositiva:', err);
+      showToast('No pudimos guardar la diapositiva', 'error');
+    } finally {
+      setSavingHero(false);
+    }
+  };
+
+  const handleToggleHeroSlide = async (slide: any) => {
+    setBusyHeroId(slide.id);
+    try {
+      const res = await apiService.updateHeroSlide(slide.id, { isActive: !slide.isActive });
+      if (res.success) {
+        showToast(slide.isActive ? 'Diapositiva apagada' : 'Diapositiva encendida', 'success');
+        await fetchHero();
+      } else {
+        showToast(res.error || 'No pudimos cambiar el estado', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos cambiar el estado', 'error');
+    } finally {
+      setBusyHeroId(null);
+    }
+  };
+
+  const handleMoveHeroSlide = async (slide: any, direction: 'up' | 'down') => {
+    setBusyHeroId(slide.id);
+    try {
+      const res = await apiService.moveHeroSlide(slide.id, direction);
+      if (res.success) {
+        await fetchHero();
+      } else {
+        showToast(res.error || 'No pudimos reordenar', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos reordenar', 'error');
+    } finally {
+      setBusyHeroId(null);
+    }
+  };
+
+  const handleDeleteHeroSlide = async (slide: any) => {
+    if (!confirm(`¿Eliminar la diapositiva "${slide.title}"? No se puede deshacer.`)) return;
+
+    setBusyHeroId(slide.id);
+    try {
+      const res = await apiService.deleteHeroSlide(slide.id);
+      if (res.success) {
+        showToast('Diapositiva eliminada', 'success');
+        await fetchHero();
+      } else {
+        showToast(res.error || 'No pudimos eliminar la diapositiva', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos eliminar la diapositiva', 'error');
+    } finally {
+      setBusyHeroId(null);
+    }
+  };
+
+  const handleSaveHeroInterval = async (segundos: number) => {
+    const ms = Math.round(segundos * 1000);
+    setSavingHero(true);
+    try {
+      const res = await apiService.updateHeroConfig(ms);
+      if (res.success) {
+        setHeroInterval(res.data.intervalMs);
+        showToast(
+          res.data.intervalMs === 0
+            ? 'El carrusel ya no avanza solo'
+            : `El carrusel avanza cada ${res.data.intervalMs / 1000} s`,
+          'success'
+        );
+      } else {
+        showToast(res.error || 'No pudimos guardar el ritmo', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos guardar el ritmo', 'error');
+    } finally {
+      setSavingHero(false);
+    }
+  };
+
+  /* Solo las encendidas salen en la portada; la vista previa muestra eso. */
+  const heroActivas = heroSlides.filter((s) => s.isActive !== false);
+
+  // ---------------- Equipo del panel ----------------
+
+  const fetchTeam = async () => {
+    setLoadingTeam(true);
+    try {
+      const res = await apiService.listAdminUsers();
+      if (res.success) {
+        setAdminsList(res.data.admins || []);
+        setInvitesList(res.data.invites || []);
+        setCurrentAdminId(res.data.currentAdminId || null);
+      } else {
+        showToast(res.error || 'No pudimos cargar el equipo', 'error');
+      }
+    } catch (err) {
+      console.error('Error cargando el equipo:', err);
+      showToast('No pudimos cargar el equipo', 'error');
+    } finally {
+      setLoadingTeam(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'team') fetchTeam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, activeTab]);
+
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const fullName = inviteForm.fullName.trim();
+    const email = inviteForm.email.trim();
+
+    if (!fullName || !email) {
+      showToast('Escribe el nombre y el correo de la persona', 'error');
+      return;
+    }
+
+    setSendingInvite(true);
+    setLastInviteLink(null);
+    try {
+      const res = await apiService.inviteAdminUser(fullName, email);
+      if (res.success) {
+        showToast(res.message || 'Invitación enviada', 'success');
+        setInviteForm({ fullName: '', email: '' });
+        if (res.data?.activationUrl) setLastInviteLink(res.data.activationUrl);
+        await fetchTeam();
+      } else {
+        showToast(res.error || 'No pudimos enviar la invitación', 'error');
+      }
+    } catch (err) {
+      console.error('Error enviando invitación:', err);
+      showToast('Error al conectar con el servidor', 'error');
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
+  const handleInviteAction = async (invite: any, action: 'resend' | 'revoke') => {
+    if (action === 'revoke' && !confirm(`¿Cancelar la invitación de ${invite.email}? El enlace dejará de servir.`)) {
+      return;
+    }
+
+    setBusyTeamId(invite.id);
+    setLastInviteLink(null);
+    try {
+      const res = await apiService.updateAdminInvite(invite.id, action);
+      if (res.success) {
+        showToast(res.message || 'Invitación actualizada', 'success');
+        if (res.data?.activationUrl) setLastInviteLink(res.data.activationUrl);
+        await fetchTeam();
+      } else {
+        showToast(res.error || 'No pudimos actualizar la invitación', 'error');
+      }
+    } catch (err) {
+      console.error('Error actualizando invitación:', err);
+      showToast('Error al conectar con el servidor', 'error');
+    } finally {
+      setBusyTeamId(null);
+    }
+  };
+
+  const handleRevokeAdmin = async (admin: any) => {
+    if (!confirm(`¿Quitarle el acceso al panel a ${admin.fullName} (${admin.email})?\n\nSu cuenta y sus pedidos se conservan; solo deja de ser administradora.`)) {
+      return;
+    }
+
+    setBusyTeamId(admin.id);
+    try {
+      const res = await apiService.revokeAdminUser(admin.id);
+      if (res.success) {
+        showToast(res.message || 'Acceso revocado', 'success');
+        await fetchTeam();
+      } else {
+        showToast(res.error || 'No pudimos revocar el acceso', 'error');
+      }
+    } catch (err) {
+      console.error('Error revocando acceso:', err);
+      showToast('Error al conectar con el servidor', 'error');
+    } finally {
+      setBusyTeamId(null);
+    }
+  };
+
+  /** "en 2 días" / "en 5 horas" — cuánto le queda a una invitación. */
+  const inviteTimeLeft = (expiresAt: string | Date) => {
+    const ms = new Date(expiresAt).getTime() - Date.now();
+    if (ms <= 0) return 'Vencida';
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `Vence en ${days} ${days === 1 ? 'día' : 'días'}`;
+    }
+    if (hours >= 1) return `Vence en ${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    return 'Vence en menos de una hora';
+  };
+
   const fetchTips = async () => {
     setLoadingTips(true);
     try {
@@ -1067,14 +1502,22 @@ export default function AdminDashboardPage() {
           <div className="bg-white border border-borde rounded-[24px] p-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-celeste rounded-2xl grid place-items-center mx-auto">
-                <ShieldCheck className="w-8 h-8 text-azul" />
+                {loginView === 'login' ? (
+                  <ShieldCheck className="w-8 h-8 text-azul" />
+                ) : (
+                  <KeyRound className="w-8 h-8 text-azul" />
+                )}
               </div>
               <p className="ens-eyebrow text-azul mt-5">Panel interno</p>
               <h1 className="mt-2 font-display text-2xl leading-tight text-tinta">
-                Administración Ensueño
+                {loginView === 'login' && 'Administración Ensueño'}
+                {loginView === 'forgot' && 'Recupera tu acceso'}
+                {loginView === 'reset' && 'Crea tu contraseña nueva'}
               </h1>
               <p className="mt-3 text-sm text-tinta-suave">
-                Ingresa con tu cuenta autorizada para gestionar catálogo, envíos y tips.
+                {loginView === 'login' && 'Ingresa con tu cuenta autorizada para gestionar catálogo, envíos y tips.'}
+                {loginView === 'forgot' && 'Escribe tu correo y te enviamos un código de 6 dígitos para volver a entrar.'}
+                {loginView === 'reset' && 'Revisa tu correo, escribe el código que te llegó y elige una contraseña nueva.'}
               </p>
             </div>
 
@@ -1084,6 +1527,106 @@ export default function AdminDashboardPage() {
               </p>
             )}
 
+            {loginView === 'forgot' && (
+              <form onSubmit={handleRequestRecoveryCode} className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="admin-recovery-email" className="ens-eyebrow text-tinta-suave block mb-2">
+                    Correo electrónico
+                  </label>
+                  <input
+                    id="admin-recovery-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                </div>
+
+                <button type="submit" disabled={recoveryBusy} className="ens-btn ens-btn--azul w-full disabled:opacity-50">
+                  {recoveryBusy ? 'Enviando…' : 'Enviarme el código'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => goToLoginView('reset')}
+                  className="w-full text-center text-xs font-bold text-tinta-suave hover:text-azul transition-colors"
+                >
+                  Ya tengo un código
+                </button>
+              </form>
+            )}
+
+            {loginView === 'reset' && (
+              <form onSubmit={handleConfirmRecovery} className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="admin-recovery-code" className="ens-eyebrow text-tinta-suave block mb-2">
+                    Código de 6 dígitos
+                  </label>
+                  <input
+                    id="admin-recovery-code"
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                    value={recoveryCode}
+                    onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta text-center font-display text-xl tracking-[0.4em] placeholder:text-borde placeholder:tracking-[0.4em] focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="admin-recovery-pass" className="ens-eyebrow text-tinta-suave block mb-2">
+                    Contraseña nueva
+                  </label>
+                  <input
+                    id="admin-recovery-pass"
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    value={recoveryPassword}
+                    onChange={(e) => setRecoveryPassword(e.target.value)}
+                    className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1.5">Mínimo 6 caracteres.</p>
+                </div>
+
+                <div>
+                  <label htmlFor="admin-recovery-confirm" className="ens-eyebrow text-tinta-suave block mb-2">
+                    Confirma la contraseña
+                  </label>
+                  <input
+                    id="admin-recovery-confirm"
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    value={recoveryConfirm}
+                    onChange={(e) => setRecoveryConfirm(e.target.value)}
+                    className="w-full h-12 px-4 rounded-2xl bg-cian border border-borde text-tinta focus:outline-none focus:border-azul focus:ring-2 focus:ring-celeste transition-shadow"
+                  />
+                </div>
+
+                <button type="submit" disabled={recoveryBusy} className="ens-btn ens-btn--azul w-full disabled:opacity-50">
+                  {recoveryBusy ? 'Guardando…' : 'Guardar y entrar'}
+                </button>
+              </form>
+            )}
+
+            {loginView !== 'login' && (
+              <button
+                type="button"
+                onClick={() => goToLoginView('login')}
+                className="mt-5 w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-tinta-suave hover:text-azul transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Volver al inicio de sesión
+              </button>
+            )}
+
+            {loginView === 'login' && (
             <form onSubmit={handleAdminLogin} className="mt-6 space-y-4">
               <div>
                 <label htmlFor="admin-email" className="ens-eyebrow text-tinta-suave block mb-2">
@@ -1118,7 +1661,19 @@ export default function AdminDashboardPage() {
               <button type="submit" className="ens-btn ens-btn--azul w-full">
                 Entrar al panel
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRecoveryEmail(loginEmail);
+                  goToLoginView('forgot');
+                }}
+                className="w-full text-center text-sm font-bold text-azul hover:text-azul-hondo transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
             </form>
+            )}
           </div>
         </div>
       </main>
@@ -1196,6 +1751,8 @@ export default function AdminDashboardPage() {
                 : key === 'tips' ? tipsList.length
                 : key === 'shipping' ? shippingRates.length
                 : key === 'crm' ? (data.customers?.length || 0)
+                : key === 'team' ? adminsList.length
+                : key === 'hero' ? heroSlides.length
                 : adminOrders.length;
 
               return (
@@ -2815,7 +3372,726 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {activeTab === 'hero' && (
+          <div className="space-y-6">
+            {/* Vista previa: la misma composición de la portada, a escala.
+                Editar a ciegas un bloque tan visible es pedir problemas. */}
+            <div className={`${UI.card} space-y-4`}>
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-borde pb-4">
+                <div>
+                  <h2 className="font-black text-xl text-tinta flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-azul" /> Vista previa
+                  </h2>
+                  <p className="text-xs text-tinta-suave mt-0.5">
+                    Así se ve arriba del todo en la portada. Usa las flechas para recorrer las diapositivas.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href="/" target="_blank" rel="noreferrer" className={UI.btnGhost}>
+                    <ExternalLink className="w-4 h-4" /> Ver en el sitio
+                  </a>
+                  <button onClick={openNewHeroSlide} className={UI.btnPrimary}>
+                    <Plus className="w-4 h-4" /> Nueva diapositiva
+                  </button>
+                </div>
+              </div>
+
+              {heroActivas.length === 0 ? (
+                <div className="py-12 text-center bg-cian rounded-2xl border border-dashed border-borde">
+                  <Layers className="w-10 h-10 text-borde mx-auto mb-3" />
+                  <p className="font-bold text-tinta-suave">No hay diapositivas encendidas</p>
+                  <p className="text-xs text-tinta-suave mt-1 max-w-md mx-auto">
+                    La portada está mostrando el hero que trae el sitio de fábrica. Crea una diapositiva o
+                    enciende alguna de las de abajo para reemplazarlo.
+                  </p>
+                </div>
+              ) : (
+                (() => {
+                  const slide = heroActivas[Math.min(heroPreview, heroActivas.length - 1)] || heroActivas[0];
+                  return (
+                    <div className="relative rounded-2xl border border-borde bg-celeste overflow-hidden">
+                      <div className="grid sm:grid-cols-[0.95fr_1.05fr] gap-4 items-end p-5 sm:p-7 min-h-[240px]">
+                        <div className="pb-2 sm:pb-6">
+                          {slide.eyebrow && <p className="ens-eyebrow text-azul">{slide.eyebrow}</p>}
+                          <p className="mt-2 font-display text-tinta text-2xl sm:text-3xl leading-tight">
+                            {slide.title}
+                          </p>
+                          {slide.subtitle && (
+                            <p className="mt-2.5 text-xs sm:text-sm text-tinta-suave leading-relaxed max-w-sm">
+                              {slide.subtitle}
+                            </p>
+                          )}
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {slide.primaryLabel && (
+                              <span className="inline-flex items-center h-9 px-4 rounded-full bg-azul text-white text-xs font-extrabold uppercase tracking-wider">
+                                {slide.primaryLabel}
+                              </span>
+                            )}
+                            {slide.secondaryLabel && (
+                              <span className="inline-flex items-center h-9 px-4 rounded-full bg-white text-azul border border-borde text-xs font-extrabold uppercase tracking-wider">
+                                {slide.secondaryLabel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Alto fijo en vez de la relación real del PNG: a lo
+                            ancho del panel, el aspecto 3:2 hacía una vista
+                            previa larguísima que tapaba el resto del módulo. */}
+                        <div className="relative w-full h-36 sm:h-48 self-end">
+                          {slide.image ? (
+                            // <img> a propósito: la imagen la escribe el panel y
+                            // puede ser cualquier URL, no solo un dominio de los
+                            // permitidos en next.config.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={slide.image}
+                              alt={slide.imageAlt || ''}
+                              className="absolute inset-0 w-full h-full object-contain object-bottom"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 grid place-items-center text-tinta-suave text-xs">
+                              Sin imagen
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {heroActivas.length > 1 && (
+                        <div className="absolute bottom-3 left-5 flex items-center gap-2">
+                          <button
+                            onClick={() =>
+                              setHeroPreview((i) => (i - 1 + heroActivas.length) % heroActivas.length)
+                            }
+                            aria-label="Diapositiva anterior"
+                            className="w-8 h-8 grid place-items-center rounded-full bg-white/90 border border-borde text-azul hover:bg-white transition-colors ens-focus"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setHeroPreview((i) => (i + 1) % heroActivas.length)}
+                            aria-label="Diapositiva siguiente"
+                            className="w-8 h-8 grid place-items-center rounded-full bg-white/90 border border-borde text-azul hover:bg-white transition-colors ens-focus"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                          <span className="ml-1 text-[10px] font-black uppercase tracking-wider text-azul bg-white/90 border border-borde rounded-full px-2.5 py-1">
+                            {Math.min(heroPreview, heroActivas.length - 1) + 1} / {heroActivas.length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()
+              )}
+            </div>
+
+            {/* Ritmo del carrusel */}
+            <div className={`${UI.card} space-y-4`}>
+              <div>
+                <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                  <RefreshCw className="w-5 h-5 text-azul" /> Cada cuánto cambia
+                </h3>
+                <p className="text-xs text-tinta-suave mt-0.5">
+                  Solo aplica con dos o más diapositivas encendidas. El carrusel se detiene mientras alguien
+                  pasa el mouse por encima o navega con el teclado.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {[0, 4, 5, 6, 8, 10, 15].map((s) => {
+                  const activo = heroInterval === s * 1000;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => handleSaveHeroInterval(s)}
+                      disabled={savingHero}
+                      className={`h-10 px-4 rounded-xl border font-bold text-xs transition-colors ens-focus disabled:opacity-50 ${
+                        activo
+                          ? 'bg-azul border-azul text-white'
+                          : 'bg-white border-borde text-tinta-suave hover:bg-cian hover:text-tinta'
+                      }`}
+                    >
+                      {s === 0 ? 'No avanzar solo' : `${s} s`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Lista de diapositivas */}
+            <div className={`${UI.card} space-y-4`}>
+              <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                <Layers className="w-5 h-5 text-azul" /> Diapositivas
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cian text-azul border border-borde">
+                  {heroSlides.length}
+                </span>
+              </h3>
+
+              {loadingHero ? (
+                <p className="py-12 text-center text-sm text-tinta-suave animate-pulse">Cargando la portada…</p>
+              ) : heroSlides.length === 0 ? (
+                <div className="py-12 text-center bg-white rounded-3xl border border-dashed border-borde">
+                  <Layers className="w-10 h-10 text-borde mx-auto mb-3" />
+                  <p className="font-bold text-tinta-suave">Todavía no hay diapositivas</p>
+                  <p className="text-xs text-tinta-suave mt-1">
+                    La primera viene precargada con el hero actual: solo tienes que ajustarla.
+                  </p>
+                  <button onClick={openNewHeroSlide} className={`${UI.btnPrimary} mt-4 mx-auto`}>
+                    <Plus className="w-4 h-4" /> Crear la primera
+                  </button>
+                </div>
+              ) : (
+                <ul className="space-y-3">
+                  {heroSlides.map((slide, i) => (
+                    <li
+                      key={slide.id}
+                      className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl border transition-colors ${
+                        slide.isActive ? 'bg-white border-borde' : 'bg-cian border-dashed border-borde'
+                      }`}
+                    >
+                      {/* Orden */}
+                      <div className="flex sm:flex-col items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => handleMoveHeroSlide(slide, 'up')}
+                          disabled={i === 0 || busyHeroId === slide.id}
+                          aria-label="Subir"
+                          className="w-7 h-7 grid place-items-center rounded-lg border border-borde text-tinta-suave hover:text-azul hover:bg-cian disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[10px] font-black text-tinta-suave tabular-nums">{i + 1}</span>
+                        <button
+                          onClick={() => handleMoveHeroSlide(slide, 'down')}
+                          disabled={i === heroSlides.length - 1 || busyHeroId === slide.id}
+                          aria-label="Bajar"
+                          className="w-7 h-7 grid place-items-center rounded-lg border border-borde text-tinta-suave hover:text-azul hover:bg-cian disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Miniatura */}
+                      <div className="w-24 h-16 shrink-0 rounded-xl bg-celeste border border-borde overflow-hidden grid place-items-center">
+                        {slide.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={slide.image} alt="" className="w-full h-full object-contain" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-borde" />
+                        )}
+                      </div>
+
+                      {/* Datos */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-bold text-sm text-tinta truncate">{slide.title}</p>
+                          {slide.isActive ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-celeste text-azul border border-borde">
+                              <CheckCircle2 className="w-3 h-3" /> En la portada
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amarillo text-tinta border border-borde">
+                              Apagada
+                            </span>
+                          )}
+                        </div>
+                        {slide.eyebrow && <p className="text-[11px] text-azul font-bold mt-0.5">{slide.eyebrow}</p>}
+                        {slide.subtitle && (
+                          <p className="text-xs text-tinta-suave mt-1 line-clamp-2">{slide.subtitle}</p>
+                        )}
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleToggleHeroSlide(slide)}
+                          disabled={busyHeroId === slide.id}
+                          className={UI.btnGhost}
+                        >
+                          {slide.isActive ? 'Apagar' : 'Encender'}
+                        </button>
+                        <button onClick={() => openEditHeroSlide(slide)} className={UI.btnGhost}>
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteHeroSlide(slide)}
+                          disabled={busyHeroId === slide.id}
+                          title="Eliminar"
+                          className="p-2.5 rounded-xl text-tinta-suave hover:text-secondary hover:bg-cian transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'team' && (
+          <div className="space-y-6">
+            {/* Invitar: dos campos a la vista, sin modal. Sumar a alguien al
+                panel tiene que costar menos que buscar el botón. */}
+            <div className={`${UI.card} space-y-4`}>
+              <div className="flex items-center justify-between gap-4 border-b border-borde pb-4">
+                <div>
+                  <h2 className="font-black text-xl text-tinta flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-azul" /> Invitar a alguien al panel
+                  </h2>
+                  <p className="text-xs text-tinta-suave mt-0.5">
+                    Le llega un correo con un enlace de un solo uso. Ninguna contraseña viaja por correo.
+                  </p>
+                </div>
+                <button onClick={fetchTeam} title="Actualizar" className={UI.btnGhost}>
+                  <RefreshCw className="w-4 h-4" />
+                  <span className="hidden sm:inline">Actualizar</span>
+                </button>
+              </div>
+
+              <form onSubmit={handleSendInvite} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3">
+                <div>
+                  <label htmlFor="invite-name" className="ens-eyebrow text-tinta-suave block mb-1.5">
+                    Nombre completo
+                  </label>
+                  <input
+                    id="invite-name"
+                    type="text"
+                    required
+                    value={inviteForm.fullName}
+                    onChange={(e) => setInviteForm({ ...inviteForm, fullName: e.target.value })}
+                    placeholder="Laura Restrepo"
+                    className={UI.input}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="invite-email" className="ens-eyebrow text-tinta-suave block mb-1.5">
+                    Correo electrónico
+                  </label>
+                  <input
+                    id="invite-email"
+                    type="email"
+                    required
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                    placeholder="laura@ensueno.com.co"
+                    className={UI.input}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button type="submit" disabled={sendingInvite} className={`${UI.btnPrimary} w-full sm:w-auto`}>
+                    <Send className="w-4 h-4" />
+                    {sendingInvite ? 'Enviando…' : 'Enviar invitación'}
+                  </button>
+                </div>
+              </form>
+
+              <p className="text-[10px] text-tinta-suave">
+                El enlace vence en 48 horas y sirve una sola vez. Si el correo ya tiene cuenta de clienta,
+                se le suma el acceso al panel sin perder su historial.
+              </p>
+
+              {lastInviteLink && (
+                <div className="bg-amarillo/40 border border-borde rounded-2xl p-3.5">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-tinta-suave">
+                    Correo en modo simulación
+                  </p>
+                  <p className="text-xs text-tinta-suave mt-1">
+                    No hay <span className="font-bold">RESEND_API_KEY</span> configurada, así que el correo no salió.
+                    Pásale este enlace a la persona:
+                  </p>
+                  <code className="block mt-2 text-[11px] text-azul break-all bg-white rounded-xl border border-borde p-2.5">
+                    {lastInviteLink}
+                  </code>
+                </div>
+              )}
+            </div>
+
+            {/* Administradores activos */}
+            <div className={`${UI.card} space-y-4`}>
+              <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-azul" /> Con acceso al panel
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cian text-azul border border-borde">
+                  {adminsList.length}
+                </span>
+              </h3>
+
+              {loadingTeam ? (
+                <p className="py-10 text-center text-sm text-tinta-suave animate-pulse">Cargando el equipo…</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-borde text-tinta-suave font-bold uppercase bg-cian">
+                        <th className="py-3 px-4">Nombre</th>
+                        <th className="py-3 px-4">Correo</th>
+                        <th className="py-3 px-4">Con acceso desde</th>
+                        <th className="py-3 px-4 text-right">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-borde">
+                      {adminsList.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-tinta-suave italic">
+                            No hay administradores registrados.
+                          </td>
+                        </tr>
+                      ) : (
+                        adminsList.map((adm) => {
+                          const esYo = adm.id === currentAdminId;
+                          return (
+                            <tr key={adm.id} className="hover:bg-cian transition-colors">
+                              <td className="py-4 px-4 font-bold text-tinta">
+                                <span className="inline-flex items-center gap-2">
+                                  {adm.fullName}
+                                  {esYo && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-celeste text-azul border border-borde">
+                                      Tú
+                                    </span>
+                                  )}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-tinta-suave">{adm.email}</td>
+                              <td className="py-4 px-4 text-tinta-suave tabular-nums">
+                                {new Date(adm.createdAt).toLocaleDateString('es-CO', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                {esYo ? (
+                                  <span className="text-tinta-suave italic">—</span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleRevokeAdmin(adm)}
+                                    disabled={busyTeamId === adm.id}
+                                    className={UI.btnDanger}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    {busyTeamId === adm.id ? 'Quitando…' : 'Quitar acceso'}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Invitaciones sin responder */}
+            <div className={`${UI.card} space-y-4`}>
+              <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                <Mail className="w-5 h-5 text-azul" /> Invitaciones pendientes
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cian text-azul border border-borde">
+                  {invitesList.length}
+                </span>
+              </h3>
+
+              {loadingTeam ? (
+                <p className="py-10 text-center text-sm text-tinta-suave animate-pulse">Cargando invitaciones…</p>
+              ) : invitesList.length === 0 ? (
+                <div className="py-12 text-center bg-white rounded-3xl border border-dashed border-borde">
+                  <Mail className="w-10 h-10 text-borde mx-auto mb-3" />
+                  <p className="font-bold text-tinta-suave">No hay invitaciones sin responder</p>
+                  <p className="text-xs text-tinta-suave mt-1">Las que envíes aparecerán aquí hasta que se activen.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-borde text-tinta-suave font-bold uppercase bg-cian">
+                        <th className="py-3 px-4">Persona</th>
+                        <th className="py-3 px-4">Estado</th>
+                        <th className="py-3 px-4">Invitó</th>
+                        <th className="py-3 px-4 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-borde">
+                      {invitesList.map((inv) => (
+                        <tr key={inv.id} className="hover:bg-cian transition-colors">
+                          <td className="py-4 px-4">
+                            <p className="font-bold text-tinta">{inv.fullName}</p>
+                            <p className="text-tinta-suave">{inv.email}</p>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amarillo text-tinta border border-borde">
+                              Pendiente
+                            </span>
+                            <p className="text-tinta-suave mt-1">{inviteTimeLeft(inv.expiresAt)}</p>
+                          </td>
+                          <td className="py-4 px-4 text-tinta-suave">{inv.invitedBy}</td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleInviteAction(inv, 'resend')}
+                                disabled={busyTeamId === inv.id}
+                                title="Reenviar el correo con un enlace nuevo"
+                                className={UI.btnGhost}
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" /> Reenviar
+                              </button>
+                              <button
+                                onClick={() => handleInviteAction(inv, 'revoke')}
+                                disabled={busyTeamId === inv.id}
+                                title="Anular el enlace"
+                                className={UI.btnDanger}
+                              >
+                                <X className="w-3.5 h-3.5" /> Cancelar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* MODAL DE DIAPOSITIVA DEL HERO */}
+      {showHeroForm && (
+        <div className="fixed inset-0 z-[99999] bg-tinta/70 p-4 overflow-y-auto">
+          <div className="min-h-full flex items-start justify-center">
+            <form
+              onSubmit={handleSaveHeroSlide}
+              className="bg-white border border-borde max-w-2xl w-full rounded-3xl p-6 sm:p-8 text-tinta shadow-2xl space-y-6 my-8"
+            >
+              <div className="flex items-center justify-between border-b border-borde pb-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-azul bg-cian px-3 py-1 rounded-full border border-borde">
+                    {editingHeroId ? 'Editar diapositiva' : 'Nueva diapositiva'}
+                  </span>
+                  <h3 className="font-black text-xl text-tinta mt-1">Hero de la portada</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowHeroForm(false)}
+                  className="text-tinta-suave hover:text-tinta p-1.5 rounded-full hover:bg-cian transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Texto */}
+              <div className="p-4 bg-cian rounded-2xl border border-borde space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-tinta-suave flex items-center gap-1.5">
+                  <Pencil className="w-3.5 h-3.5" /> Texto
+                </h4>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                    Antetítulo
+                  </label>
+                  <input
+                    type="text"
+                    value={heroForm.eyebrow}
+                    onChange={(e) => setHeroForm({ ...heroForm, eyebrow: e.target.value })}
+                    placeholder="Cuidado pediátrico · Colombia"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1">La línea pequeña en azul, encima del titular.</p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                    Titular *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={heroForm.title}
+                    onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
+                    placeholder="El cuidado más tierno para tu bebé"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1">
+                    Va en la tipografía grande. Entre 4 y 9 palabras se ve mejor.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                    Descripción
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={heroForm.subtitle}
+                    onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })}
+                    placeholder="Tres esenciales sin alcohol, sin parabenos y probados dermatológicamente."
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                  />
+                </div>
+              </div>
+
+              {/* Imagen */}
+              <div className="p-4 bg-cian rounded-2xl border border-borde space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-tinta-suave flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" /> Imagen
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-start">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                        Imagen *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={heroForm.image}
+                        onChange={(e) => setHeroForm({ ...heroForm, image: e.target.value })}
+                        placeholder="/hero-familia.png o https://…"
+                        className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                      />
+                      <p className="text-[10px] text-tinta-suave mt-1">
+                        PNG con fondo transparente y apaisado (relación 3:2), como el actual. Puede ser un
+                        archivo de la carpeta <span className="font-bold">/public</span> o una URL completa.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                        Texto alternativo
+                      </label>
+                      <input
+                        type="text"
+                        value={heroForm.imageAlt}
+                        onChange={(e) => setHeroForm({ ...heroForm, imageAlt: e.target.value })}
+                        placeholder="Mamá y bebé con la Colonia Ensueño"
+                        className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                      />
+                      <p className="text-[10px] text-tinta-suave mt-1">
+                        Lo que lee quien no puede ver la foto. Describe la escena en pocas palabras.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full sm:w-40 aspect-[3/2] rounded-xl bg-celeste border border-borde overflow-hidden grid place-items-center shrink-0">
+                    {heroForm.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={heroForm.image} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-borde" />
+                    )}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={heroForm.showMascot}
+                    onChange={(e) => setHeroForm({ ...heroForm, showMascot: e.target.checked })}
+                    className="w-4 h-4 rounded accent-azul"
+                  />
+                  <span className="text-xs font-bold text-tinta-suave">
+                    Mostrar la estrellita en la esquina superior derecha
+                  </span>
+                </label>
+              </div>
+
+              {/* Botones */}
+              <div className="p-4 bg-cian rounded-2xl border border-borde space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-tinta-suave flex items-center gap-1.5">
+                  <ExternalLink className="w-3.5 h-3.5" /> Botones
+                </h4>
+                <p className="text-[10px] text-tinta-suave -mt-2">
+                  Deja el texto vacío para que ese botón no aparezca. En el enlace puedes poner una ruta
+                  (<span className="font-bold">/tips</span>) o un ancla de la portada (
+                  <span className="font-bold">#productos</span>).
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Botón principal
+                    </label>
+                    <input
+                      type="text"
+                      value={heroForm.primaryLabel}
+                      onChange={(e) => setHeroForm({ ...heroForm, primaryLabel: e.target.value })}
+                      placeholder="Ver productos"
+                      className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Su enlace
+                    </label>
+                    <input
+                      type="text"
+                      value={heroForm.primaryHref}
+                      onChange={(e) => setHeroForm({ ...heroForm, primaryHref: e.target.value })}
+                      placeholder="#productos"
+                      className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Botón secundario
+                    </label>
+                    <input
+                      type="text"
+                      value={heroForm.secondaryLabel}
+                      onChange={(e) => setHeroForm({ ...heroForm, secondaryLabel: e.target.value })}
+                      placeholder="Leer los tips"
+                      className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Su enlace
+                    </label>
+                    <input
+                      type="text"
+                      value={heroForm.secondaryHref}
+                      onChange={(e) => setHeroForm({ ...heroForm, secondaryHref: e.target.value })}
+                      placeholder="/tips"
+                      className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-white focus:outline-none focus:ring-2 focus:ring-celeste"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={heroForm.isActive}
+                  onChange={(e) => setHeroForm({ ...heroForm, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded accent-azul"
+                />
+                <span className="text-xs font-bold text-tinta-suave">Mostrarla en la portada</span>
+              </label>
+
+              <div className="pt-4 border-t border-borde flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowHeroForm(false)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-tinta-suave hover:bg-cian transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingHero}
+                  className="btn-ensueno-primary px-6 py-2.5 text-xs font-black uppercase tracking-wider shadow-md disabled:opacity-50"
+                >
+                  {savingHero ? 'Guardando...' : editingHeroId ? 'Guardar cambios' : 'Crear diapositiva'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE EDICIÓN Y CREACIÓN COMPLETA DE PRODUCTOS */}
       {showProductModal && (
@@ -3003,9 +4279,14 @@ export default function AdminDashboardPage() {
                       type="text"
                       value={productForm.sizes}
                       onChange={(e) => setProductForm({ ...productForm, sizes: e.target.value })}
-                      placeholder="150ml, 250ml, Pack x3"
+                      placeholder="150ml:28500, 250ml:39900, Pack x3"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-borde bg-white text-tinta font-bold"
                     />
+                    <p className="text-[10px] text-tinta-suave mt-1">
+                      Para cobrar distinto por presentación, escribe{' '}
+                      <span className="font-bold text-azul">250ml:39900</span>. La que no
+                      lleve precio se cobra al precio base de arriba.
+                    </p>
                   </div>
 
                   <div>

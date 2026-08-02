@@ -235,6 +235,99 @@ export const apiService = {
     return res.json();
   },
 
+  // ---------------- Hero de la portada ----------------
+
+  async getHero(includeAll = false) {
+    const res = await fetch(`/api/v1/hero${includeAll ? '?includeAll=true' : ''}`, { cache: 'no-store' });
+    return res.json();
+  },
+
+  async createHeroSlide(data: any) {
+    const res = await fetch('/api/v1/hero', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  async updateHeroSlide(id: string, data: any) {
+    const res = await fetch('/api/v1/hero', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...data }),
+    });
+    return res.json();
+  },
+
+  async moveHeroSlide(id: string, direction: 'up' | 'down') {
+    const res = await fetch('/api/v1/hero', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'move', direction }),
+    });
+    return res.json();
+  },
+
+  async updateHeroConfig(intervalMs: number) {
+    const res = await fetch('/api/v1/hero', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'config', intervalMs }),
+    });
+    return res.json();
+  },
+
+  async deleteHeroSlide(id: string) {
+    const res = await fetch(`/api/v1/hero?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    return res.json();
+  },
+
+  // ---------------- Equipo del panel ----------------
+
+  async listAdminUsers() {
+    const res = await fetch('/api/v1/admin/users', { cache: 'no-store' });
+    return res.json();
+  },
+
+  async inviteAdminUser(fullName: string, email: string) {
+    const res = await fetch('/api/v1/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName, email }),
+    });
+    return res.json();
+  },
+
+  async updateAdminInvite(inviteId: string, action: 'resend' | 'revoke') {
+    const res = await fetch('/api/v1/admin/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteId, action }),
+    });
+    return res.json();
+  },
+
+  async revokeAdminUser(userId: string) {
+    const res = await fetch(`/api/v1/admin/users?userId=${encodeURIComponent(userId)}`, { method: 'DELETE' });
+    return res.json();
+  },
+
+  /** Valida el enlace de invitación antes de pedir la contraseña. */
+  async getInvitation(token: string) {
+    const res = await fetch(`/api/v1/auth/accept-invite?token=${encodeURIComponent(token)}`, { cache: 'no-store' });
+    return res.json();
+  },
+
+  async acceptInvitation(token: string, password: string) {
+    const res = await fetch('/api/v1/auth/accept-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    });
+    return res.json();
+  },
+
   async sendRemarketingReminder(motherEmail: string, motherName: string, babyName: string, productTitle?: string) {
     const res = await fetch('/api/v1/admin/remarketing', {
       method: 'POST',

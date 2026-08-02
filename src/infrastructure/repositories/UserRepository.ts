@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+/** Intentos fallidos que aguanta un código de recuperación antes de quemarse. */
+const MAX_RESET_ATTEMPTS = 5;
+
 export class UserRepository {
   /**
    * Busca usuario por Email con su perfil de mamá y bebés
@@ -176,16 +179,24 @@ export class UserRepository {
       data: { used: true },
     });
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
-    return prisma.passwordResetToken.create({
-      data: {
-        userId,
-        token: code,
-        expiresAt,
-      },
-    });
+    // `token` es único en toda la tabla, así que dos códigos vivos pueden
+    // chocar. Se reintenta en vez de dejar que el 500 le llegue a la usuaria.
+    for (let intento = 0; intento < 5; intento++) {
+      // randomInt y no Math.random: este código también abre las cuentas de
+      // administración.
+      const code = crypto.randomInt(100000, 1000000).toString();
+      try {
+        return await prisma.passwordResetToken.create({
+          data: { userId, token: code, expiresAt },
+        });
+      } catch (err: any) {
+        if (err?.code !== 'P2002') throw err; // P2002 = choque de restricción única
+      }
+    }
+
+    throw new Error('No se pudo generar un código de recuperación disponible');
   }
 
   /**
@@ -201,8 +212,10 @@ export class UserRepository {
       actualNewPassword = codeOrToken;
     }
 
+    const cleanToken = searchToken.trim();
+
     let resetRecord = await prisma.passwordResetToken.findUnique({
-      where: { token: searchToken.trim() },
+      where: { token: cleanToken },
       include: { user: true },
     });
 
@@ -213,16 +226,43 @@ export class UserRepository {
         resetRecord = await prisma.passwordResetToken.findFirst({
           where: {
             userId: user.id,
-            token: searchToken.trim(),
+            token: cleanToken,
             used: false,
           },
           include: { user: true },
         });
+
+        // Código equivocado: se le cobra el intento al código vivo de esa
+        // cuenta. Sin esto, seis dígitos con una hora de vida se adivinan a
+        // fuerza bruta, y desde el panel eso abre cuentas de administración.
+        if (!resetRecord) {
+          const activo = await prisma.passwordResetToken.findFirst({
+            where: { userId: user.id, used: false, expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: 'desc' },
+          });
+
+          if (activo) {
+            const intentos = activo.attempts + 1;
+            await prisma.passwordResetToken.update({
+              where: { id: activo.id },
+              data: { attempts: intentos, ...(intentos >= MAX_RESET_ATTEMPTS ? { used: true } : {}) },
+            });
+
+            if (intentos >= MAX_RESET_ATTEMPTS) {
+              return { success: false, error: 'Demasiados intentos fallidos. Solicita un código nuevo.' };
+            }
+          }
+        }
       }
     }
 
     if (!resetRecord || resetRecord.used || resetRecord.expiresAt < new Date()) {
       return { success: false, error: 'Código de seguridad inválido o expirado' };
+    }
+
+    if (resetRecord.attempts >= MAX_RESET_ATTEMPTS) {
+      await prisma.passwordResetToken.update({ where: { id: resetRecord.id }, data: { used: true } });
+      return { success: false, error: 'Demasiados intentos fallidos. Solicita un código nuevo.' };
     }
 
     if (!actualNewPassword || actualNewPassword.length < 6) {
