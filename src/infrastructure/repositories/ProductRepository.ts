@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { MOCK_PRODUCTS } from '@/data/mockData';
 import { Product, Promotion } from '@/types';
+import { parseSizePrices } from '@/lib/pricing';
 
 // Global in-memory cache for dynamic updates when db is not seeded
 let memoryProducts: Product[] = [...MOCK_PRODUCTS];
@@ -211,7 +212,12 @@ export class ProductRepository {
       additionalImages: data.additionalImages || [],
       badge: data.badge || null,
       fragrances: Array.isArray(data.fragrances) ? data.fragrances : typeof data.fragrances === 'string' ? data.fragrances.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
-      sizes: Array.isArray(data.sizes) ? data.sizes : typeof data.sizes === 'string' ? data.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+      // Las presentaciones pueden venir como "150ml:28500, 250ml:39900": el
+      // precio por variante viaja en el mismo campo y se separa aquí.
+      ...(() => {
+        const { sizes, sizePrices } = parseSizePrices(data.sizes);
+        return { sizes, sizePrices: data.sizePrices ?? sizePrices };
+      })(),
       description: data.description || '',
       benefits: Array.isArray(data.benefits) ? data.benefits : typeof data.benefits === 'string' ? data.benefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
       ingredients: Array.isArray(data.ingredients) ? data.ingredients : typeof data.ingredients === 'string' ? data.ingredients.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
@@ -263,7 +269,13 @@ export class ProductRepository {
       updateData.fragrances = Array.isArray(data.fragrances) ? data.fragrances : typeof data.fragrances === 'string' ? data.fragrances.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
     }
     if (data.sizes !== undefined) {
-      updateData.sizes = Array.isArray(data.sizes) ? data.sizes : typeof data.sizes === 'string' ? data.sizes.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+      const { sizes, sizePrices } = parseSizePrices(data.sizes);
+      updateData.sizes = sizes;
+      // `sizePrices` explícito gana; si no, se deriva de lo escrito en sizes.
+      // Se asigna siempre para que borrar un precio en el panel lo borre de verdad.
+      updateData.sizePrices = data.sizePrices !== undefined ? data.sizePrices : sizePrices;
+    } else if (data.sizePrices !== undefined) {
+      updateData.sizePrices = data.sizePrices;
     }
     if (data.benefits !== undefined) {
       updateData.benefits = Array.isArray(data.benefits) ? data.benefits : typeof data.benefits === 'string' ? data.benefits.split(',').map((s: string) => s.trim()).filter(Boolean) : [];

@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   ShoppingBag, ShieldCheck, Check, Plus, Minus, ArrowLeft, Droplets,
-  Sparkles, UserCircle, Trash2, Edit, Star, Truck,
+  Sparkles, UserCircle, Trash2, Edit, Star, Truck, Leaf,
 } from 'lucide-react';
 import { Product } from '@/types';
 import { apiService } from '@/services/api';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
+import { variantPrice, hasVariantPricing } from '@/lib/pricing';
 import ProductGallery, { toMedia, Media } from '@/components/features/ProductGallery';
 import StarRating from '@/components/ui/StarRating';
 
@@ -33,11 +34,39 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0,
   }).format(price);
 
-const TRUST = [
+/* Sellos que se muestran si el producto no trae ninguno cargado desde el panel. */
+const TRUST_FALLBACK = [
   { Icon: ShieldCheck, label: 'Sin lágrimas' },
   { Icon: Droplets, label: 'pH neutro' },
   { Icon: Sparkles, label: 'Aprobado pediatría' },
 ];
+
+/**
+ * Los sellos se escriben en el panel como texto libre en un solo campo
+ * ("Sellos de Seguridad"), separados por viñetas o por puntos.
+ */
+function parseSeals(raw?: string): string[] {
+  if (!raw) return [];
+  const clean = (list: string[]) =>
+    list.map((s) => s.trim().replace(/\.$/, '').trim()).filter(Boolean);
+
+  const parts = clean(raw.split(/[•·|;]+/));
+  // Si no usaron viñetas, el punto también vale como separador. Se exige texto
+  // después del punto para no partir por el punto final de la frase.
+  if (parts.length === 1 && /\.\s*\S/.test(raw)) {
+    return clean(raw.split('.'));
+  }
+  return parts;
+}
+
+/** Ícono acorde a lo que diga el sello, que es texto libre. */
+function sealIcon(label: string) {
+  const t = label.toLowerCase();
+  if (/ph|neutro|hidrat|humect|agua|lágrima|lagrima/.test(t)) return Droplets;
+  if (/libre|sin |vegan|natural|origen/.test(t)) return Leaf;
+  if (/pediatr|dermatol|aprobad|certific|testead|probad|hipoalerg|seguro/.test(t)) return ShieldCheck;
+  return Sparkles;
+}
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -173,7 +202,11 @@ export default function ProductDetailPage() {
     );
   }
 
-  const hasPromo = Boolean(product.originalPrice && product.originalPrice > product.price);
+  // El precio sigue a la presentación elegida; las que no tienen precio propio
+  // se cobran al precio base del producto.
+  const currentPrice = variantPrice(product, selectedSize);
+  const priceVaries = hasVariantPricing(product);
+  const hasPromo = Boolean(product.originalPrice && product.originalPrice > currentPrice);
 
   // La imagen principal más las adicionales del admin. Las URLs de video se
   // detectan solas, así que la misma tira sirve para fotos y videos.
@@ -187,6 +220,14 @@ export default function ProductDetailPage() {
   const showFragrances = product.fragrances.length > 1;
   const showSizes = product.sizes.length > 1;
   const hasIngredients = product.ingredients.length > 0;
+
+  // Los sellos salen del campo "Sellos de Seguridad" del panel. Antes eran una
+  // constante fija y editarlos en el admin no cambiaba nada en esta página.
+  const seals = parseSeals(product.safetyInfo);
+  const trustSeals =
+    seals.length > 0
+      ? seals.map((label) => ({ Icon: sealIcon(label), label }))
+      : TRUST_FALLBACK;
 
   // Un combo no es una fila de Product: su id ("combo-*") viola la clave
   // foránea de Review, así que la reseña jamás se guardaría. Mejor no ofrecerla.
@@ -234,8 +275,8 @@ export default function ProductDetailPage() {
                 badge={product.badge}
               />
 
-              <ul className="grid grid-cols-3 gap-3">
-                {TRUST.map(({ Icon, label }) => (
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {trustSeals.map(({ Icon, label }) => (
                   <li
                     key={label}
                     className="bg-white border border-borde rounded-2xl p-3 text-center"
@@ -270,7 +311,7 @@ export default function ProductDetailPage() {
               {/* Precio */}
               <div className="mt-6 bg-white border border-borde rounded-2xl p-5">
                 <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="font-display text-4xl text-azul">{formatPrice(product.price)}</span>
+                  <span className="font-display text-4xl text-azul">{formatPrice(currentPrice)}</span>
                   {hasPromo && (
                     <span className="text-base text-tinta-suave line-through">
                       {formatPrice(product.originalPrice!)}
@@ -318,6 +359,13 @@ export default function ProductDetailPage() {
                       >
                         {selectedSize === sz && <Check className="w-4 h-4" aria-hidden="true" />}
                         {sz}
+                        {/* Si cada presentación cuesta distinto, el precio va en
+                            el chip: elegir a ciegas y ver cambiar el total es peor. */}
+                        {priceVaries && (
+                          <span className="opacity-70 tabular-nums">
+                            · {formatPrice(variantPrice(product, sz))}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -356,7 +404,7 @@ export default function ProductDetailPage() {
                     className="ens-btn ens-btn--azul flex-1"
                   >
                     <ShoppingBag className="w-4 h-4" aria-hidden="true" />
-                    Agregar al carrito · {formatPrice(product.price * quantity)}
+                    Agregar al carrito · {formatPrice(currentPrice * quantity)}
                   </button>
                 </div>
               </div>
@@ -426,10 +474,22 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="bg-cian border border-borde rounded-2xl p-5">
-                  <span className="ens-eyebrow text-tinta-suave block mb-1">Sellos y registro</span>
-                  <p className="text-tinta">{product.safetyInfo}</p>
-                </div>
+                {seals.length > 0 && (
+                  <div className="bg-cian border border-borde rounded-2xl p-5">
+                    <span className="ens-eyebrow text-tinta-suave block mb-3">Sellos y registro</span>
+                    <ul className="flex flex-wrap gap-2">
+                      {seals.map((seal) => (
+                        <li
+                          key={seal}
+                          className="inline-flex items-center gap-2 bg-white border border-borde rounded-full px-4 py-2 text-sm text-tinta"
+                        >
+                          <Check className="w-4 h-4 text-azul shrink-0" aria-hidden="true" />
+                          {seal}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Product } from '@/types';
+import { minPrice, hasVariantPricing } from '@/lib/pricing';
 import { useCart } from '@/context/CartContext';
 import StarRating from '@/components/ui/StarRating';
 
@@ -29,7 +30,9 @@ export default function ProductCard({
   sizes?: string;
 }) {
   const { addToCart } = useCart();
-  const hasPromo = Boolean(product.originalPrice && product.originalPrice > product.price);
+  const fromPrice = minPrice(product);
+  const priceVaries = hasVariantPricing(product);
+  const hasPromo = Boolean(product.originalPrice && product.originalPrice > fromPrice);
 
   return (
     <article className="ens-card group h-full">
@@ -68,7 +71,10 @@ export default function ProductCard({
         {/* mt-auto empuja el par precio+botón al fondo, para que las tarjetas
             del slider queden alineadas aunque los subtítulos midan distinto. */}
         <div className="mt-auto pt-4 flex items-baseline gap-2">
-          <span className="font-display text-2xl text-azul">{formatPrice(product.price)}</span>
+          {/* Con precios por presentación se anuncia el más bajo: mostrar el
+              precio base cuando ninguna variante cuesta eso confunde. */}
+          {priceVaries && <span className="text-xs font-bold text-tinta-suave">desde</span>}
+          <span className="font-display text-2xl text-azul">{formatPrice(fromPrice)}</span>
           {hasPromo && (
             <span className="text-sm text-tinta-suave line-through">
               {formatPrice(product.originalPrice!)}

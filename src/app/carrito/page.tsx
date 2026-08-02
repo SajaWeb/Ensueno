@@ -29,6 +29,7 @@ import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
 import { apiService } from '@/services/api';
+import { itemUnitPrice } from '@/lib/pricing';
 import { COLOMBIA_LOCATION_DATA } from '@/data/colombiaData';
 
 function CartContent() {
@@ -247,9 +248,9 @@ function CartContent() {
         productName: item.product.name,
         selectedFragrance: item.selectedFragrance,
         selectedSize: item.selectedSize,
-        unitPrice: item.product.price,
+        unitPrice: itemUnitPrice(item),
         quantity: item.quantity,
-        subtotal: item.product.price * item.quantity,
+        subtotal: itemUnitPrice(item) * item.quantity,
       }));
 
       const { order, mercadopago } = await apiService.createOrder({
@@ -421,7 +422,7 @@ function CartContent() {
                       {item.selectedFragrance} · {item.selectedSize}
                     </p>
                     <p className="mt-0.5 text-sm text-tinta-suave">
-                      {formatPrice(item.product.price)} por unidad
+                      {formatPrice(itemUnitPrice(item))} por unidad
                     </p>
                   </div>
 
@@ -449,7 +450,7 @@ function CartContent() {
                     </div>
 
                     <span className="font-display text-xl text-azul tabular-nums">
-                      {formatPrice(item.product.price * item.quantity)}
+                      {formatPrice(itemUnitPrice(item) * item.quantity)}
                     </span>
 
                     <button

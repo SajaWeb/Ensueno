@@ -11,6 +11,8 @@ export interface Product {
   badge?: string;
   fragrances: string[];
   sizes: string[];
+  /** Precio propio de cada presentación. Las ausentes se cobran a `price`. */
+  sizePrices?: Record<string, number> | null;
   description: string;
   benefits: string[];
   ingredients: string[];
@@ -27,6 +29,10 @@ export interface CartItem {
   selectedFragrance: string;
   selectedSize: string;
   quantity: number;
+  /** Precio de la presentación elegida, congelado al agregar al carrito.
+      Opcional porque los carritos guardados antes de existir este campo
+      siguen en localStorage; ahí se cae a `product.price`. */
+  unitPrice?: number;
 }
 
 export interface Order {
