@@ -1,13 +1,20 @@
 import { NextResponse } from 'next/server';
 import { tipRepository } from '@/infrastructure/repositories/TipRepository';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
+
+/*
+ * El GET es público: /tips lo consume. Todo lo que escribe exige administrador
+ * — esta ruta queda fuera del matcher del middleware (/api/v1/admin/*), así que
+ * la única defensa es la de aquí adentro.
+ */
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || undefined;
     const query = searchParams.get('q') || undefined;
-    // El panel necesita ver también los borradores.
-    const includeAll = searchParams.get('includeAll') === 'true';
+    // El panel necesita ver también los borradores; el público, no.
+    const includeAll = searchParams.get('includeAll') === 'true' && Boolean(await requireAdmin());
 
     const tips = await tipRepository.getTips(category, query, includeAll);
     return NextResponse.json({ success: true, data: tips });
@@ -19,6 +26,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const body = await request.json();
     if (!body.title) {
       return NextResponse.json(
@@ -36,6 +45,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const { id, ...data } = await request.json();
     if (!id) {
       return NextResponse.json({ success: false, error: 'Falta el id del tip.' }, { status: 400 });
@@ -53,6 +64,8 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) {

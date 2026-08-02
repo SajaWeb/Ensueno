@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { CartItem, Product } from '@/types';
+import { variantPrice, itemUnitPrice } from '@/lib/pricing';
 
 interface CartContextType {
   items: CartItem[];
@@ -88,6 +89,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const fragrance = selectedFragrance || product.fragrances[0] || 'Estándar';
     const size = selectedSize || product.sizes[0] || 'Estándar';
     const cartItemId = `${product.id}-${fragrance}-${size}`;
+    // Cada presentación puede costar distinto, así que el precio se congela
+    // aquí: dos líneas del mismo producto pueden valer diferente.
+    const unitPrice = variantPrice(product, size);
 
     setItems((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === cartItemId);
@@ -104,6 +108,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           selectedFragrance: fragrance,
           selectedSize: size,
           quantity,
+          unitPrice,
         },
       ];
     });
@@ -156,7 +161,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
-  const subtotal = items.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+  const subtotal = items.reduce((acc, item) => acc + itemUnitPrice(item) * item.quantity, 0);
   const discount = Math.round(subtotal * discountPercent);
 
   // Dynamic shipping calculation based on server threshold & custom rates

@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { shippingRepository } from '@/infrastructure/repositories/ShippingRepository';
+import { requireAdmin, noAutorizado } from '@/lib/adminAuth';
+
+/* El GET lo lee el carrito sin sesión; el POST define cuánto se le cobra a la
+   clienta por el flete, así que exige administrador. */
 
 export async function GET() {
   try {
@@ -13,6 +17,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    if (!(await requireAdmin())) return noAutorizado();
+
     const body = await req.json();
     const { freeShippingThreshold, defaultRate, qtyDiscountThreshold, qtyDiscountAmount } = body;
 

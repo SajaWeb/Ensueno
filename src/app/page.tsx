@@ -6,10 +6,9 @@ import { Product, Promotion, Tip } from '@/types';
 import { productRepository } from '@/infrastructure/repositories/ProductRepository';
 import { MOCK_TIPS } from '@/data/mockData';
 import ProductSlider from '@/components/features/ProductSlider';
+import HeroSlider from '@/components/features/HeroSlider';
 import NubeDivider from '@/components/ui/NubeDivider';
-
-const MASCOT_URL =
-  'https://i.postimg.cc/25VxdkZn/Whats-App-Image-2026-07-24-at-10-04-09-AM-1-removebg-preview.png';
+import { heroRepository } from '@/infrastructure/repositories/HeroRepository';
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('es-CO', {
@@ -36,9 +35,12 @@ function toProduct(row: unknown): Product {
 export default async function HomePage() {
   // Server Component: los productos van en el HTML de SSR. Antes se traían en
   // un useEffect, así que el HTML llegaba sin un solo producto.
-  const [allProducts, promotions] = await Promise.all([
+  const [allProducts, promotions, heroSlides, heroConfig] = await Promise.all([
     productRepository.getProducts(),
     productRepository.getPromotions(undefined, true),
+    // Nunca vacío: si el panel no tiene diapositivas, devuelve el hero de fábrica.
+    heroRepository.getSlidesForHome(),
+    heroRepository.getConfig(),
   ]);
 
   const catalog = allProducts.map(toProduct);
@@ -51,77 +53,9 @@ export default async function HomePage() {
     <div className="page-entry-anim">
       {/* ================= Hero ================= */}
       <section className="ens-band ens-band--celeste overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16">
-          <div className="grid lg:grid-cols-[0.95fr_1.15fr] gap-8 lg:gap-6 items-end">
-            <div className="pb-8 sm:pb-16 lg:pb-24">
-              <p className="ens-eyebrow text-azul">Cuidado pediátrico · Colombia</p>
-
-              <h1 className="mt-4 font-display text-tinta leading-[1.05] text-[clamp(2.5rem,5.5vw,4.25rem)]">
-                El cuidado más tierno para tu bebé
-              </h1>
-
-              <p className="mt-6 max-w-lg text-lg text-tinta-suave leading-relaxed">
-                Tres esenciales sin alcohol, sin parabenos y probados
-                dermatológicamente: pañitos, colonia y crema corporal.
-              </p>
-
-              <div className="mt-9 flex flex-wrap gap-3">
-                <a href="#productos" className="ens-btn ens-btn--azul">
-                  Ver productos
-                </a>
-                <Link href="/tips" className="ens-btn ens-btn--blanco">
-                  Leer los tips
-                </Link>
-              </div>
-            </div>
-
-            {/* Foto real a sangre contra la banda, con la estrellita encima
-                en la esquina superior derecha. */}
-            <div className="relative w-full">
-              {/* El PNG es apaisado (2528x1696) y trae mucho aire transparente
-                  a los lados: el sujeto solo ocupa del 16% al 75% del ancho,
-                  por eso "a tamaño natural" se veía diminuto.
-
-                  Se agranda ensanchando la caja más allá de la columna: el
-                  sobrante se va hacia la derecha, que es puro transparente, y
-                  la sección ya recorta con overflow-hidden. Se mantiene
-                  `object-contain` con la relación nativa para que NUNCA se
-                  recorte la foto (ni la cabeza de la mamá arriba).
-
-                  La máscara desvanece el borde inferior contra la banda para
-                  que la foto se funda con la nube en vez de cortarse en seco. */}
-              <div
-                className="relative z-10 aspect-[2528/1696] w-[114%] sm:w-[116%] lg:w-[124%]
-                           [mask-image:linear-gradient(to_bottom,#000_78%,transparent_98%)]
-                           [-webkit-mask-image:linear-gradient(to_bottom,#000_78%,transparent_98%)]"
-              >
-                <Image
-                  src="/hero-familia.png"
-                  alt="Mamá y bebé con la Colonia Ensueño"
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 122vw, 70vw"
-                  className="object-contain object-bottom"
-                />
-              </div>
-
-              {/* Sobre la foto: la esquina superior derecha del PNG es
-                  transparente, así que no tapa a la mamá ni a la bebé. */}
-              <div
-                aria-hidden="true"
-                className="absolute top-0 right-2 sm:right-4 w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 z-20"
-              >
-                <Image
-                  src={MASCOT_URL}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 96px, (max-width: 1024px) 128px, 160px"
-                  className="object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* El contenido sale del panel (módulo Portada). Con una sola
+            diapositiva se ve igual que el hero fijo de siempre. */}
+        <HeroSlider slides={heroSlides} intervalMs={heroConfig.intervalMs} />
 
         {/* Firma: la nube toma el color de la banda de abajo. */}
         <NubeDivider className="text-white -mb-px relative z-20" />

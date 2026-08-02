@@ -30,6 +30,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   surveyResponses     SurveyResponse[]
   reviews             Review[]
+  adminInvitesSent    AdminInvitation[]    @relation("AdminInvitesSent")
 }
 
 model SavedAddress {
@@ -97,6 +98,9 @@ model Product {
   badge            String?
   fragrances       String[]     @default([])
   sizes            String[]     @default([])
+  /** Precio propio por presentación: { "250ml": 39900 }. Las que no aparecen
+      aquí se cobran a `price`, que sigue siendo el precio base del producto. */
+  sizePrices       Json?
   description      String
   benefits         String[]     @default([])
   ingredients      String[]     @default([])
@@ -247,7 +251,66 @@ model PasswordResetToken {
   token     String   @unique
   expiresAt DateTime
   used      Boolean  @default(false)
+  /** Intentos fallidos contra este código. A los 5 se quema, para que un código
+      de 6 dígitos no se pueda adivinar a fuerza bruta durante su hora de vida. */
+  attempts  Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+/**
+ * Invitación para sumar a alguien al panel de administración.
+ *
+ * Se guarda el sha256 del token y nunca el token en sí: quien lea la tabla no
+ * puede activar ninguna invitación. El token crudo solo existe en el enlace
+ * que viaja por correo.
+ */
+model AdminInvitation {
+  id          String    @id @default(cuid())
+  email       String
+  fullName    String
+  tokenHash   String    @unique
+  invitedById String
+  invitedBy   User      @relation("AdminInvitesSent", fields: [invitedById], references: [id])
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+}
+
+/**
+ * Una diapositiva del hero de la portada.
+ *
+ * El hero era texto fijo dentro de `app/page.tsx`: cambiar una palabra exigía
+ * un despliegue. Cada fila de aquí es una diapositiva editable desde el panel.
+ */
+model HeroSlide {
+  id             String   @id @default(cuid())
+  eyebrow        String   @default("")
+  title          String
+  subtitle       String   @default("")
+  /** PNG a sangre contra la banda. Puede ser una ruta de /public o una URL. */
+  image          String   @default("")
+  imageAlt       String   @default("")
+  primaryLabel   String   @default("")
+  primaryHref    String   @default("")
+  secondaryLabel String   @default("")
+  secondaryHref  String   @default("")
+  /** La estrellita de la esquina. Con fotos claras a veces estorba. */
+  showMascot     Boolean  @default(true)
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+/** Ajustes globales del hero. Fila única, igual que ShippingConfig. */
+model HeroConfig {
+  id         String   @id @default("global")
+  /** Cada cuántos milisegundos avanza el carrusel. 0 = no avanza solo. */
+  intervalMs Int      @default(6000)
+  updatedAt  DateTime @updatedAt
 }
 
 model ShippingConfig {

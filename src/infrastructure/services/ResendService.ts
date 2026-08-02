@@ -174,6 +174,31 @@ export class ResendService {
     return this.send(to, 'Tu contraseña de Ensueño fue actualizada', html, 'clave cambiada');
   }
 
+  /**
+   * Invitación al panel interno.
+   *
+   * No se usa `codeBlock`: su pie dice "Vence en 15 minutos" y aquí el enlace
+   * dura 48 horas. Tampoco viaja ninguna contraseña — la define quien recibe.
+   */
+  async sendAdminInviteEmail(to: string, name: string, inviterName: string, url: string) {
+    const html = layout({
+      preheader: `${inviterName} te dio acceso al panel de Ensueño`,
+      eyebrow: 'Panel interno',
+      title: `${name}, te sumaron al equipo Ensueño`,
+      body:
+        p(`<strong style="color:${C.tinta};">${inviterName}</strong> te dio acceso al panel de administración de Ensueño.`) +
+        p('Abre el enlace y crea tu propia contraseña. Nadie más la conoce, ni siquiera quien te invitó.') +
+        button(url, 'Activar mi cuenta') +
+        p(
+          'El enlace vence en 48 horas y sirve una sola vez. Si ya venció, pídele a tu equipo que te reenvíe la invitación.'
+        ) +
+        p(
+          `Si no esperabas este correo, ignóralo y avísanos a <a href="mailto:${SUPPORT_EMAIL}" style="color:${C.azul};font-weight:700;">${SUPPORT_EMAIL}</a>.`
+        ),
+    });
+    return this.send(to, 'Te sumaron al panel de Ensueño', html, 'invitación admin');
+  }
+
   /** Confirmación de pedido pagado. */
   async sendOrderConfirmationEmail(params: {
     to: string;
