@@ -19,6 +19,9 @@ import {
   Send,
   Sparkles,
   BarChart3,
+  PhoneCall,
+  Star as StarIcon,
+  Clock,
   Search,
   Truck,
   MapPin,
@@ -86,6 +89,8 @@ function babyAgeLabel(birthDate?: string | Date | null): string {
 /** Un módulo = una entrada aquí. Menú y cabecera se derivan de esto. */
 const MODULES = {
   orders:   { eyebrow: 'Pedidos',    title: 'Pedidos y pagos',        nav: 'Pedidos',    Icon: ShoppingBag, description: 'Estado de cada pedido, pagos aprobados por MercadoPago y seguimiento de despachos.' },
+  metrics:  { eyebrow: 'Métricas',   title: 'Qué se está vendiendo',  nav: 'Métricas',   Icon: BarChart3,   description: 'Productos más vendidos, a qué ciudades se despacha y cómo va el mes contra los anteriores.' },
+  followup: { eyebrow: 'Seguimiento', title: 'Llamadas a clientas',   nav: 'Seguimiento', Icon: PhoneCall,  description: 'A quién toca llamar hoy: para preguntar cómo le fue con el producto y para ofrecerle la recompra.' },
   hero:     { eyebrow: 'Portada',    title: 'Hero de la portada',     nav: 'Portada',    Icon: Layers,      description: 'Lo primero que se ve al entrar. Con más de una diapositiva, la portada las va rotando sola.' },
   crm:      { eyebrow: 'Clientes',   title: 'Mamás y bebés',          nav: 'Clientes',   Icon: Users,       description: 'Directorio de clientas registradas, sus bebés y los recordatorios de recompra.' },
   shipping: { eyebrow: 'Envíos',     title: 'Tarifas de envío',       nav: 'Envíos',     Icon: Truck,       description: 'Fletes por departamento y municipio, y el umbral de envío gratis.' },
@@ -113,6 +118,32 @@ export default function AdminDashboardPage() {
   const [recoveryBusy, setRecoveryBusy] = useState(false);
 
   const [activeTab, setActiveTab] = useState<ModuleKey>('orders');
+
+  // ---------------- Módulo de Métricas ----------------
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  /** Ventana de tiempo del informe. 0 = todo el histórico. */
+  const [metricsDias, setMetricsDias] = useState(0);
+
+  // ---------------- Módulo de Seguimiento ----------------
+  const [followUps, setFollowUps] = useState<any>(null);
+  const [loadingFollowUps, setLoadingFollowUps] = useState(false);
+  const [savingFollowUp, setSavingFollowUp] = useState(false);
+  /** Pestaña interna: a quién llamar. */
+  const [followTab, setFollowTab] = useState<'opinion' | 'recompra' | 'registradas'>('opinion');
+  /** Ficha abierta en el formulario de registro. */
+  const [followTarget, setFollowTarget] = useState<any>(null);
+  const [followKind, setFollowKind] = useState<'feedback' | 'recompra'>('feedback');
+  const emptyFollowForm = {
+    status: 'CONTACTADA',
+    channel: 'LLAMADA',
+    productRating: 5,
+    processRating: 5,
+    comment: '',
+    notes: '',
+  };
+  const [followForm, setFollowForm] = useState<Record<string, any>>(emptyFollowForm);
+  const [followConfig, setFollowConfig] = useState({ feedbackDelayDays: 5, repurchaseDelayDays: 30 });
 
   // ---------------- Módulo de Portada (hero) ----------------
   const [heroSlides, setHeroSlides] = useState<any[]>([]);
@@ -1084,6 +1115,24 @@ export default function AdminDashboardPage() {
         { label: 'Invitaciones pendientes', value: invitesList.length, Icon: Mail },
       ];
     }
+    if (tab === 'metrics') {
+      const r = metrics?.resumen;
+      return [
+        { label: 'Vendido', value: `$${(r?.ingresos || 0).toLocaleString('es-CO')}`, Icon: TrendingUp },
+        { label: 'Pedidos pagados', value: r?.pedidos || 0, Icon: ShoppingBag },
+        { label: 'Ticket promedio', value: `$${(r?.ticketPromedio || 0).toLocaleString('es-CO')}`, Icon: BarChart3 },
+        { label: 'Clientas', value: r?.clientasUnicas || 0, Icon: Users },
+      ];
+    }
+    if (tab === 'followup') {
+      const r = followUps?.resumen;
+      return [
+        { label: 'Opiniones por pedir', value: followUps?.opinionPendiente?.length || 0, Icon: PhoneCall },
+        { label: 'Recompras por llamar', value: followUps?.recompraPendiente?.length || 0, Icon: RefreshCw },
+        { label: 'Nota del producto', value: r?.notaProducto ? `${r.notaProducto} / 5` : '—', Icon: StarIcon },
+        { label: 'Nota del proceso', value: r?.notaProceso ? `${r.notaProceso} / 5` : '—', Icon: CheckCircle2 },
+      ];
+    }
     if (tab === 'hero') {
       return [
         { label: 'Diapositivas', value: heroSlides.length, Icon: Layers },
@@ -1101,6 +1150,139 @@ export default function AdminDashboardPage() {
   const allFilteredSelected = filteredRates.length > 0 && filteredRates.every((r) => selectedRateIds.has(r.id));
 
   // ---------------- Handlers de Tips ----------------
+  // ---------------- Métricas ----------------
+
+  const fetchMetrics = async (dias = metricsDias) => {
+    setLoadingMetrics(true);
+    try {
+      const res = await apiService.getAnalytics(dias);
+      if (res.success) setMetrics(res.data);
+      else showToast(res.error || 'No pudimos calcular las métricas', 'error');
+    } catch (err) {
+      console.error('Error cargando métricas:', err);
+      showToast('No pudimos calcular las métricas', 'error');
+    } finally {
+      setLoadingMetrics(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'metrics') fetchMetrics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, activeTab, metricsDias]);
+
+  // ---------------- Seguimiento ----------------
+
+  const fetchFollowUps = async () => {
+    setLoadingFollowUps(true);
+    try {
+      const res = await apiService.getFollowUps();
+      if (res.success) {
+        setFollowUps(res.data);
+        setFollowConfig({
+          feedbackDelayDays: res.data.config.feedbackDelayDays,
+          repurchaseDelayDays: res.data.config.repurchaseDelayDays,
+        });
+      } else {
+        showToast(res.error || 'No pudimos cargar el seguimiento', 'error');
+      }
+    } catch (err) {
+      console.error('Error cargando seguimiento:', err);
+      showToast('No pudimos cargar el seguimiento', 'error');
+    } finally {
+      setLoadingFollowUps(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'followup') fetchFollowUps();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, activeTab]);
+
+  const openFollowForm = (ficha: any, kind: 'feedback' | 'recompra') => {
+    setFollowTarget(ficha);
+    setFollowKind(kind);
+    setFollowForm({
+      ...emptyFollowForm,
+      status: kind === 'feedback' ? 'CONTACTADA' : 'CONTACTADA',
+      productRating: ficha.productRating ?? 5,
+      processRating: ficha.processRating ?? 5,
+      comment: ficha.feedbackComment || '',
+      notes: ficha.repurchaseNotes || '',
+      channel: ficha.feedbackChannel || 'LLAMADA',
+    });
+  };
+
+  const handleSaveFollowUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!followTarget) return;
+
+    setSavingFollowUp(true);
+    try {
+      const res = await apiService.saveFollowUp({
+        id: followTarget.id,
+        tipo: followKind,
+        ...followForm,
+        // Sin respuesta o sin interés no llevan calificación: quedaría inventada.
+        productRating: followForm.status === 'CONTACTADA' ? followForm.productRating : null,
+        processRating: followForm.status === 'CONTACTADA' ? followForm.processRating : null,
+      });
+      if (res.success) {
+        showToast(res.message || 'Contacto registrado', 'success');
+        setFollowTarget(null);
+        await fetchFollowUps();
+      } else {
+        showToast(res.error || 'No pudimos registrar el contacto', 'error');
+      }
+    } catch (err) {
+      console.error('Error registrando contacto:', err);
+      showToast('No pudimos registrar el contacto', 'error');
+    } finally {
+      setSavingFollowUp(false);
+    }
+  };
+
+  const handleReabrirFollowUp = async (ficha: any, tipo: 'feedback' | 'recompra') => {
+    try {
+      const res = await apiService.saveFollowUp({ id: ficha.id, tipo, action: 'reabrir' });
+      if (res.success) {
+        showToast('Volvió a la lista de pendientes', 'success');
+        await fetchFollowUps();
+      } else {
+        showToast(res.error || 'No pudimos reabrirlo', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos reabrirlo', 'error');
+    }
+  };
+
+  const handleSaveFollowConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFollowUp(true);
+    try {
+      const res = await apiService.saveFollowUp({ action: 'config', ...followConfig });
+      if (res.success) {
+        showToast('Plazos guardados', 'success');
+        await fetchFollowUps();
+      } else {
+        showToast(res.error || 'No pudimos guardar los plazos', 'error');
+      }
+    } catch (err) {
+      showToast('No pudimos guardar los plazos', 'error');
+    } finally {
+      setSavingFollowUp(false);
+    }
+  };
+
+  /** "hace 3 días" / "hoy" — cuánto lleva esperando un contacto. */
+  const desdeHace = (fecha: string | Date | null) => {
+    if (!fecha) return '—';
+    const dias = Math.floor((Date.now() - new Date(fecha).getTime()) / (1000 * 60 * 60 * 24));
+    if (dias <= 0) return 'hoy';
+    if (dias === 1) return 'ayer';
+    return `hace ${dias} días`;
+  };
+
   // ---------------- Portada (hero) ----------------
 
   const fetchHero = async () => {
@@ -1754,6 +1936,10 @@ export default function AdminDashboardPage() {
                 : key === 'crm' ? (data.customers?.length || 0)
                 : key === 'team' ? adminsList.length
                 : key === 'hero' ? heroSlides.length
+                : key === 'metrics' ? 0
+                // Solo lo que toca llamar hoy: el badge es una lista de tareas.
+                : key === 'followup'
+                  ? (followUps?.opinionPendiente?.length || 0) + (followUps?.recompraPendiente?.length || 0)
                 : adminOrders.length;
 
               return (
@@ -3374,6 +3560,430 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {activeTab === 'followup' && (
+          <div className="space-y-6">
+            {/* Plazos: cuándo aparece cada clienta en la bandeja. */}
+            <div className={`${UI.card} space-y-4`}>
+              <div>
+                <h2 className="font-black text-base text-tinta flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-azul" /> Cuándo llamar
+                </h2>
+                <p className="text-xs text-tinta-suave mt-0.5">
+                  Cada pedido pagado entra solo a la lista cuando se cumple el plazo. Cambiar esto reordena lo que
+                  todavía está pendiente; lo ya registrado no se toca.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveFollowConfig} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3">
+                <div>
+                  <label className="ens-eyebrow text-tinta-suave block mb-1.5">
+                    Preguntar la opinión — días tras la compra
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={followConfig.feedbackDelayDays}
+                    onChange={(e) =>
+                      setFollowConfig({ ...followConfig, feedbackDelayDays: Number(e.target.value) })
+                    }
+                    className={UI.input}
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1">
+                    Lo justo para que ya haya llegado y lo haya probado.
+                  </p>
+                </div>
+                <div>
+                  <label className="ens-eyebrow text-tinta-suave block mb-1.5">
+                    Ofrecer la recompra — días tras la compra
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    value={followConfig.repurchaseDelayDays}
+                    onChange={(e) =>
+                      setFollowConfig({ ...followConfig, repurchaseDelayDays: Number(e.target.value) })
+                    }
+                    className={UI.input}
+                  />
+                  <p className="text-[10px] text-tinta-suave mt-1">
+                    Calcúlalo por cuánto le dura el producto a una mamá.
+                  </p>
+                </div>
+                <div className="flex items-start pt-6">
+                  <button type="submit" disabled={savingFollowUp} className={`${UI.btnPrimary} w-full sm:w-auto`}>
+                    <Save className="w-4 h-4" /> Guardar
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Bandeja */}
+            <div className={`${UI.card} space-y-5`}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-borde pb-4">
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    ['opinion', 'Pedir opinión', followUps?.opinionPendiente?.length || 0],
+                    ['recompra', 'Ofrecer recompra', followUps?.recompraPendiente?.length || 0],
+                    ['registradas', 'Ya registradas', followUps?.registradas?.length || 0],
+                  ] as const).map(([key, label, count]) => (
+                    <button
+                      key={key}
+                      onClick={() => setFollowTab(key)}
+                      className={`h-10 px-4 rounded-xl border font-bold text-xs transition-colors ens-focus inline-flex items-center gap-2 ${
+                        followTab === key
+                          ? 'bg-azul border-azul text-white'
+                          : 'bg-white border-borde text-tinta-suave hover:bg-cian hover:text-tinta'
+                      }`}
+                    >
+                      {label}
+                      <span
+                        className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                          followTab === key ? 'bg-white/25' : 'bg-cian text-azul'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={fetchFollowUps} className={UI.btnGhost}>
+                  <RefreshCw className="w-4 h-4" /> Actualizar
+                </button>
+              </div>
+
+              {loadingFollowUps ? (
+                <p className="py-12 text-center text-sm text-tinta-suave animate-pulse">Cargando el seguimiento…</p>
+              ) : (
+                (() => {
+                  const lista =
+                    followTab === 'opinion'
+                      ? followUps?.opinionPendiente || []
+                      : followTab === 'recompra'
+                        ? followUps?.recompraPendiente || []
+                        : followUps?.registradas || [];
+
+                  const vacio =
+                    followTab === 'opinion'
+                      ? { t: 'Nadie por llamar todavía', s: 'Cuando un pedido cumpla el plazo aparecerá aquí.' }
+                      : followTab === 'recompra'
+                        ? { t: 'Ninguna recompra por ofrecer', s: 'Las compras recientes aún no cumplen el plazo.' }
+                        : { t: 'Todavía no has registrado contactos', s: 'Lo que vayas registrando queda aquí.' };
+
+                  if (lista.length === 0) {
+                    return (
+                      <div className="py-14 text-center bg-white rounded-3xl border border-dashed border-borde">
+                        <PhoneCall className="w-10 h-10 text-borde mx-auto mb-3" />
+                        <p className="font-bold text-tinta-suave">{vacio.t}</p>
+                        <p className="text-xs text-tinta-suave mt-1">{vacio.s}</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <ul className="space-y-3">
+                      {lista.map((f: any) => {
+                        const esRecompra = followTab === 'recompra';
+                        const vence = esRecompra ? f.repurchaseDueAt : f.feedbackDueAt;
+                        return (
+                          <li
+                            key={`${f.id}-${followTab}`}
+                            className="p-4 rounded-2xl border border-borde bg-white flex flex-col lg:flex-row lg:items-center gap-4"
+                          >
+                            {/* Quién y cómo contactarla */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-bold text-sm text-tinta">{f.cliente}</p>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cian text-azul border border-borde">
+                                  {f.orderNumber}
+                                </span>
+                                {followTab !== 'registradas' && (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amarillo text-tinta border border-borde">
+                                    Esperando {desdeHace(vence)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-tinta-suave mt-1">
+                                {f.productos.join(' · ')} — ${f.total.toLocaleString('es-CO')}
+                              </p>
+                              <p className="text-xs text-tinta-suave mt-0.5">
+                                {f.ciudad || 'Sin ciudad'} · compró {desdeHace(f.compradoEl)}
+                              </p>
+                            </div>
+
+                            {/* Canales directos: el objetivo es levantar el teléfono. */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {f.telefono && (
+                                <>
+                                  <a
+                                    href={`tel:${f.telefono}`}
+                                    title={`Llamar a ${f.telefono}`}
+                                    className={UI.btnGhost}
+                                  >
+                                    <PhoneCall className="w-3.5 h-3.5" /> {f.telefono}
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${f.telefono.replace(/\D/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Escribir por WhatsApp"
+                                    className={UI.btnGhost}
+                                  >
+                                    <Send className="w-3.5 h-3.5" />
+                                  </a>
+                                </>
+                              )}
+                              <a href={`mailto:${f.email}`} title={f.email} className={UI.btnGhost}>
+                                <Mail className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
+
+                            {/* Resultado */}
+                            <div className="shrink-0">
+                              {followTab === 'registradas' ? (
+                                <div className="text-right space-y-1">
+                                  {f.feedbackStatus !== 'PENDIENTE' && (
+                                    <p className="text-[11px] text-tinta-suave">
+                                      Opinión:{' '}
+                                      <span className="font-bold text-tinta">
+                                        {f.feedbackStatus === 'CONTACTADA' && f.productRating
+                                          ? `${f.productRating}/5 producto · ${f.processRating}/5 proceso`
+                                          : f.feedbackStatus.replace('_', ' ').toLowerCase()}
+                                      </span>
+                                    </p>
+                                  )}
+                                  {f.repurchaseStatus !== 'PENDIENTE' && (
+                                    <p className="text-[11px] text-tinta-suave">
+                                      Recompra:{' '}
+                                      <span className="font-bold text-tinta">
+                                        {f.repurchaseStatus.replace(/_/g, ' ').toLowerCase()}
+                                      </span>
+                                    </p>
+                                  )}
+                                  <button
+                                    onClick={() =>
+                                      handleReabrirFollowUp(
+                                        f,
+                                        f.feedbackStatus !== 'PENDIENTE' ? 'feedback' : 'recompra'
+                                      )
+                                    }
+                                    className="text-[10px] font-bold text-azul hover:text-azul-hondo transition-colors"
+                                  >
+                                    Volver a pendiente
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => openFollowForm(f, esRecompra ? 'recompra' : 'feedback')}
+                                  className={UI.btnPrimary}
+                                >
+                                  <Check className="w-4 h-4" /> Registrar
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Lo que dijo, si ya se registró */}
+                            {followTab === 'registradas' && (f.feedbackComment || f.repurchaseNotes) && (
+                              <p className="lg:w-64 shrink-0 text-xs text-tinta-suave italic bg-cian rounded-xl p-3 border border-borde">
+                                “{f.feedbackComment || f.repurchaseNotes}”
+                              </p>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'metrics' && (
+          <div className="space-y-6">
+            {/* Ventana de tiempo. Todo el módulo se recalcula con esto. */}
+            <div className={`${UI.card} flex flex-wrap items-center justify-between gap-4`}>
+              <div>
+                <h2 className="font-black text-base text-tinta flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-azul" /> Periodo
+                </h2>
+                <p className="text-xs text-tinta-suave mt-0.5">
+                  Solo cuentan los pedidos pagados. Los que quedaron sin pagar se muestran aparte.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { d: 7, t: '7 días' },
+                  { d: 30, t: '30 días' },
+                  { d: 90, t: '90 días' },
+                  { d: 365, t: '1 año' },
+                  { d: 0, t: 'Todo' },
+                ].map(({ d, t }) => (
+                  <button
+                    key={d}
+                    onClick={() => setMetricsDias(d)}
+                    className={`h-10 px-4 rounded-xl border font-bold text-xs transition-colors ens-focus ${
+                      metricsDias === d
+                        ? 'bg-azul border-azul text-white'
+                        : 'bg-white border-borde text-tinta-suave hover:bg-cian hover:text-tinta'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+                <button onClick={() => fetchMetrics()} className={UI.btnGhost}>
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {loadingMetrics ? (
+              <p className="py-16 text-center text-sm text-tinta-suave animate-pulse">Calculando métricas…</p>
+            ) : !metrics || metrics.resumen.pedidos === 0 ? (
+              <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-borde">
+                <BarChart3 className="w-10 h-10 text-borde mx-auto mb-3" />
+                <p className="font-bold text-tinta-suave">Todavía no hay ventas en este periodo</p>
+                <p className="text-xs text-tinta-suave mt-1">
+                  Cuando entren pedidos pagados, aquí aparecen los productos y las ciudades.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Evolución mensual: barras proporcionales, sin librería. */}
+                <div className={`${UI.card} space-y-4`}>
+                  <div>
+                    <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-azul" /> Últimos 12 meses
+                    </h3>
+                    <p className="text-xs text-tinta-suave mt-0.5">
+                      Recaudo por mes. Pasa el cursor por cada barra para ver la cifra exacta.
+                    </p>
+                  </div>
+
+                  {(() => {
+                    const tope = Math.max(...metrics.meses.map((m: any) => m.ingresos), 1);
+                    return (
+                      <div className="flex items-end gap-1.5 sm:gap-3 h-44 pt-2">
+                        {metrics.meses.map((m: any) => (
+                          <div key={m.mes} className="flex-1 flex flex-col items-center justify-end gap-2 h-full group">
+                            <span className="text-[10px] font-bold text-azul opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                              ${Math.round(m.ingresos / 1000)}k
+                            </span>
+                            <div
+                              title={`${m.etiqueta}: $${m.ingresos.toLocaleString('es-CO')} · ${m.pedidos} pedidos`}
+                              style={{ height: `${Math.max((m.ingresos / tope) * 100, m.ingresos > 0 ? 4 : 1)}%` }}
+                              className={`w-full rounded-t-lg transition-colors ${
+                                m.ingresos > 0 ? 'bg-celeste group-hover:bg-azul' : 'bg-borde'
+                              }`}
+                            />
+                            <span className="text-[10px] font-bold text-tinta-suave capitalize">{m.etiqueta}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Ranking reutilizable: producto, ciudad, clienta… */}
+                  {[
+                    {
+                      titulo: 'Productos más vendidos',
+                      Icon: ShoppingBag,
+                      filas: metrics.productos,
+                      unidad: 'unidades',
+                      pista: 'Suma de unidades en pedidos pagados.',
+                    },
+                    {
+                      titulo: 'Ciudades que más piden',
+                      Icon: MapPin,
+                      filas: metrics.ciudades,
+                      unidad: 'pedidos',
+                      pista: 'Útil para decidir dónde conviene bajar el flete.',
+                    },
+                    {
+                      titulo: 'Presentaciones preferidas',
+                      Icon: Layers,
+                      filas: metrics.presentaciones,
+                      unidad: 'unidades',
+                      pista: 'Qué tamaño se lleva la gente. Sirve para producción.',
+                    },
+                    {
+                      titulo: 'Clientas que más compran',
+                      Icon: Users,
+                      filas: metrics.clientas,
+                      unidad: 'pedidos',
+                      pista: 'Ordenadas por lo que han gastado en total.',
+                    },
+                  ].map(({ titulo, Icon, filas, unidad, pista }) => (
+                    <div key={titulo} className={`${UI.card} space-y-4`}>
+                      <div>
+                        <h3 className="font-black text-base text-tinta flex items-center gap-2">
+                          <Icon className="w-5 h-5 text-azul" /> {titulo}
+                        </h3>
+                        <p className="text-xs text-tinta-suave mt-0.5">{pista}</p>
+                      </div>
+
+                      {filas.length === 0 ? (
+                        <p className="py-8 text-center text-xs text-tinta-suave italic">Sin datos en este periodo.</p>
+                      ) : (
+                        <ol className="space-y-2.5">
+                          {filas.map((f: any, i: number) => {
+                            const tope = filas[0].unidades || 1;
+                            return (
+                              <li key={f.nombre} className="flex items-center gap-3">
+                                <span className="w-5 shrink-0 text-[11px] font-black text-tinta-suave tabular-nums">
+                                  {i + 1}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-baseline justify-between gap-3">
+                                    <p className="text-xs font-bold text-tinta truncate">{f.nombre}</p>
+                                    <p className="text-xs text-tinta-suave shrink-0 tabular-nums">
+                                      <span className="font-black text-tinta">{f.unidades}</span> {unidad}
+                                      <span className="hidden sm:inline">
+                                        {' '}
+                                        · ${f.ingresos.toLocaleString('es-CO')}
+                                      </span>
+                                    </p>
+                                  </div>
+                                  {/* La barra da la proporción de un vistazo:
+                                      una tabla de números sola no la muestra. */}
+                                  <div className="mt-1 h-1.5 rounded-full bg-cian overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full bg-azul"
+                                      style={{ width: `${Math.max((f.unidades / tope) * 100, 3)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ol>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {metrics.resumen.sinPagar > 0 && (
+                  <div className={`${UI.card} flex items-start gap-3`}>
+                    <Sparkles className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold text-sm text-tinta">
+                        {metrics.resumen.sinPagar} pedido{metrics.resumen.sinPagar === 1 ? '' : 's'} se quedó sin pagar
+                      </p>
+                      <p className="text-xs text-tinta-suave mt-0.5">
+                        No entran en las cifras de arriba. Están en el módulo Pedidos como «Orden generada» y se pueden
+                        recuperar con una llamada.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {activeTab === 'hero' && (
           <div className="space-y-6">
             {/* Vista previa: la misma composición de la portada, a escala.
@@ -3858,6 +4468,176 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </main>
+
+      {/* MODAL DE REGISTRO DE CONTACTO */}
+      {followTarget && (
+        <div className="fixed inset-0 z-[99999] bg-tinta/70 p-4 overflow-y-auto">
+          <div className="min-h-full flex items-start justify-center">
+            <form
+              onSubmit={handleSaveFollowUp}
+              className="bg-white border border-borde max-w-lg w-full rounded-3xl p-6 sm:p-8 text-tinta shadow-2xl space-y-6 my-8"
+            >
+              <div className="flex items-start justify-between border-b border-borde pb-4 gap-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-azul bg-cian px-3 py-1 rounded-full border border-borde">
+                    {followKind === 'feedback' ? 'Opinión de la clienta' : 'Oferta de recompra'}
+                  </span>
+                  <h3 className="font-black text-xl text-tinta mt-1.5">{followTarget.cliente}</h3>
+                  <p className="text-xs text-tinta-suave mt-0.5">
+                    {followTarget.orderNumber} · {followTarget.productos.join(' · ')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFollowTarget(null)}
+                  className="text-tinta-suave hover:text-tinta p-1.5 rounded-full hover:bg-cian transition-colors shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Cómo terminó el contacto */}
+              <div>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-2">
+                  ¿Cómo terminó?
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {(followKind === 'feedback'
+                    ? [
+                        ['CONTACTADA', 'Contestó'],
+                        ['SIN_RESPUESTA', 'No contestó'],
+                        ['NO_INTERESA', 'No quiso opinar'],
+                      ]
+                    : [
+                        ['VA_A_COMPRAR', 'Va a comprar'],
+                        ['CONTACTADA', 'Lo va a pensar'],
+                        ['NO_QUIERE', 'No quiere'],
+                      ]
+                  ).map(([valor, texto]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setFollowForm({ ...followForm, status: valor })}
+                      className={`h-11 px-3 rounded-xl border font-bold text-xs transition-colors ens-focus ${
+                        followForm.status === valor
+                          ? 'bg-azul border-azul text-white'
+                          : 'bg-white border-borde text-tinta-suave hover:bg-cian hover:text-tinta'
+                      }`}
+                    >
+                      {texto}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {followKind === 'feedback' ? (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-2">
+                      Por dónde la contactaste
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['LLAMADA', 'WHATSAPP', 'EMAIL'].map((canal) => (
+                        <button
+                          key={canal}
+                          type="button"
+                          onClick={() => setFollowForm({ ...followForm, channel: canal })}
+                          className={`h-11 rounded-xl border font-bold text-xs capitalize transition-colors ens-focus ${
+                            followForm.channel === canal
+                              ? 'bg-celeste border-azul text-azul'
+                              : 'bg-white border-borde text-tinta-suave hover:bg-cian'
+                          }`}
+                        >
+                          {canal.toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Las notas solo tienen sentido si contestó. */}
+                  {followForm.status === 'CONTACTADA' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        ['productRating', '¿Qué le pareció el producto?'],
+                        ['processRating', '¿Y el proceso de compra?'],
+                      ].map(([campo, etiqueta]) => (
+                        <div key={campo}>
+                          <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-2">
+                            {etiqueta}
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                aria-label={`${n} de 5`}
+                                onClick={() => setFollowForm({ ...followForm, [campo]: n })}
+                                className="p-0.5 ens-focus rounded"
+                              >
+                                <StarIcon
+                                  className={`w-7 h-7 transition-colors ${
+                                    n <= followForm[campo] ? 'text-amarillo fill-amarillo' : 'text-borde'
+                                  }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                      Qué dijo
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={followForm.comment}
+                      onChange={(e) => setFollowForm({ ...followForm, comment: e.target.value })}
+                      placeholder="«Le encantó el olor pero la tapa se le derramó en el bolso…»"
+                      className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
+                    />
+                    <p className="text-[10px] text-tinta-suave mt-1">
+                      Textual, si puedes. Es lo que después sirve para mejorar el producto.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-tinta-suave mb-1.5">
+                    Notas de la llamada
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={followForm.notes}
+                    onChange={(e) => setFollowForm({ ...followForm, notes: e.target.value })}
+                    placeholder="«Pidió que la llamemos en dos semanas, cuando se le acabe la mantequilla.»"
+                    className="w-full px-4 py-2.5 rounded-xl border border-borde text-sm bg-cian focus:outline-none focus:ring-2 focus:ring-celeste"
+                  />
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-borde flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFollowTarget(null)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-tinta-suave hover:bg-cian transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingFollowUp}
+                  className="btn-ensueno-primary px-6 py-2.5 text-xs font-black uppercase tracking-wider shadow-md disabled:opacity-50"
+                >
+                  {savingFollowUp ? 'Guardando...' : 'Guardar contacto'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE DIAPOSITIVA DEL HERO */}
       {showHeroForm && (

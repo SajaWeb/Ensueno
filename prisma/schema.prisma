@@ -202,6 +202,7 @@ model Order {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
   items              OrderItem[]
+  followUp           OrderFollowUp?
 }
 
 model OrderItem {
@@ -303,6 +304,61 @@ model HeroSlide {
   sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+/**
+ * Seguimiento post-venta de un pedido. Una fila por pedido, dos momentos:
+ *
+ *  1. El feedback: se llama a la clienta unos días después de la entrega para
+ *     saber qué le pareció el producto y cómo le fue con el proceso.
+ *  2. La recompra: semanas más tarde se le vuelve a llamar para ver si quiere
+ *     reponer el producto.
+ *
+ * Van juntos porque es el mismo contacto con la misma persona y el equipo
+ * necesita ver el historial completo sin saltar entre dos pantallas.
+ */
+model OrderFollowUp {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // --- Opinión post-compra ---
+  /** PENDIENTE · CONTACTADA · SIN_RESPUESTA · NO_INTERESA */
+  feedbackStatus  String    @default("PENDIENTE")
+  /** LLAMADA · WHATSAPP · EMAIL */
+  feedbackChannel String?
+  /** 1 a 5. Qué le pareció el producto. */
+  productRating   Int?
+  /** 1 a 5. Qué le pareció el proceso de compra y entrega. */
+  processRating   Int?
+  feedbackComment String?
+  feedbackDueAt   DateTime?
+  feedbackAt      DateTime?
+
+  // --- Recompra ---
+  /** PENDIENTE · CONTACTADA · VA_A_COMPRAR · NO_QUIERE */
+  repurchaseStatus  String    @default("PENDIENTE")
+  repurchaseNotes   String?
+  repurchaseDueAt   DateTime?
+  repurchaseAt      DateTime?
+
+  /** Correo de quien registró el último contacto. */
+  handledBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([feedbackStatus])
+  @@index([repurchaseStatus])
+}
+
+/** Plazos del seguimiento post-venta. Fila única, igual que ShippingConfig. */
+model FollowUpConfig {
+  id                  String   @id @default("global")
+  /** Días tras el pedido para pedirle la opinión a la clienta. */
+  feedbackDelayDays   Int      @default(5)
+  /** Días tras el pedido para llamarla por la recompra. */
+  repurchaseDelayDays Int      @default(30)
+  updatedAt           DateTime @updatedAt
 }
 
 /** Ajustes globales del hero. Fila única, igual que ShippingConfig. */

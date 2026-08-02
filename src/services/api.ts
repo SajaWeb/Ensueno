@@ -235,6 +235,27 @@ export const apiService = {
     return res.json();
   },
 
+  // ---------------- Métricas y seguimiento ----------------
+
+  async getAnalytics(dias = 0) {
+    const res = await fetch(`/api/v1/admin/analytics${dias ? `?dias=${dias}` : ''}`, { cache: 'no-store' });
+    return res.json();
+  },
+
+  async getFollowUps() {
+    const res = await fetch('/api/v1/admin/followups', { cache: 'no-store' });
+    return res.json();
+  },
+
+  async saveFollowUp(payload: Record<string, any>) {
+    const res = await fetch('/api/v1/admin/followups', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  },
+
   // ---------------- Hero de la portada ----------------
 
   async getHero(includeAll = false) {
