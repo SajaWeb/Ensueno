@@ -881,7 +881,7 @@ export default function AdminDashboardPage() {
       price: '37800',
       originalPrice: '56700',
       savingText: 'Ahorras $18.900 COP',
-      imageUrl: 'https://i.postimg.cc/dV03DDbN/Whats-App-Image-2026-07-24-at-10-08-29-AM-(3).jpg',
+      imageUrl: 'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/productos/panitos-humedos.webp',
       videoUrl: '',
       productId: products[0]?.id || '',
       code: '',

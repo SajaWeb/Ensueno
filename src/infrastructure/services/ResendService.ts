@@ -4,7 +4,7 @@ const resendApiKey = process.env.RESEND_API_KEY || '';
 const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ensueno.com.co';
 const SUPPORT_EMAIL = 'soporte@ensueno.com.co';
-const LOGO_URL = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
+const LOGO_URL = 'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/logo.webp';
 
 /* --------------------------------------------------------------------------
  * Paleta de marca, igual que el sitio. Los clientes de correo no entienden

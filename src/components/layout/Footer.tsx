@@ -7,7 +7,7 @@ import { Heart, ShieldCheck, Moon, Award } from 'lucide-react';
 
 import { useUser } from '@/context/UserContext';
 
-const LOGO_URL = 'https://i.postimg.cc/8Cjbdp6M/logoensuno.png';
+const LOGO_URL = 'https://res.cloudinary.com/io8kzyuj/image/upload/ensueno/marca/logo.webp';
 
 const TRUST = [
   {

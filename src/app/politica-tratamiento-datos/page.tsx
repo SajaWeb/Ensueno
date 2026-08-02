@@ -1,147 +1,174 @@
 import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Lock, FileText, ArrowLeft, Mail, Phone, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Lock, FileText, ArrowLeft, Mail, Phone, Check } from 'lucide-react';
+import NubeDivider from '@/components/ui/NubeDivider';
 
 export const metadata = {
   title: 'Política de Tratamiento de Datos Personales | Ensueño Baby',
   description: 'Política de protección y tratamiento de datos personales de Ensueño Baby conforme a la Ley 1581 de 2012 de Colombia (Habeas Data).',
 };
 
+/** Para qué se usan los datos. Cada tarjeta de la rejilla sale de aquí. */
+const FINALIDADES = [
+  'Procesamiento de compras, despacho y trazabilidad logística de pedidos.',
+  'Personalización de sugerencias de productos según la etapa de desarrollo del bebé.',
+  'Envío de recordatorios automáticos de recompra para mantener la rutina de sueño.',
+  'Notificación de cupones, promociones exclusivas y estado de pagos de MercadoPago.',
+];
+
+const DERECHOS = [
+  'Conocer, actualizar y rectificar tus datos personales en cualquier momento.',
+  'Solicitar prueba de la autorización otorgada a Ensueño Baby.',
+  'Ser informada sobre el uso dado a tus datos personales.',
+  'Revocar la autorización o solicitar la supresión de tus datos cuando consideres que no se respeten los principios y garantías constitucionales.',
+];
+
+/** Encabezado de sección: mismo tratamiento en las cinco. */
+function SeccionTitulo({ Icon, children }: { Icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <h2 className="flex items-center gap-2.5 font-display text-xl text-tinta border-b border-borde pb-3">
+      <Icon className="w-5 h-5 text-azul shrink-0" aria-hidden="true" />
+      {children}
+    </h2>
+  );
+}
+
 export default function PoliticaTratamientoDatosPage() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-pink-50/60 via-purple-50/40 to-sky-50/60 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Navigation back link */}
-        <div>
+    <div className="page-entry-anim">
+      {/* ================= Encabezado ================= */}
+      <section className="ens-band ens-band--celeste">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
+          <p className="ens-eyebrow text-azul">Habeas Data · Ley 1581 de 2012</p>
+
+          <h1 className="mt-3 font-display text-tinta leading-tight text-[clamp(2rem,5vw,3.5rem)]">
+            Política de tratamiento de datos
+          </h1>
+
+          <p className="mt-5 text-lg text-tinta-suave leading-relaxed">
+            En Ensueño cuidamos la información de las mamás y sus familias con el mismo rigor con el
+            que formulamos los productos.
+          </p>
+
+          <p className="mt-6 text-xs text-tinta-suave">
+            Última actualización: <strong className="text-tinta">julio de 2026</strong> · Vigente para
+            el territorio colombiano.
+          </p>
+        </div>
+
+        <NubeDivider className="text-white -mb-px" />
+      </section>
+
+      {/* ================= Contenido ================= */}
+      <section className="ens-band ens-band--blanco">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-extrabold text-purple-700 hover:text-purple-900 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full border border-purple-200/60 shadow-2xs transition-all"
+            className="inline-flex items-center gap-2 text-sm font-bold text-tinta-suave hover:text-azul transition-colors mb-10"
           >
-            <ArrowLeft className="w-4 h-4" /> Volver al Inicio
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+            Volver al inicio
           </Link>
-        </div>
 
-        {/* Hero Header */}
-        <div className="bg-white/90 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-purple-100 shadow-xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-100/80 text-purple-800 text-xs font-bold uppercase tracking-wider border border-purple-200">
-            <ShieldCheck className="w-4 h-4 text-purple-600" />
-            Habeas Data - Ley 1581 de 2012
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
-            Política de Tratamiento de Datos Personales
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            En <strong>Ensueño Baby</strong> velamos por la seguridad, privacidad y confidencialidad de la información de nuestras mamás y sus familias. Cumplimos estrictamente con la legislación colombiana en materia de protección de datos personales.
-          </p>
-          <div className="text-[11px] text-slate-400 border-t border-slate-100 pt-3">
-            Última actualización: <strong>Julio de 2026</strong> • Vigente para el territorio colombiano.
-          </div>
-        </div>
+          <div className="space-y-12 text-tinta-suave leading-relaxed">
+            {/* 1 */}
+            <section className="space-y-4">
+              <SeccionTitulo Icon={FileText}>1. Quién responde por tus datos</SeccionTitulo>
+              <p>
+                El responsable del tratamiento de los datos personales recopilados a través de{' '}
+                <strong className="text-tinta">ensueno.com.co</strong> es Ensueño Baby Colombia.
+              </p>
+              <dl className="bg-cian border border-borde rounded-2xl p-5 grid sm:grid-cols-2 gap-4 text-sm">
+                {[
+                  ['Razón social', 'Ensueño Baby Cuidado Infantil S.A.S.'],
+                  ['Domicilio principal', 'Medellín, Antioquia — Colombia'],
+                  ['Correo de privacidad', 'privacidad@ensueno.com.co'],
+                  ['Atención al cliente', 'soporte@ensueno.com.co'],
+                ].map(([etiqueta, valor]) => (
+                  <div key={etiqueta}>
+                    <dt className="ens-eyebrow text-tinta-suave">{etiqueta}</dt>
+                    <dd className="mt-1 font-bold text-tinta break-words">{valor}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
 
-        {/* Content Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-sm space-y-8 text-slate-700 text-xs sm:text-sm leading-relaxed">
-          {/* Section 1 */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-base border-b border-purple-100 pb-2">
-              <FileText className="w-5 h-5 text-purple-600" />
-              <span>1. Identificación del Responsable del Tratamiento</span>
-            </div>
-            <p>
-              El responsable del tratamiento de tus datos personales recopilados a través de la plataforma web <strong>ensueno.com.co</strong> es <strong>Ensueño Baby Colombia</strong>:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
-              <li><strong>Razón Social:</strong> Ensueño Baby Cuidado Infantil S.A.S.</li>
-              <li><strong>Correo Electrónico de Contacto:</strong> privacidad@ensueno.com.co</li>
-              <li><strong>Atención al Cliente:</strong> soporte@ensueno.com.co</li>
-              <li><strong>Domicilio Principal:</strong> Medellín, Antioquia - Colombia.</li>
-            </ul>
-          </section>
+            {/* 2 */}
+            <section className="space-y-4">
+              <SeccionTitulo Icon={Lock}>2. Para qué usamos tus datos</SeccionTitulo>
+              <p>
+                Los datos recolectados —nombre, correo, teléfono, dirección de despacho en Colombia y
+                datos del perfil del bebé como la fecha de nacimiento y el tipo de piel— se usan
+                exclusivamente para:
+              </p>
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {FINALIDADES.map((finalidad) => (
+                  <li
+                    key={finalidad}
+                    className="bg-white border border-borde rounded-2xl p-4 flex items-start gap-2.5 text-sm"
+                  >
+                    <Check className="w-4 h-4 text-azul shrink-0 mt-0.5" aria-hidden="true" />
+                    <span>{finalidad}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
-          {/* Section 2 */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-base border-b border-purple-100 pb-2">
-              <Lock className="w-5 h-5 text-purple-600" />
-              <span>2. Finalidad del Tratamiento de Datos</span>
-            </div>
-            <p>
-              Los datos personales recolectados (incluyendo nombres, correos electrónicos, teléfonos de contacto, direcciones de despacho en Colombia y datos del perfil del bebé como fecha de nacimiento y tipo de piel) serán utilizados exclusivamente para las siguientes finalidades:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="p-3.5 bg-pink-50/60 rounded-2xl border border-pink-100 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-pink-600 shrink-0 mt-0.5" />
-                <span className="text-xs text-pink-950 font-medium">Procesamiento de compras, despacho y trazabilidad logística de pedidos.</span>
+            {/* 3 */}
+            <section className="space-y-4">
+              <SeccionTitulo Icon={ShieldCheck}>3. Datos sensibles del bebé</SeccionTitulo>
+              <p>
+                La información sobre la piel del bebé —sensible, atópica o con brotes— se trata con el
+                máximo rigor de confidencialidad y únicamente para recomendar productos hipoalergénicos
+                y probados en pieles sensibles.
+              </p>
+            </section>
+
+            {/* 4 */}
+            <section className="space-y-4">
+              <SeccionTitulo Icon={Mail}>4. Tus derechos como titular</SeccionTitulo>
+              <ul className="space-y-2.5">
+                {DERECHOS.map((derecho) => (
+                  <li key={derecho} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-azul shrink-0 mt-1" aria-hidden="true" />
+                    <span>{derecho}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* 5 */}
+            <section className="space-y-4">
+              <SeccionTitulo Icon={Phone}>5. Cómo ejercerlos</SeccionTitulo>
+              <p>
+                Escríbenos para actualizar, rectificar o eliminar tus datos personales. Respondemos a
+                toda solicitud formal recibida en:
+              </p>
+              <div className="bg-celeste border border-borde rounded-2xl p-6 text-center">
+                <p className="ens-eyebrow text-azul">Correo oficial</p>
+                <a
+                  href="mailto:privacidad@ensueno.com.co"
+                  className="mt-2 inline-block font-display text-xl sm:text-2xl text-azul hover:text-azul-hondo transition-colors break-all"
+                >
+                  privacidad@ensueno.com.co
+                </a>
               </div>
-              <div className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-100 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
-                <span className="text-xs text-purple-950 font-medium">Personalización de sugerencias de productos según la etapa de desarrollo del bebé.</span>
-              </div>
-              <div className="p-3.5 bg-amber-50/60 rounded-2xl border border-amber-100 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span className="text-xs text-amber-950 font-medium">Envío de recordatorios automáticos de recompra para mantener la rutina de sueño.</span>
-              </div>
-              <div className="p-3.5 bg-sky-50/60 rounded-2xl border border-sky-100 flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
-                <span className="text-xs text-sky-950 font-medium">Notificación de cupones, promociones exclusivas y estado de pagos de MercadoPago.</span>
-              </div>
-            </div>
-          </section>
+            </section>
 
-          {/* Section 3 */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-base border-b border-purple-100 pb-2">
-              <ShieldCheck className="w-5 h-5 text-purple-600" />
-              <span>3. Tratamiento de Datos Sensibles del Bebé</span>
+            {/* Cierre */}
+            <div className="border-t border-borde pt-8 text-center space-y-6">
+              <p className="text-sm">
+                Al marcar «Acepto la Política de Tratamiento de Datos» en los formularios de registro y
+                compra, autorizas de manera libre, previa, expresa e informada a Ensueño Baby para el
+                uso responsable de tus datos.
+              </p>
+              <Link href="/" className="ens-btn ens-btn--azul">
+                Volver a la tienda
+              </Link>
             </div>
-            <p>
-              Garantizamos que la información referente a la salud de la piel del bebé (ej. piel sensible, atópica o con brotes) es tratada con máximo rigor de confidencialidad y únicamente con el fin de recomendar productos hipoalergénicos y probados en pieles sensibles.
-            </p>
-          </section>
-
-          {/* Section 4 */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-base border-b border-purple-100 pb-2">
-              <Mail className="w-5 h-5 text-purple-600" />
-              <span>4. Derechos de los Titulares (Habeas Data)</span>
-            </div>
-            <p>
-              Como titular de los datos personales tienes derecho a:
-            </p>
-            <ul className="list-disc pl-5 space-y-1.5 text-xs text-slate-600">
-              <li>Conocer, actualizar y rectificar tus datos personales en cualquier momento.</li>
-              <li>Solicitar prueba de la autorización otorgada a Ensueño Baby.</li>
-              <li>Ser informada sobre el uso dado a tus datos personales.</li>
-              <li>Revocar la autorización o solicitar la supresión de tus datos cuando consideres que no se respeten los principios y garantías constitucionales.</li>
-            </ul>
-          </section>
-
-          {/* Section 5 */}
-          <section className="space-y-3">
-            <div className="flex items-center gap-2.5 text-purple-800 font-extrabold text-base border-b border-purple-100 pb-2">
-              <Phone className="w-5 h-5 text-purple-600" />
-              <span>5. Canales para Ejercer tus Derechos</span>
-            </div>
-            <p>
-              Puedes enviar una solicitud formal de actualización, rectificación o eliminación de tus datos personales escribiendo a nuestro correo oficial:
-            </p>
-            <div className="p-4 bg-purple-50 rounded-2xl border border-purple-200 text-center font-bold text-xs text-purple-900">
-              ✉️ Correo Oficial: <a href="mailto:privacidad@ensueno.com.co" className="text-purple-700 underline font-mono">privacidad@ensueno.com.co</a>
-            </div>
-          </section>
-
-          {/* Contact & Footer Back Button */}
-          <div className="pt-6 border-t border-slate-100 text-center space-y-4">
-            <p className="text-xs text-slate-500">
-              Al hacer clic en "Acepto la Política de Tratamiento de Datos" en nuestros formularios de registro y compra, autorizas de manera libre, previa, expresa e informada a Ensueño Baby para el uso responsable de tus datos.
-            </p>
-            <Link
-              href="/"
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-md transition-all uppercase tracking-wider"
-            >
-              Entendido y Volver a la Tienda
-            </Link>
           </div>
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }
